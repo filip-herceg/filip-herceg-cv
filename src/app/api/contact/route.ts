@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     // TODO: integrate SMTP/Resend
     console.log('Contact submission', { name, email, message })
     return NextResponse.json({ received: true }, { status: 202 })
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 })
   }
 }

@@ -5,7 +5,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 
-export const metadata = { title: 'Contact – Filip Herceg' }
 
 export default function ContactPage() {
   const [status, setStatus] = useState<'idle'|'sending'|'sent'|'error'>('idle')

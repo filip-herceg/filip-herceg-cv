@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default function HomePage() {
   const projects = [
     { title: 'Project One', description: 'A cool thing using X.', tags: ['Next.js','TypeScript'] },
