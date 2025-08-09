@@ -3,6 +3,7 @@ import './globals.css'
 import { SiteHeader } from '@/components/layout/site-header'
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.SITE_URL || 'http://localhost:3000'),
   title: 'Filip Herceg – Portfolio',
   description: 'Personal portfolio of Filip Herceg: projects, experience, contact.',
   openGraph: {
