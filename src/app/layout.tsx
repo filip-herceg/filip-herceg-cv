@@ -8,7 +8,15 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Filip Herceg – Portfolio',
     description: 'Projects, experience, and contact information.',
-    type: 'website'
+    type: 'website',
+    images: [
+      {
+        url: '/og.png',
+        width: 1200,
+        height: 630,
+        alt: 'Filip Herceg Portfolio'
+      }
+    ]
   }
 }
 

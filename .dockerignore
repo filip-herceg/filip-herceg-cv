@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+Dockerfile*
+README.md
+LICENSE
+coverage
+.next/cache
+.env*
+*.local
+docs
+helm
+k8s
+.github
+vitest.config.ts
+lighthouserc.json
