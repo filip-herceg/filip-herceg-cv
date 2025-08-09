@@ -1,0 +1,28 @@
+name: CD
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+      - uses: azure/setup-helm@v4
+      - name: Kube config
+        run: |
+          kubectl config set-cluster cluster --server="${{ secrets.K8S_SERVER }}" --insecure-skip-tls-verify=true
+          kubectl config set-credentials deployer --token="${{ secrets.K8S_TOKEN }}"
+          kubectl config set-context ctx --cluster=cluster --user=deployer
+          kubectl config use-context ctx
+      - name: Create namespace
+        run: kubectl get ns portfolio || kubectl create ns portfolio
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install web ./helm \
+            --namespace portfolio \
+            --set image.repository=ghcr.io/${{ github.repository }} \
+            --set image.tag=${{ github.sha }} \
+            --set ingress.host=${{ secrets.INGRESS_HOST }}

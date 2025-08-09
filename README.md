@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Filip Herceg – Portfolio
 
-## Getting Started
+Production-grade personal portfolio built with:
 
-First, run the development server:
+- Next.js 15 App Router (standalone output)
+- TypeScript, Tailwind CSS, shadcn/ui, Framer Motion
+- Docker (multi-stage, small runtime)
+- Kubernetes manifests & Helm chart
+- GitHub Actions CI (lint, typecheck, build, Lighthouse) & CD (Helm deploy)
+
+### Local Development
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build & Run Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+### Docker
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+docker build -t filip-cv:dev .
+docker run -p 3000:3000 filip-cv:dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Kubernetes (raw manifests)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+kubectl apply -f k8s/base/
+```
 
-## Deploy on Vercel
+### Helm
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+helm upgrade --install web ./helm \
+	--namespace portfolio --create-namespace \
+	--set image.repository=ghcr.io/OWNER/filip-herceg-cv \
+	--set image.tag=latest \
+	--set ingress.host=yourdomain.tld
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### API Endpoints
+
+- `GET /api/healthz` – liveness
+- `POST /api/contact` – contact form (stub)
+
+### CI/CD
+
+Workflows in `.github/workflows`:
+- `ci.yml`: lint, typecheck, build, Lighthouse, Docker build+push (main)
+- `cd.yml`: Helm deploy on push to main
+
+Required repository secrets:
+- `K8S_SERVER` – API server URL
+- `K8S_TOKEN` – Service account token
+- `INGRESS_HOST` – Domain used in Ingress/Helm
+
+### Customization
+
+- Edit hero & projects: `src/app/(site)/page.tsx`
+- About content: `src/app/(site)/about/page.tsx`
+- Projects list: `src/app/(site)/projects/page.tsx`
+- Contact form: `src/app/(site)/contact/page.tsx` & API handler `src/app/api/contact/route.ts`
+- Header nav: `src/components/layout/site-header.tsx`
+
+### TODO / Ideas
+
+- Integrate email delivery (Resend / SMTP) in `api/contact`.
+- Add SEO enhancements (sitemap.xml, robots.txt, OG image).
+- Add analytics / web vitals RUM endpoint.
+
+---
+
+MIT License.
