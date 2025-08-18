@@ -5,7 +5,10 @@
       "assertions": {
         "categories:performance": ["warn", { "minScore": 0.95 }],
         "categories:accessibility": ["warn", { "minScore": 0.9 }],
-        "unused-javascript": "warn"
+        "unused-javascript": "warn",
+        "total-blocking-time": ["warn", { "maxNumericValue": 200 }],
+        "largest-contentful-paint": ["warn", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1 }]
       }
     }
   }

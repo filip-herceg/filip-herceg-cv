@@ -4,4 +4,4 @@ metadata:
   name: web-config
   namespace: portfolio
 data:
-  NODE_ENV: "production"
+  NODE_ENV: 'production'

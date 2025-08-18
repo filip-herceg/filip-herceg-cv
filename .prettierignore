@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+coverage
+build
+public/*.png
+public/*.svg
+helm/
+k8s/

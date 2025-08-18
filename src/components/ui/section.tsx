@@ -1,7 +1,7 @@
-"use client"
-import { ReactNode } from 'react'
+'use client'
+import React, { ReactNode } from 'react'
 import { motion } from 'framer-motion'
-export function Section({ children, className = '' }: { children: ReactNode, className?: string }) {
+export function Section({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <motion.section
       initial={{ opacity: 0, y: 24 }}

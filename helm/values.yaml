@@ -18,3 +18,7 @@ hpa:
   minReplicas: 2
   maxReplicas: 8
   targetCPUUtilizationPercentage: 60
+env:
+  CONTACT_PROVIDER_API_KEY: ''
+  CONTACT_FROM_ADDRESS: 'portfolio@yourdomain.tld'
+  CONTACT_TO_ADDRESS: 'you@yourdomain.tld'

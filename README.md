@@ -55,10 +55,12 @@ helm upgrade --install web ./helm \
 ### CI/CD
 
 Workflows in `.github/workflows`:
+
 - `ci.yml`: lint, typecheck, build, Lighthouse, Docker build+push (main)
 - `cd.yml`: Helm deploy on push to main
 
 Required repository secrets:
+
 - `K8S_SERVER` – API server URL
 - `K8S_TOKEN` – Service account token
 - `INGRESS_HOST` – Domain used in Ingress/Helm
