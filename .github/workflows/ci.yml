@@ -224,7 +224,7 @@ jobs:
           image: ghcr.io/${{ github.repository }}:latest
           output-file: sbom.spdx.json
       - name: Scan image (grype)
-        uses: anchore/scan-action@v4
+        uses: anchore/scan-action@v6
         with:
           image: ghcr.io/${{ github.repository }}:latest
           fail-build: false
