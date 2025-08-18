@@ -1,11 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: web
+  name: {{ include "app.fullname" . }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
 spec:
   selector:
-    app: web
+    {{- include "app.selectorLabels" . | nindent 4 }}
   ports:
     - name: http
       port: 80
-      targetPort: 3000
+      targetPort: http

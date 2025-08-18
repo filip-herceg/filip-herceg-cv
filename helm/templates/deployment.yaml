@@ -1,23 +1,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web
+  name: {{ include "app.fullname" . }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: web
+      {{- include "app.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: web
+        {{- include "app.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
+      serviceAccountName: {{ include "app.fullname" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: web
           image: {{ printf "%s:%s" .Values.image.repository .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - containerPort: 3000
+            - name: http
+              containerPort: 3000
           env:
             - name: NODE_ENV
               value: production
@@ -25,14 +37,34 @@ spec:
             - name: {{ $k }}
               valueFrom:
                 secretKeyRef:
-                  name: web-env
+                  name: {{ include "app.fullname" $ }}-env
                   key: {{ $k | lower }}
             {{- end }}
           readinessProbe:
             httpGet: { path: /, port: 3000 }
             initialDelaySeconds: 5
+            periodSeconds: 10
           livenessProbe:
             httpGet: { path: /api/healthz, port: 3000 }
             initialDelaySeconds: 20
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
