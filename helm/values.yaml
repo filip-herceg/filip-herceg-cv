@@ -6,6 +6,9 @@ image:
 ingress:
   enabled: true
   host: yourdomain.tld
+  className: nginx
+  tlsSecretName: ""
+  annotations: {}
 resources:
   requests:
     cpu: 100m
@@ -18,12 +21,49 @@ hpa:
   minReplicas: 2
   maxReplicas: 8
   targetCPUUtilizationPercentage: 60
+  # Optional memory autoscaling target
+  targetMemoryUtilizationPercentage: null
 env:
   CONTACT_PROVIDER_API_KEY: ''
   CONTACT_FROM_ADDRESS: 'portfolio@yourdomain.tld'
   CONTACT_TO_ADDRESS: 'you@yourdomain.tld'
+  # Observability
+  SENTRY_DSN: ''
+  SENTRY_TRACES_SAMPLE_RATE: '0.1'
+  SENTRY_REPLAYS_SESSION_SAMPLE_RATE: '0'
+  SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE: '0.5'
+  NEXT_PUBLIC_ENV: 'production'
 imagePullSecrets: []
 podAnnotations: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
+topologySpreadConstraints:
+  enabled: false
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+
+antiAffinity:
+  # When true, prefer scheduling pods on different nodes
+  enabled: true
+  topologyKey: kubernetes.io/hostname
+
+networkPolicy:
+  enabled: true
+  # Port exposed by the Service/Ingress targeting containerPort 3000
+  port: 80
+  # Control allowed ingress sources.
+  # Options: "any" (default open), "cidrs", "namespaces", "ingressController"
+  allowIngressFrom: ingressController
+  # For allowIngressFrom: "cidrs"
+  allowedCidrs: []
+  # For allowIngressFrom: "namespaces"
+  allowedNamespaces: []
+  # For allowIngressFrom: "ingressController"
+  ingressController:
+    namespace: ingress-nginx
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: ingress-nginx
+  # Additional egress CIDRs for destinations beyond DNS/HTTPS (e.g., database/private)
+  extraEgressCidrs: []

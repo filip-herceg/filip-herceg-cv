@@ -1,0 +1,17 @@
+{
+  "defaults": {
+    "standard": "WCAG2AA",
+    "wait": 500,
+    "timeout": 30000,
+    "screenCapture": "pa11y-screenshots/${url}.png",
+    "chromeLaunchConfig": {
+      "args": ["--no-sandbox", "--disable-dev-shm-usage"]
+    }
+  },
+  "urls": [
+    "http://localhost:3000/",
+    "http://localhost:3000/about",
+    "http://localhost:3000/projects",
+    "http://localhost:3000/contact"
+  ]
+}

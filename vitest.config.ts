@@ -8,6 +8,15 @@ export default defineConfig({
     setupFiles: ['src/tests/setup.ts'],
     coverage: {
       provider: 'v8',
+      reporter: ['text', 'json-summary', 'lcov'],
+      exclude: [
+        'next.config.mjs',
+        'postcss.config.mjs',
+        'tailwind.config.ts',
+        'playwright.config.ts',
+        'sentry.*.config.ts',
+        '.next/**',
+      ],
       thresholds: {
         statements: 40,
         branches: 30,

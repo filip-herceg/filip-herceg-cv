@@ -3,13 +3,17 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ include "app.fullname" . }}
+  {{- with .Values.ingress.annotations }}
   annotations:
-    kubernetes.io/ingress.class: nginx
-    cert-manager.io/cluster-issuer: letsencrypt
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
   tls:
     - hosts: [ {{ .Values.ingress.host | quote }} ]
-      secretName: {{ include "app.fullname" . }}-tls
+      secretName: {{ .Values.ingress.tlsSecretName | default (printf "%s-tls" (include "app.fullname" .)) | quote }}
   rules:
     - host: {{ .Values.ingress.host | quote }}
       http:

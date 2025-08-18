@@ -50,4 +50,19 @@ const nextConfig = {
     ]
   },
 }
-export default nextConfig
+
+// Wrap with Sentry if available (optional dependency pattern)
+let wrapped = nextConfig
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { withSentryConfig } = require('@sentry/nextjs')
+  wrapped = withSentryConfig(nextConfig, {
+    silent: true,
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    sourcemaps: { disable: false },
+  })
+} catch {}
+
+export default wrapped

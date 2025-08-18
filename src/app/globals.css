@@ -43,6 +43,13 @@
 }
 
 :root {
+  /* Themeable motion tokens */
+  --motion-duration-xs: 0.2s;
+  --motion-duration-sm: 0.35s;
+  --motion-duration-md: 0.55s;
+  --motion-duration-lg: 0.8s;
+  --motion-ease-in-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -78,6 +85,10 @@
 }
 
 .dark {
+  /* Example darker theme tweak: slightly calmer motion */
+  --motion-duration-sm: 0.4s;
+  --motion-duration-md: 0.6s;
+  --motion-duration-lg: 0.9s;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -118,4 +129,12 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Accessibility: user override for reduced motion */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation: none !important;
+  transition: none !important;
 }

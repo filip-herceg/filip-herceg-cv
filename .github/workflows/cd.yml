@@ -33,4 +33,6 @@ jobs:
             --set image.tag=${{ steps.img.outputs.TAG }} \
             --set ingress.host=${{ secrets.INGRESS_HOST }}
       - name: Wait for rollout
-        run: kubectl rollout status deployment/web -n portfolio --timeout=120s
+        run: |
+          DEPLOY_NAME=$(helm status web --namespace portfolio -o json | jq -r '.manifest' | grep -m1 '^kind: Deployment' -n | xargs -I{} bash -lc "yq e 'select(.kind==\"Deployment\") | .metadata.name' - <<< \"$(helm get manifest web -n portfolio)\"")
+          kubectl rollout status deployment/$DEPLOY_NAME -n portfolio --timeout=120s

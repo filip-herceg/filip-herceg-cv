@@ -11,6 +11,7 @@ import dynamic from 'next/dynamic'
 const Sheet = dynamic(() => import('@/components/ui/sheet').then(m => m.Sheet), { ssr: false })
 const SheetContent = dynamic(() => import('@/components/ui/sheet').then(m => m.SheetContent), { ssr: false })
 const SheetTrigger = dynamic(() => import('@/components/ui/sheet').then(m => m.SheetTrigger), { ssr: false })
+import MotionToggle from './motion-toggle'
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
@@ -41,7 +42,9 @@ export function SiteHeader() {
             </NavigationMenuList>
           </NavigationMenu>
         </nav>
-        <Sheet open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-3">
+          <MotionToggle />
+          <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger className="md:hidden px-3 py-2 text-sm border rounded">Menu</SheetTrigger>
           <SheetContent side="right" className="flex flex-col gap-4 pt-10">
             {links.map((l) => (
@@ -50,7 +53,8 @@ export function SiteHeader() {
               </Link>
             ))}
           </SheetContent>
-        </Sheet>
+          </Sheet>
+        </div>
       </div>
     </header>
   )

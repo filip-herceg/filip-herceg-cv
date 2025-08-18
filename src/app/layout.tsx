@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/og.png',
+        url: '/api/og',
         width: 1200,
         height: 630,
         alt: 'Filip Herceg Portfolio',
@@ -34,6 +34,22 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
   <body className={`${inter.className} min-h-screen font-sans antialiased`}>
+        {/* JSON-LD Schema.org */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Person',
+              name: 'Filip Herceg',
+              url: (process.env.SITE_URL || 'http://localhost:3000'),
+              jobTitle: 'Software Engineer',
+              sameAs: [
+                'https://github.com/filip-herceg',
+              ],
+            }),
+          }}
+        />
         <SiteHeader />
         <ErrorBoundary>
           {children}
