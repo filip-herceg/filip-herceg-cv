@@ -15,6 +15,11 @@ export default defineConfig({
         lines: 40,
       },
     },
+    include: [
+      'src/tests/unit/**/*.{test,spec}.{ts,tsx}',
+  'src/tests/integration/**/*.{test,spec}.{ts,tsx}',
+    ],
+    exclude: ['src/tests/e2e/**']
   },
   resolve: {
     alias: {

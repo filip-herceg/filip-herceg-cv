@@ -13,7 +13,10 @@
     "test:watch": "vitest",
     "lhci": "lhci autorun || echo 'LH warnings ignored'",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+  "format:check": "prettier --check .",
+  "e2e": "playwright test",
+  "e2e:headed": "playwright test --headed",
+  "e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
@@ -47,6 +50,7 @@
     "jsdom": "^26.1.0",
     "pino": "^9.3.2",
     "pino-pretty": "^11.2.2",
+  "@playwright/test": "^1.47.2",
     "prettier": "^3.3.3",
     "tailwindcss": "^4",
     "typescript": "^5",

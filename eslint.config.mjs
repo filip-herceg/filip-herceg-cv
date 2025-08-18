@@ -16,6 +16,12 @@ const eslintConfig = [
       'react/jsx-key': 'warn',
     },
   },
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx', 'src/tests/**/*.ts', 'src/tests/**/*.tsx'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
 ]
 
 export default eslintConfig
