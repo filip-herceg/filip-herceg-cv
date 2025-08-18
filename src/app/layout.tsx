@@ -2,6 +2,10 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { SiteHeader } from '@/components/layout/site-header'
 import ErrorBoundary from '@/components/layout/error-boundary'
+import { Inter } from 'next/font/google'
+
+const inter = Inter({ subsets: ['latin'], display: 'swap' })
+import Vitals from '@/components/layout/vitals'
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL || 'http://localhost:3000'),
@@ -29,9 +33,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen font-sans antialiased">
+  <body className={`${inter.className} min-h-screen font-sans antialiased`}>
         <SiteHeader />
-        <ErrorBoundary>{children}</ErrorBoundary>
+        <ErrorBoundary>
+          {children}
+          <Vitals />
+        </ErrorBoundary>
       </body>
     </html>
   )

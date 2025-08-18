@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 
 export const metadata = { title: 'Filip Herceg – Software Engineer' }
+export const dynamic = 'error' // ensure full static generation
 
 export default function HomePage() {
   const projects = [
@@ -36,11 +37,6 @@ export default function HomePage() {
             I build performant web platforms and delightful developer experiences.
           </p>
           <div className="mt-6 flex flex-wrap gap-4 justify-center">
-            <Button asChild>
-              <Link href="/Filip_Herceg_CV.pdf" download>
-                Download CV
-              </Link>
-            </Button>
             <Button variant="outline" asChild>
               <Link href="mailto:me@example.com">Email Me</Link>
             </Button>

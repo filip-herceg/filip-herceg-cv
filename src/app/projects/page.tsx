@@ -1,3 +1,4 @@
+export const dynamic = 'error'
 import { Section } from '@/components/ui/section'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 

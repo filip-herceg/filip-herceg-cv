@@ -1,3 +1,4 @@
+export const dynamic = 'error'
 import { Section } from '@/components/ui/section'
 
 export const metadata = { title: 'About – Filip Herceg' }

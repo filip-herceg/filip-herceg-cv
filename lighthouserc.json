@@ -3,12 +3,12 @@
     "collect": { "staticDistDir": ".next/static" },
     "assert": {
       "assertions": {
-        "categories:performance": ["warn", { "minScore": 0.95 }],
-        "categories:accessibility": ["warn", { "minScore": 0.9 }],
-        "unused-javascript": "warn",
-        "total-blocking-time": ["warn", { "maxNumericValue": 200 }],
-        "largest-contentful-paint": ["warn", { "maxNumericValue": 2500 }],
-        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1 }]
+  "categories:performance": ["error", { "minScore": 0.97 }],
+  "categories:accessibility": ["error", { "minScore": 0.95 }],
+  "unused-javascript": ["warn", { "maxNumericValue": 0 }],
+  "total-blocking-time": ["error", { "maxNumericValue": 150 }],
+  "largest-contentful-paint": ["error", { "maxNumericValue": 2200 }],
+  "cumulative-layout-shift": ["error", { "maxNumericValue": 0.08 }]
       }
     }
   }

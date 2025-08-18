@@ -6,7 +6,12 @@ function generateNonce() {
   return crypto.randomUUID().replace(/-/g, '')
 }
 
-export function middleware() {
+export function middleware(req: Request) {
+  const url = new URL(req.url)
+  // Skip CSP/headers for static asset paths to minimize overhead
+  if (url.pathname.startsWith('/_next/') || url.pathname.startsWith('/public/')) {
+    return NextResponse.next()
+  }
   const nonce = generateNonce()
   const res = NextResponse.next({
     headers: {
