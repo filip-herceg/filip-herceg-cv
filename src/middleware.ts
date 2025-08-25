@@ -24,9 +24,9 @@ export function middleware(req: Request) {
   const csp = [
     "default-src 'self'",
     "img-src 'self' data: https:",
-    // Allow Next.js inline bootstrap scripts for hydration during development/tests.
-    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
-    `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
+    // Disallow inline scripts/styles except those with the generated nonce.
+    `script-src 'self' 'nonce-${nonce}'`,
+    `style-src 'self' 'nonce-${nonce}'`,
     "font-src 'self' data:",
     "object-src 'none'",
     "base-uri 'self'",

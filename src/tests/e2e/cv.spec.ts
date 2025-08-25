@@ -4,11 +4,17 @@ test.describe('CV Routes', () => {
   test('full CV page renders', async ({ page }) => {
     await page.goto('/cv')
     await expect(page.getByRole('heading', { level: 1, name: /Jane Developer/i })).toBeVisible()
+    await expect(page.getByText('Projects')).toBeVisible()
   })
 
-  test('short mode panel visible', async ({ page }) => {
+  test('short mode selection toggles skill', async ({ page }) => {
     await page.goto('/cv?mode=short')
-    await expect(page.locator('[data-test="cv-shortener"]')).toBeVisible()
+    const countLocator = page.locator('aside div').filter({ hasText: /Skills:/ }).first()
+    const initialCount = await countLocator.textContent()
+    const firstCheckbox = page.locator('aside input[type="checkbox"]').first()
+    await firstCheckbox.click()
+    const afterCount = await countLocator.textContent()
+    expect(initialCount).not.toEqual(afterCount)
   })
 
   test('pdf api returns 200 or 501', async ({ request }) => {
@@ -16,7 +22,6 @@ test.describe('CV Routes', () => {
     expect([200, 501]).toContain(res.status())
     if (res.status() === 200) {
       const body = await res.body()
-      // PDF magic number %PDF
       expect(body.slice(0, 4).toString()).toBe('%PDF')
     }
   })

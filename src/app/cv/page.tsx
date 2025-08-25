@@ -3,8 +3,8 @@ import { sampleCvData, sampleCvDesign } from '@/lib/cv/sample-data'
 import CvView from '@/components/cv/CvView'
 import dynamic from 'next/dynamic'
 
-// Enable SSR (default) so short mode panel is present in initial HTML for E2E reliability
-const ShortModeContainer = dynamic(() => import('@/components/cv/ShortModeContainer'))
+// Client-only for short mode builder (original behavior)
+const ShortModeContainer = dynamic(() => import('@/components/cv/ShortModeContainer'), { ssr: false })
 
 // Full CV page with optional short builder mode
 export default function CvPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {

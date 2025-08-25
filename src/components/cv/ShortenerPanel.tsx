@@ -60,7 +60,7 @@ export const ShortenerPanel: React.FC<ShortenerPanelProps> = ({
   }
 
   return (
-  <aside className="no-print sticky top-4 h-max w-full max-w-xs rounded border border-slate-200 bg-white/80 p-4 text-sm shadow-sm backdrop-blur dark:border-slate-600 dark:bg-slate-800/70" data-test="cv-shortener">
+  <aside className="no-print sticky top-4 h-max w-full max-w-xs rounded border border-slate-200 bg-white/80 p-4 text-sm shadow-sm backdrop-blur dark:border-slate-600 dark:bg-slate-800/70">
       <h2 className="mb-2 font-medium">Short CV Builder</h2>
       <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
         Wähle Skills & Projekte für eine gekürzte Fassung. Mindestens je 1 Eintrag bleibt erhalten.
