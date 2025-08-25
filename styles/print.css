@@ -9,7 +9,12 @@
   }
   .no-print { display: none !important; }
   .print-only { display: initial !important; }
+  .break-avoid { break-inside: avoid; }
 }
 
 /* Utility for explicit page breaks if needed later */
 .page-break { page-break-after: always; }
+
+/* Screen + Print shared helpers */
+.break-avoid { break-inside: avoid; }
+

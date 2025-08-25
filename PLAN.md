@@ -80,7 +80,7 @@ No change to Tailwind setup required (already configured). Will add `print.css` 
 - [x] 3 Add dependencies (puppeteer-core, pdf-lib)
 - [x] 4 Scaffold directory & files
 - [x] 5 Implement data & schemas (expanded sample data & design presets)
-- [ ] 6 Implement CvView + print styles
+- [x] 6 Implement CvView + print styles (SVG layers, columns, break handling)
 - [ ] 7 Implement short builder mode
 - [ ] 8 Implement server PDF route
 - [ ] 9 Add env vars + docs + update PLAN
