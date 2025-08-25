@@ -83,7 +83,7 @@ No change to Tailwind setup required (already configured). Will add `print.css` 
 - [x] 6 Implement CvView + print styles (SVG layers, columns, break handling)
 - [x] 7 Implement short builder mode (interactive selection, permalink, print)
 - [x] 8 Implement server PDF route
-- [ ] 9 Add env vars + docs + update PLAN
+- [x] 9 Add env vars + docs + update PLAN
 - [ ] 10 Add tests (Playwright + unit) & CI adjustments
 - [ ] 11 Quality checks (Lighthouse ≥ 90 P/A, print review)
 
@@ -91,8 +91,8 @@ No change to Tailwind setup required (already configured). Will add `print.css` 
 Currently none. Proceed with assumptions: local Chromium will be provided in container or via env path.
 
 ## 10. Next Immediate Steps
-1. Implement enhanced `CvView` (SVG layers, responsive column logic, print refinements). (Step 6)
-2. Add interactive ShortenerPanel (selection state, permalink generation). (Step 7)
-3. Implement server PDF route with Puppeteer + pdf-lib metadata. (Step 8)
+1. Tests: Unit (selection parsing) + Playwright (cv full, short interaction, pdf 200). (Step 10)
+2. Quality checks: Lighthouse /cv & print validation; fallback behavior (Chromium missing) -> 501. (Step 11)
+3. Optional enhancements (post-MVP): caching layer for PDF (ETag hashing of selection), design preset switch param.
 
 -- End of initial discovery.

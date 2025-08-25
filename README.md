@@ -47,7 +47,41 @@ helm upgrade --install web ./helm \
 	--set ingress.host=yourdomain.tld
 ```
 
-### API Endpoints
+### CV Feature & API
+
+Routes:
+
+- `GET /cv` – Vollständige CV Ansicht
+- `GET /cv?mode=short` – Interaktiver Short-Builder (Skills/Projects auswählen, Permalink kopieren, Print öffnen)
+- `GET /cv/print` – Print-optimierte Ansicht (verwendet gleiche Layout-Engine); nutzt Query-Params `skills`, `projects`
+- `GET /api/cv/pdf?skills=...&projects=...` – Serverseitiges A4-PDF (Chromium + puppeteer-core), Metadaten via pdf-lib
+
+Permalink-Parameter:
+- `skills` – Komma-separierte Skill-IDs
+- `projects` – Komma-separierte Project-IDs
+- `mode=short` – aktiviert den Builder (für `/cv`), für `/cv/print` nicht nötig
+
+Beispiel:
+```
+http://localhost:3000/cv?mode=short&skills=ts,react,node&projects=obs-platform,edge-cdn
+```
+
+PDF Download (curl):
+```bash
+curl -L "http://localhost:3000/api/cv/pdf?skills=ts,react&projects=obs-platform" -o cv.pdf
+```
+
+Environment Variablen (siehe `.env.example`):
+- `BASE_URL` – Basis-URL für absolute PDF-Render-Links (Fallback: Host Header)
+- `CHROMIUM_PATH` – Expliziter Pfad zur Chromium/Chrome Binary. Wenn nicht gefunden: Response 501.
+
+Troubleshooting PDF:
+- 501: Chromium nicht gefunden → Binary installieren oder `CHROMIUM_PATH` setzen.
+- 504/timeout: Seite benötigt länger (Netzwerk / Fonts) → Timeout erhöhen oder Ressourcen optimieren.
+- Leeres PDF / fehlende Styles: sicherstellen, dass `print.css` geladen wird (Route `/cv/print`).
+- Container: Installiere minimal `chromium` Paket (z.B. Debian/Ubuntu: `apt-get update && apt-get install -y chromium`) oder nutze ein Base-Image mit Chrome.
+
+### API Endpoints (Core)
 
 - `GET /api/healthz` – liveness
 - `POST /api/contact` – contact form (stub)
@@ -78,6 +112,7 @@ Required repository secrets:
 - Integrate email delivery (Resend / SMTP) in `api/contact`.
 - Add SEO enhancements (sitemap.xml, robots.txt, OG image).
 - Add analytics / web vitals RUM endpoint.
+- Additional CV improvements: theming switch, multi-language CV data, caching for PDF renders.
 
 ---
 
