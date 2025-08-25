@@ -79,7 +79,7 @@ No change to Tailwind setup required (already configured). Will add `print.css` 
 - [x] 2 Branch creation and switch to `feature/cv-shortener-and-pdf`
 - [x] 3 Add dependencies (puppeteer-core, pdf-lib)
 - [x] 4 Scaffold directory & files
-- [ ] 5 Implement data & schemas
+- [x] 5 Implement data & schemas (expanded sample data & design presets)
 - [ ] 6 Implement CvView + print styles
 - [ ] 7 Implement short builder mode
 - [ ] 8 Implement server PDF route
@@ -91,8 +91,8 @@ No change to Tailwind setup required (already configured). Will add `print.css` 
 Currently none. Proceed with assumptions: local Chromium will be provided in container or via env path.
 
 ## 10. Next Immediate Steps
-1. Create and switch to feature branch.
-2. Install additional dependencies & commit.
-3. Scaffold structure & sample data.
+1. Implement enhanced `CvView` (SVG layers, responsive column logic, print refinements). (Step 6)
+2. Add interactive ShortenerPanel (selection state, permalink generation). (Step 7)
+3. Implement server PDF route with Puppeteer + pdf-lib metadata. (Step 8)
 
 -- End of initial discovery.
