@@ -1,0 +1,15 @@
+/* Print specific adjustments – imported only by /cv/print route to avoid global impact */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+  body {
+    background: #ffffff !important;
+  }
+  .no-print { display: none !important; }
+  .print-only { display: initial !important; }
+}
+
+/* Utility for explicit page breaks if needed later */
+.page-break { page-break-after: always; }

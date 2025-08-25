@@ -76,9 +76,9 @@ No change to Tailwind setup required (already configured). Will add `print.css` 
 
 ## 8. Task Breakdown & Status
 - [x] 1 Repo Discovery
-- [ ] 2 Branch creation and switch to `feature/cv-shortener-and-pdf`
-- [ ] 3 Add dependencies (puppeteer-core, pdf-lib)
-- [ ] 4 Scaffold directory & files
+- [x] 2 Branch creation and switch to `feature/cv-shortener-and-pdf`
+- [x] 3 Add dependencies (puppeteer-core, pdf-lib)
+- [x] 4 Scaffold directory & files
 - [ ] 5 Implement data & schemas
 - [ ] 6 Implement CvView + print styles
 - [ ] 7 Implement short builder mode
