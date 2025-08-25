@@ -1,6 +1,6 @@
 "use client"
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import type { CvData, CvSelection } from '@/lib/cv/schema'
 import type { CvDesign } from '@/lib/cv/schema'
 import CvView from './CvView'
@@ -23,7 +23,7 @@ const selectionToParams = (sel: CvSelection): URLSearchParams => {
 export const ShortModeContainer: React.FC<Props> = ({ data, design, initialSelection }) => {
   const router = useRouter()
   const pathname = usePathname()
-  const searchParams = useSearchParams()
+  // const searchParams = useSearchParams() // not currently needed; selection state persisted via router.replace
 
   const fullSkills = useMemo(() => data.skills.map((s) => s.id), [data.skills])
   const fullProjects = useMemo(() => data.projects.map((p) => p.id), [data.projects])
@@ -58,9 +58,9 @@ export const ShortModeContainer: React.FC<Props> = ({ data, design, initialSelec
       // Attempt auto-print after load
       const listener = () => {
         try { w.print() } catch {}
-        w.removeEventListener('load', listener as any)
+        w.removeEventListener('load', listener)
       }
-      w.addEventListener('load', listener as any)
+      w.addEventListener('load', listener)
     }
   }, [selection])
 

@@ -2,14 +2,15 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { CvSelectionSchema } from '@/lib/cv/schema'
 import { sampleCvData } from '@/lib/cv/sample-data'
+import { existsSync } from 'fs'
+import type { Browser } from 'puppeteer-core'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-// Lazy import (only on execution) to avoid bundling in edge / client contexts accidentally
+// Lazy dynamic import so it is only pulled in when this route runs (node runtime enforced)
 async function getPuppeteer() {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return require('puppeteer-core') as typeof import('puppeteer-core')
+  return (await import('puppeteer-core'))
 }
 
 import { PDFDocument } from 'pdf-lib'
@@ -41,13 +42,13 @@ export async function GET(req: NextRequest) {
   // mode=short doesn't change print rendering; omit to keep canonical print URLs
   const target = `${base}/cv/print${qp.toString() ? `?${qp.toString()}` : ''}`
 
-  let browser: any
+  let browser: Browser | null = null
   try {
     const puppeteer = await getPuppeteer()
     const executablePath = process.env.CHROMIUM_PATH ||
       ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', 'C:/Program Files/Google/Chrome/Application/chrome.exe']
         .find((p) => {
-          try { return require('fs').existsSync(p) } catch { return false }
+          try { return existsSync(p) } catch { return false }
         })
 
     if (!executablePath) {
@@ -65,8 +66,8 @@ export async function GET(req: NextRequest) {
     if (!navResult) throw new Error('Navigation failed')
 
     // Add small delay ensuring fonts/render settled
-    await page.waitForTimeout(300)
-    const pdfBuffer: Buffer = await page.pdf({
+  await new Promise((r) => setTimeout(r, 300))
+  const pdfUint8 = await page.pdf({
       format: 'A4',
       printBackground: true,
       preferCSSPageSize: true,
@@ -74,13 +75,13 @@ export async function GET(req: NextRequest) {
     })
 
     // Metadata injection
-    const pdfDoc = await PDFDocument.load(pdfBuffer)
+  const pdfDoc = await PDFDocument.load(pdfUint8)
     const person = sampleCvData.person
     pdfDoc.setTitle(`${person.name} – CV`)
     pdfDoc.setAuthor(person.name)
     pdfDoc.setSubject('Curriculum Vitae')
     pdfDoc.setKeywords(['CV','Resume', person.title, 'Short'].filter(Boolean) as string[])
-    const final = Buffer.from(await pdfDoc.save())
+  const final = Buffer.from(await pdfDoc.save())
 
     return new NextResponse(final, {
       status: 200,
@@ -90,12 +91,14 @@ export async function GET(req: NextRequest) {
         'Cache-Control': 'no-store',
       },
     })
-  } catch (err: any) {
-    if (err?.message?.includes('Navigation timeout')) {
+  } catch (err: unknown) {
+    const e = err as Error & { message?: string }
+    if (e?.message?.includes('Navigation timeout')) {
       return NextResponse.json({ error: 'Render timeout', status: 504 }, { status: 504 })
     }
     if (process.env.NODE_ENV !== 'production') {
-      console.error('[cv/pdf] generation error', err)
+      // eslint-disable-next-line no-console
+      console.error('[cv/pdf] generation error', e)
     }
     return NextResponse.json({ error: 'PDF generation failed', status: 500 }, { status: 500 })
   } finally {
