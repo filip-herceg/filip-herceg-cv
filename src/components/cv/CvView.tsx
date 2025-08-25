@@ -59,6 +59,7 @@ export const CvView: React.FC<CvRenderProps> = ({ data, design = sampleCvDesign,
         </header>
         <div
           className="cv-columns gap-8"
+          data-test="cv-columns"
           style={{ columnCount: design.page.columns, columnGap: design.page.gutter }}
         >
           <section className="mb-6 break-avoid inline-block w-full align-top">
@@ -74,7 +75,7 @@ export const CvView: React.FC<CvRenderProps> = ({ data, design = sampleCvDesign,
               ))}
             </ul>
           </section>
-          <section className="space-y-4 break-avoid inline-block w-full align-top">
+          <section className="space-y-4 break-avoid inline-block w-full align-top" data-test="cv-projects">
             <h2 className="text-xl font-semibold">Projects</h2>
             {selectedProjects.map((p) => (
               <article key={p.id} className="break-avoid">

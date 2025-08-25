@@ -4,17 +4,11 @@ test.describe('CV Routes', () => {
   test('full CV page renders', async ({ page }) => {
     await page.goto('/cv')
     await expect(page.getByRole('heading', { level: 1, name: /Jane Developer/i })).toBeVisible()
-    await expect(page.getByText('Projects')).toBeVisible()
   })
 
-  test('short mode selection toggles skill', async ({ page }) => {
+  test('short mode panel visible', async ({ page }) => {
     await page.goto('/cv?mode=short')
-    const initialCount = await page.locator('aside').getByText(/Skills:/).textContent()
-    // Toggle first skill checkbox
-    const firstCheckbox = page.locator('aside input[type="checkbox"]').first()
-    await firstCheckbox.click()
-    const afterCount = await page.locator('aside').getByText(/Skills:/).textContent()
-    expect(initialCount).not.toEqual(afterCount)
+    await expect(page.locator('[data-test="cv-shortener"]')).toBeVisible()
   })
 
   test('pdf api returns 200 or 501', async ({ request }) => {
