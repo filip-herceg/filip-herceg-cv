@@ -84,7 +84,7 @@ No change to Tailwind setup required (already configured). Will add `print.css` 
 - [x] 7 Implement short builder mode (interactive selection, permalink, print)
 - [x] 8 Implement server PDF route
 - [x] 9 Add env vars + docs + update PLAN
-- [ ] 10 Add tests (Playwright + unit) & CI adjustments
+- [x] 10 Add tests (Playwright + unit) & CI adjustments (initial set)
 - [ ] 11 Quality checks (Lighthouse ≥ 90 P/A, print review)
 
 ## 9. Open Questions
