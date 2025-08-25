@@ -82,7 +82,7 @@ No change to Tailwind setup required (already configured). Will add `print.css` 
 - [x] 5 Implement data & schemas (expanded sample data & design presets)
 - [x] 6 Implement CvView + print styles (SVG layers, columns, break handling)
 - [x] 7 Implement short builder mode (interactive selection, permalink, print)
-- [ ] 8 Implement server PDF route
+- [x] 8 Implement server PDF route
 - [ ] 9 Add env vars + docs + update PLAN
 - [ ] 10 Add tests (Playwright + unit) & CI adjustments
 - [ ] 11 Quality checks (Lighthouse ≥ 90 P/A, print review)
