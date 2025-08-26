@@ -1,3 +1,4 @@
+import React from 'react'
 import { CvDataSchema, CvSelectionSchema } from '@/lib/cv/schema'
 import { sampleCvData, sampleCvDesign } from '@/lib/cv/sample-data'
 import CvView from '@/components/cv/CvView'

@@ -24,7 +24,6 @@ export function middleware(req: Request) {
   const csp = [
     "default-src 'self'",
     "img-src 'self' data: https:",
-    // Disallow inline scripts/styles except those with the generated nonce.
     `script-src 'self' 'nonce-${nonce}'`,
     `style-src 'self' 'nonce-${nonce}'`,
     "font-src 'self' data:",

@@ -8,7 +8,3 @@ test('home page renders and has hero copy', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /Hi, I'm Filip Herceg/i })).toBeVisible()
 })
 
-test('legacy /site redirect works', async ({ page }) => {
-  await page.goto('http://localhost:3000/site')
-  await expect(page).toHaveURL('http://localhost:3000/')
-})

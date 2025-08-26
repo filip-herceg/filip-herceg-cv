@@ -3,7 +3,7 @@ import { sampleCvData, sampleCvDesign } from '@/lib/cv/sample-data'
 import CvView from '@/components/cv/CvView'
 import dynamic from 'next/dynamic'
 
-// Client-only for short mode builder (original behavior)
+// Client-only builder (no SSR) to keep full page lean
 const ShortModeContainer = dynamic(() => import('@/components/cv/ShortModeContainer'), { ssr: false })
 
 // Full CV page with optional short builder mode

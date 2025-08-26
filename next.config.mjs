@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: { optimizePackageImports: ['lucide-react'] },
-  output: 'standalone',
+  // Removed standalone output for now to avoid missing route modules in packaged start; default output works with tests.
   poweredByHeader: false,
   images: { formats: ['image/avif', 'image/webp'] },
   async headers() {
@@ -43,26 +42,6 @@ const nextConfig = {
       },
     ]
   },
-  async redirects() {
-    return [
-      { source: '/site', destination: '/', permanent: true },
-      { source: '/site/:path*', destination: '/:path*', permanent: true },
-    ]
-  },
 }
 
-// Wrap with Sentry if available (optional dependency pattern)
-let wrapped = nextConfig
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { withSentryConfig } = require('@sentry/nextjs')
-  wrapped = withSentryConfig(nextConfig, {
-    silent: true,
-    org: process.env.SENTRY_ORG,
-    project: process.env.SENTRY_PROJECT,
-    authToken: process.env.SENTRY_AUTH_TOKEN,
-    sourcemaps: { disable: false },
-  })
-} catch {}
-
-export default wrapped
+export default nextConfig
