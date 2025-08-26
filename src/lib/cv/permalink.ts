@@ -102,7 +102,9 @@ export async function decodePreset(input: string | URLSearchParams): Promise<Dec
   try { bytes = fromBase64Url(token) } catch { return { ok:false, reason:'b64' } }
   if (bytes.length > 2048) return { ok:false, reason:'too_large' }
   let inflated: Uint8Array
-  try { inflated = await inflate(bytes) } catch { return { ok:false, reason:'inflate' } }
+  // The inflate helper currently never throws (internal errors are swallowed and original bytes are returned),
+  // so this catch branch is defensive and effectively unreachable. Mark ignored for coverage.
+  try { inflated = await inflate(bytes) } catch { /* c8 ignore next */ return { ok:false, reason:'inflate' } }
   let obj: any
   try { obj = JSON.parse(new TextDecoder().decode(inflated)) } catch { return { ok:false, reason:'json' } }
   const version = obj.v ?? 1
