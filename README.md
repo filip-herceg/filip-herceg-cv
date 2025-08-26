@@ -99,6 +99,22 @@ Required repository secrets:
 - `K8S_TOKEN` – Service account token
 - `INGRESS_HOST` – Domain used in Ingress/Helm
 
+#### Local CI Dry Run
+
+You can execute most CI jobs locally with [`act`](https://github.com/nektos/act):
+
+```bash
+brew install act # or see project docs
+act pull_request -j build-test
+act pull_request -j static-analysis
+```
+
+Notes:
+- Some security jobs (CodeQL, gitleaks, trivy) may require `--container-architecture linux/amd64` or will be skipped without proper tokens.
+- Lighthouse / pa11y tasks need an open port; act runs in a container so ensure it exposes 3000.
+- Helm / kubeconform require network access to fetch schemas; add `--bind` flags if needed.
+
+
 ### Customization
 
 - Edit hero & projects: `src/app/(site)/page.tsx`
