@@ -15,13 +15,20 @@ export default defineConfig({
         'tailwind.config.ts',
         'playwright.config.ts',
         'sentry.*.config.ts',
+  'vitest.config.ts',
+  'eslint.config.mjs',
+  'src/types/**',
+  'src/lib/cv/types.ts',
+  'src/tests/**', // exclude test files themselves from coverage matrix
+  '**/*.d.ts', // ignore declaration files
         '.next/**',
       ],
       thresholds: {
-        statements: 40,
-        branches: 30,
-        functions: 35,
-        lines: 40,
+  // Set meaningful project-wide minimums aligned slightly below current baseline (~95%)
+  statements: 90,
+  branches: 80,
+  functions: 75,
+  lines: 90,
       },
     },
     include: [
