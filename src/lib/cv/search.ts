@@ -1,4 +1,4 @@
-import type { CvData, Experience, Project, Education, Certification, Skill } from './types'
+import type { CvData, Experience, Project, Education, Certification, Skill, ExperienceAchievement } from './types'
 
 export interface SearchDoc {
   kind: SearchKind
@@ -7,7 +7,7 @@ export interface SearchDoc {
   terms: string[]
   boost: number
   facets: Record<string, string | number | undefined>
-  raw: any
+  raw: Skill | Project | Experience | Education | Certification | unknown
   periodSort?: number // derived recency sort (epoch ms or year)
 }
 export type SearchKind = 'skill' | 'project' | 'experience' | 'education' | 'certification'
@@ -123,13 +123,14 @@ function matchAndScore(doc: SearchDoc, tokens: string[]): { matched: boolean; sc
     if (!tokenMatched) return { matched: false, score: 0, titleHit, narrativeHit, stackHit }
   }
   // Field bonuses (heuristic via raw)
-  const raw = doc.raw as any
+  type TitleLike = { title?: string; name?: string; role?: string; summary?: string; highlights?: string[]; achievements?: ExperienceAchievement[]; stack?: string[]; tags?: string[] }
+  const raw = doc.raw as TitleLike
   if (raw.title || raw.name || raw.role) {
     const titleStr = (raw.title || raw.name || raw.role || '').toLowerCase()
     if (tokens.some(t => titleStr.includes(t))) { score += 1; titleHit = true }
   }
   if (raw.summary || raw.highlights || raw.achievements) {
-    const narrative = [raw.summary, ...(raw.highlights || []), ...(raw.achievements?.map((a: any) => a.summary) || [])].join(' ').toLowerCase()
+  const narrative = [raw.summary, ...(raw.highlights || []), ...(raw.achievements?.map(a => a.summary) || [])].join(' ').toLowerCase()
     if (tokens.some(t => narrative.includes(t))) { score += 0.75; narrativeHit = true }
   }
   if (raw.stack || raw.tags) {
@@ -186,15 +187,15 @@ export function search(index: SearchDoc[], query: string, opts: SearchOptions = 
     query,
     tokens,
     total: results.length,
-    results: sliced.map(r => ({ kind: r.doc.kind, id: r.doc.id, title: r.doc.title, score: Number(r.score.toFixed(3)), snippet: buildSnippet(r.doc, tokens) })),
+    results: sliced.map(r => ({ kind: r.doc.kind, id: r.doc.id, title: r.doc.title, score: Number(r.score.toFixed(3)), snippet: buildSnippet(r.doc) })),
     facets: buildFacets(results.map(r => r.doc))
   }
   return response
 }
 
-function buildSnippet(doc: SearchDoc, tokens: string[]): string | undefined {
+function buildSnippet(doc: SearchDoc): string | undefined {
   if (doc.kind === 'skill' || doc.kind === 'certification') return undefined
-  const raw = doc.raw as any
+  const raw = doc.raw as { summary?: string; achievements?: ExperienceAchievement[]; highlights?: string[] }
   const parts: string[] = []
   if (raw.summary) parts.push(firstSentence(raw.summary) || '')
   if (!parts.length && raw.achievements?.length) parts.push(firstSentence(raw.achievements[0].summary) || '')
@@ -205,13 +206,14 @@ function buildSnippet(doc: SearchDoc, tokens: string[]): string | undefined {
 }
 
 function buildFacets(docs: SearchDoc[]): SearchResponse['facets'] {
-  const aggregators = { category: {}, employmentType: {}, issuer: {}, institution: {}, year: {} } as any
+  const aggregators: SearchResponse['facets'] = { category: {}, employmentType: {}, issuer: {}, institution: {}, year: {} }
   for (const d of docs) {
-    for (const key of Object.keys(aggregators)) {
+    for (const key of Object.keys(aggregators) as Array<keyof SearchResponse['facets']>) {
       const val = d.facets[key]
       if (val === undefined) continue
-      const k = String(val)
-      aggregators[key][k] = (aggregators[key][k] || 0) + 1
+      const bucket = aggregators[key]
+      const bucketKey = String(val)
+      bucket[bucketKey] = (bucket[bucketKey] || 0) + 1
     }
   }
   return aggregators

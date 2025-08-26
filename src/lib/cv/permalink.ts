@@ -1,11 +1,13 @@
 import { CvSelectionSchema } from './schema'
 
 // Polyfill atob/btoa for Node environments (SSR / tests)
-if (typeof (globalThis as any).atob === 'undefined') {
-  ;(globalThis as any).atob = (str: string) => Buffer.from(str, 'base64').toString('binary')
+interface GlobalAtobBtoa { atob?(s: string): string; btoa?(s: string): string }
+const g = globalThis as GlobalAtobBtoa
+if (typeof g.atob === 'undefined') {
+  g.atob = (str: string) => Buffer.from(str, 'base64').toString('binary')
 }
-if (typeof (globalThis as any).btoa === 'undefined') {
-  ;(globalThis as any).btoa = (str: string) => Buffer.from(str, 'binary').toString('base64')
+if (typeof g.btoa === 'undefined') {
+  g.btoa = (str: string) => Buffer.from(str, 'binary').toString('base64')
 }
 
 // Lightweight base64url helpers (no padding)
@@ -105,18 +107,21 @@ export async function decodePreset(input: string | URLSearchParams): Promise<Dec
   // The inflate helper currently never throws (internal errors are swallowed and original bytes are returned),
   // so this catch branch is defensive and effectively unreachable. Mark ignored for coverage.
   try { inflated = await inflate(bytes) } catch { /* c8 ignore next */ return { ok:false, reason:'inflate' } }
-  let obj: any
+  let obj: unknown
   try { obj = JSON.parse(new TextDecoder().decode(inflated)) } catch { return { ok:false, reason:'json' } }
-  const version = obj.v ?? 1
+  if (typeof obj !== 'object' || obj === null) return { ok:false, reason:'json' }
+  const rec = obj as Record<string, unknown>
+  const version = (rec.v as number | undefined) ?? 1
   if (version !== 1) return { ok:false, reason:'unsupported_version', version }
   // Convert to query-like object to leverage existing selection schema transform
   const queryShape: Record<string,string> = {}
   for (const k of ['skills','projects','experiences','education'] as const) {
-    if (Array.isArray(obj[k]) && obj[k].every((x: any)=> typeof x === 'string')) {
-      queryShape[k] = obj[k].join(',')
+    const arr = rec[k]
+    if (Array.isArray(arr) && arr.every(x => typeof x === 'string')) {
+      queryShape[k] = (arr as string[]).join(',')
     }
   }
-  if (obj.mode === 'short') queryShape.mode = 'short'
+  if (rec.mode === 'short') queryShape.mode = 'short'
   try {
     const parsed = CvSelectionSchema.parse(queryShape)
     const preset: PresetSelection = { ...parsed, v: version }

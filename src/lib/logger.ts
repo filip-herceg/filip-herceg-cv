@@ -53,23 +53,31 @@ export function scrubObject<T extends Record<string, unknown>>(obj: T): { cleane
   // route handlers without passing an actual Fetch API Request object; we make
   // this helper resilient to undefined or partial inputs so those direct calls
   // still work and logging doesn't throw.
-  export function withRequestContext(req?: Request | { headers?: any; url?: string; method?: string }) {
-    try {
-      const headers: any = req && (req as any).headers
-      const getHeader = (name: string) => {
-        if (!headers) return undefined
-        if (typeof headers.get === 'function') return headers.get(name)
-        return headers[name.toLowerCase()] || headers[name]
-      }
+  type HeaderLike = Headers | { get?(name: string): string | undefined } | Record<string, string | undefined>
+  interface RequestLike { headers?: HeaderLike; url?: string; method?: string }
+  export function withRequestContext(req?: Request | RequestLike) {
+  try {
+    const headers: HeaderLike | undefined = (req && (req as RequestLike).headers) || (req instanceof Request ? req.headers : undefined)
+        const getHeader = (name: string): string | undefined => {
+          if (!headers) return undefined
+          if (typeof (headers as Headers).get === 'function') {
+            try { return (headers as Headers).get(name) ?? undefined } catch { /* ignore */ }
+          }
+          if (headers && typeof headers === 'object') {
+            const rec = headers as Record<string, string | undefined>
+            return rec[name.toLowerCase()] || rec[name]
+          }
+          return undefined
+        }
       const id = getHeader('x-request-id') || crypto.randomUUID()
-      const rawUrl = (req as any)?.url || 'http://local/unknown'
+        const rawUrl = (req as RequestLike)?.url || 'http://local/unknown'
       let pathname = '/unknown'
       try {
         pathname = new URL(rawUrl).pathname
       } catch {
         // ignore URL parse errors; keep fallback pathname
       }
-      const method = (req as any)?.method || 'GET'
+        const method = (req as RequestLike)?.method || 'GET'
       return logger.child({ requestId: id, path: pathname, method, privacy: privacyLevel() })
     } catch {
       // Absolute fallback – should be rare
@@ -83,7 +91,7 @@ export function logEvent(base: pino.Logger, event: string, fields: Record<string
 }
 
 export function logError(base: pino.Logger, event: string, err: unknown, fields: Record<string, unknown> = {}) {
-  const e = err as any // eslint-disable-line @typescript-eslint/no-explicit-any
+  const e = err as { name?: string; message?: string; stack?: string } | undefined
   const minimal = { name: e?.name, message: e?.message }
   const hash = typeof e?.stack === 'string' ? crypto.createHash('sha1').update(e.stack).digest('hex').slice(0,8) : undefined
   const { cleaned, redactions } = scrubObject(fields)

@@ -14,6 +14,7 @@ const eslintConfig = [
   {
     rules: {
       'react/jsx-key': 'warn',
+  '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
   {
