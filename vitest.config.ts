@@ -17,6 +17,7 @@ export default defineConfig({
         'sentry.*.config.ts',
   'vitest.config.ts',
   'eslint.config.mjs',
+  'scripts/**',
   'src/types/**',
   'src/lib/cv/types.ts',
   'src/tests/**', // exclude test files themselves from coverage matrix
