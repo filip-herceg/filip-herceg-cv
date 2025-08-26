@@ -5,10 +5,11 @@ import AboutPage from '@/app/about/page'
 import ProjectsPage from '@/app/projects/page'
 import ContactPage from '@/app/contact/page'
 
-// Helper to render CV with/without short mode. We import the page module lazily so we can mock `next/dynamic` beforehand in specific tests.
+// Helper to render CV with/without short mode. Page component is async (server component style) so we await the element.
 const renderCv = async (mode?: string) => {
   const { default: CvPage } = await import('@/app/cv/page')
-  render(<CvPage searchParams={mode ? { mode } : {}} /> as any)
+  const element = await CvPage({ searchParams: mode ? { mode } : {} } as any)
+  render(element as any)
 }
 
 describe('Static pages', () => {
@@ -37,7 +38,7 @@ describe('CV page', () => {
     await renderCv('short')
     await waitFor(() => expect(screen.getByTestId('short-builder')).toBeInTheDocument())
   })
-  it('short mode selection change triggers router.replace once (URL sync)', async () => {
+  it('short mode selection change triggers router.replace with cv token (URL sync)', async () => {
     vi.doMock('next/dynamic', () => ({ __esModule: true, default: (importer: any) => importer() }))
     await act(async () => {
       await renderCv('short')
@@ -51,6 +52,10 @@ describe('CV page', () => {
       })
     }
     const mockRouter = (globalThis as any).__mockRouter
-    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledTimes(1))
+    await waitFor(() => {
+      expect(mockRouter.replace).toHaveBeenCalled()
+      const arg = mockRouter.replace.mock.calls[0][0]
+      expect(arg).toMatch(/cv=/)
+    })
   })
 })

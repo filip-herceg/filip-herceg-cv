@@ -6,3 +6,4 @@
 - [CI/CD Pipelines](cicd.md)
 - [Operations & Runbook](operations.md)
 - [Contributing](contributing.md)
+- [Permalink & Short Mode](permalink.md)

@@ -1,6 +1,7 @@
 "use client"
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { buildPermalink, encodePreset } from '@/lib/cv/permalink'
 import type { CvData, CvSelection } from '@/lib/cv/schema'
 import type { CvDesign } from '@/lib/cv/schema'
 import CvView from './CvView'
@@ -12,13 +13,11 @@ interface Props {
   initialSelection?: CvSelection
 }
 
-const selectionToParams = (sel: CvSelection): URLSearchParams => {
-  const p = new URLSearchParams()
-  p.set('mode', 'short')
-  if (sel.skills && sel.skills.length) p.set('skills', sel.skills.join(','))
-  if (sel.projects && sel.projects.length) p.set('projects', sel.projects.join(','))
-  return p
-}
+const selectionToPreset = (sel: CvSelection) => ({
+  mode: 'short' as const,
+  skills: sel.skills,
+  projects: sel.projects,
+})
 
 export const ShortModeContainer: React.FC<Props> = ({ data, design, initialSelection }) => {
   const router = useRouter()
@@ -35,9 +34,14 @@ export const ShortModeContainer: React.FC<Props> = ({ data, design, initialSelec
 
   // Sync URL (debounced by RAF) when selection changes
   useEffect(() => {
-    const handle = requestAnimationFrame(() => {
-      const params = selectionToParams(selection)
-      router.replace(`${pathname}?${params.toString()}`)
+    const handle = requestAnimationFrame(async () => {
+      // Update URL using compact token form
+      try {
+        const token = await encodePreset(selectionToPreset(selection))
+        router.replace(`${pathname}?cv=${token}`)
+      } catch {
+        // fallback: do nothing
+      }
     })
     return () => cancelAnimationFrame(handle)
   }, [selection, router, pathname])
@@ -45,14 +49,15 @@ export const ShortModeContainer: React.FC<Props> = ({ data, design, initialSelec
   const onChange = useCallback((sel: CvSelection) => setSelection(sel), [])
 
   const onCopyPermalink = useCallback(async () => {
-    const params = selectionToParams(selection)
-    const url = `${window.location.origin}${pathname}?${params.toString()}`
+    const url = await buildPermalink(`${window.location.origin}${pathname}`, selectionToPreset(selection))
     await navigator.clipboard.writeText(url)
   }, [selection, pathname])
 
   const onOpenPrint = useCallback(() => {
-    const params = selectionToParams(selection)
-    const printUrl = `/cv/print?${params.toString()}`.replace('mode=short&', '') // mode not needed for print
+  const params = new URLSearchParams()
+  if (selection.skills?.length) params.set('skills', selection.skills.join(','))
+  if (selection.projects?.length) params.set('projects', selection.projects.join(','))
+  const printUrl = `/cv/print?${params.toString()}`
     const w = window.open(printUrl, '_blank')
     if (w) {
       // Attempt auto-print after load

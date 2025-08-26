@@ -1,5 +1,13 @@
 import { CvSelectionSchema } from './schema'
 
+// Polyfill atob/btoa for Node environments (SSR / tests)
+if (typeof (globalThis as any).atob === 'undefined') {
+  ;(globalThis as any).atob = (str: string) => Buffer.from(str, 'base64').toString('binary')
+}
+if (typeof (globalThis as any).btoa === 'undefined') {
+  ;(globalThis as any).btoa = (str: string) => Buffer.from(str, 'binary').toString('base64')
+}
+
 // Lightweight base64url helpers (no padding)
 function toBase64Url(bytes: Uint8Array): string {
   let bin = ''

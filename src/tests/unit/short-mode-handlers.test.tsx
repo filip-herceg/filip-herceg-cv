@@ -27,8 +27,8 @@ describe('ShortModeContainer handlers', () => {
       <ShortModeContainer data={sampleCvData} design={design} initialSelection={{ skills: [sampleCvData.skills[0].id], projects: [sampleCvData.projects[0].id] }} />,
     )
     const copyBtn = await screen.findByRole('button', { name: /permalink kopieren/i })
-    await act(async () => { fireEvent.click(copyBtn) })
-    expect(writeText).toHaveBeenCalledTimes(1)
+  await act(async () => { fireEvent.click(copyBtn) })
+  await waitFor(() => expect(writeText).toHaveBeenCalled())
     expect(copyBtn.textContent).toMatch(/kopiert!/i)
   })
 

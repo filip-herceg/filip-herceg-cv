@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, within, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import ShortModeContainer from '@/components/cv/ShortModeContainer'
 import { sampleCvData, sampleCvDesign } from '@/lib/cv/sample-data'
 
@@ -44,12 +44,14 @@ describe('ShortModeContainer', () => {
     const calls = (globalThis as any).__replaces as string[]
     expect(calls.length).toBeGreaterThan(0)
     const last = calls[calls.length - 1]
-    expect(last).toMatch(/mode=short/)
-    // ensure removed skill id no longer in skills param
-    const skillsParam = /skills=([^&]+)/.exec(last)?.[1]
-    if (skillsParam) {
-      const list = skillsParam.split(',')
-      expect(list).not.toContain(firstSkill.id)
+    expect(last).toMatch(/cv=/)
+    const token = /cv=([^&]+)/.exec(last)?.[1]
+    expect(token).toBeTruthy()
+    if (token) {
+      const { decodePreset } = await import('@/lib/cv/permalink')
+      const decoded = await decodePreset(token)
+      expect(decoded.ok).toBe(true)
+      if (decoded.ok) expect(decoded.preset.skills).not.toContain(firstSkill.id)
     }
 
     // Ensure at least one other skill still checked
