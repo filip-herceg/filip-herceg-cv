@@ -45,14 +45,6 @@ const SheetContent = React.forwardRef<
     side?: 'top' | 'right' | 'bottom' | 'left'
   }
 >(function SheetContent({ className, children, side = 'right', ...props }, ref) {
-  // Provide accessible fallbacks (Radix warns if Title / Description absent). We only inject if missing.
-  const childArray = React.Children.toArray(children)
-  const hasTitle = childArray.some(
-    (c: any) => React.isValidElement(c) && (c.props as any)?.['data-slot'] === 'sheet-title',
-  )
-  const hasDescription = childArray.some(
-    (c: any) => React.isValidElement(c) && (c.props as any)?.['data-slot'] === 'sheet-description',
-  )
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -73,10 +65,9 @@ const SheetContent = React.forwardRef<
         )}
         {...props}
       >
-        {!hasTitle && <SheetTitle className="sr-only">Panel</SheetTitle>}
-        {!hasDescription && (
-          <SheetDescription className="sr-only">Additional panel content</SheetDescription>
-        )}
+        {/* Always include an offscreen Title & Description so Radix accessibility warnings never fire even if caller omits them */}
+        <SheetTitle className="sr-only">Panel</SheetTitle>
+        <SheetDescription className="sr-only">Panel content</SheetDescription>
         {children}
         <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
           <XIcon className="size-4" />

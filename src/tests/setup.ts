@@ -21,6 +21,17 @@ if (typeof window !== 'undefined' && !('IntersectionObserver' in window)) {
   }
 }
 
+// Polyfill ResizeObserver used by Radix NavigationMenu (jsdom lacks implementation)
+if (typeof window !== 'undefined' && !('ResizeObserver' in window)) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(window as any).ResizeObserver = class {
+    constructor() {}
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+}
+
 // Mock next/link to avoid ref & nesting warnings.
 // Behaviour:
 //  - If legacyBehavior/passHref is used and a single React element child is provided, clone it with href (do not wrap).

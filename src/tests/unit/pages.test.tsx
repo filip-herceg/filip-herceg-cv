@@ -39,19 +39,18 @@ describe('CV page', () => {
   })
   it('short mode selection change triggers router.replace once (URL sync)', async () => {
     vi.doMock('next/dynamic', () => ({ __esModule: true, default: (importer: any) => importer() }))
-    await renderCv('short')
+    await act(async () => {
+      await renderCv('short')
+    })
     const panel = await screen.findByTestId('short-builder')
     const firstCheckbox = panel.querySelector('input[type="checkbox"]') as HTMLInputElement | null
     if (firstCheckbox) {
-      // Wrap click and a rAF tick in act so the effect + rAF URL sync flush before assertion
       await act(async () => {
         firstCheckbox.click()
         await new Promise(requestAnimationFrame)
       })
     }
-    expect(panel).toBeInTheDocument()
-    // Access global mock router installed in setup
     const mockRouter = (globalThis as any).__mockRouter
-    expect(mockRouter.replace).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledTimes(1))
   })
 })

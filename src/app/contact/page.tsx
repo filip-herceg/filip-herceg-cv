@@ -30,16 +30,22 @@ export default function ContactPage() {
         <h1 className="text-3xl font-bold mb-6">Contact</h1>
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="block text-sm mb-1">Name</label>
-            <Input name="name" required />
+            <label htmlFor="contact-name" className="block text-sm mb-1">
+              Name
+            </label>
+            <Input id="contact-name" name="name" required />
           </div>
           <div>
-            <label className="block text-sm mb-1">Email</label>
-            <Input type="email" name="email" required />
+            <label htmlFor="contact-email" className="block text-sm mb-1">
+              Email
+            </label>
+            <Input id="contact-email" type="email" name="email" required />
           </div>
           <div>
-            <label className="block text-sm mb-1">Message</label>
-            <Textarea name="message" required rows={5} />
+            <label htmlFor="contact-message" className="block text-sm mb-1">
+              Message
+            </label>
+            <Textarea id="contact-message" name="message" required rows={5} />
           </div>
           <Button disabled={status === 'sending' || status === 'sent'} type="submit">
             {status === 'sent' ? 'Sent!' : status === 'sending' ? 'Sending...' : 'Send Message'}
