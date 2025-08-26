@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import AboutPage from '@/app/about/page'
 import ProjectsPage from '@/app/projects/page'
 import ContactPage from '@/app/contact/page'
@@ -36,5 +36,22 @@ describe('CV page', () => {
     vi.doMock('next/dynamic', () => ({ __esModule: true, default: (importer: any) => importer() }))
     await renderCv('short')
     await waitFor(() => expect(screen.getByTestId('short-builder')).toBeInTheDocument())
+  })
+  it('short mode selection change triggers router.replace once (URL sync)', async () => {
+    vi.doMock('next/dynamic', () => ({ __esModule: true, default: (importer: any) => importer() }))
+    await renderCv('short')
+    const panel = await screen.findByTestId('short-builder')
+    const firstCheckbox = panel.querySelector('input[type="checkbox"]') as HTMLInputElement | null
+    if (firstCheckbox) {
+      // Wrap click and a rAF tick in act so the effect + rAF URL sync flush before assertion
+      await act(async () => {
+        firstCheckbox.click()
+        await new Promise(requestAnimationFrame)
+      })
+    }
+    expect(panel).toBeInTheDocument()
+    // Access global mock router installed in setup
+    const mockRouter = (globalThis as any).__mockRouter
+    expect(mockRouter.replace).toHaveBeenCalledTimes(1)
   })
 })

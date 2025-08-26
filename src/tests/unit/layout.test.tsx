@@ -9,9 +9,18 @@ vi.mock('next/font/google', () => ({
 
 import RootLayout from '@/app/layout'
 
+// Helper: render RootLayout but inject only body subtree into RTL (avoids <html> nesting warning)
+function renderBodyFromLayout(child: React.ReactNode) {
+  const tree = RootLayout({ children: child }) as React.ReactElement
+  // tree = <html><body>...</body></html>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bodyEl: any = (tree as any).props.children
+  return render(<>{bodyEl.props.children}</>)
+}
+
 describe('<RootLayout />', () => {
   it('renders children and JSON-LD script', () => {
-    render(<RootLayout><div data-testid="child">Child</div></RootLayout>)
+  renderBodyFromLayout(<div data-testid="child">Child</div>)
     expect(screen.getByTestId('child')).toBeInTheDocument()
     // Find the JSON-LD script tag
     const script = document.querySelector('script[type="application/ld+json"]')

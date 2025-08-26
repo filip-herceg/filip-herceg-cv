@@ -30,13 +30,11 @@ export function SiteHeader() {
         <nav className="hidden md:block">
           <NavigationMenu>
             <NavigationMenuList>
-              {links.map((l) => (
+              {links.map(l => (
                 <NavigationMenuItem key={l.href}>
-                  <Link href={l.href} legacyBehavior passHref>
-                    <NavigationMenuLink className="px-3 py-2 text-sm hover:underline">
-                      {l.label}
-                    </NavigationMenuLink>
-                  </Link>
+                  <NavigationMenuLink asChild className="px-3 py-2 text-sm hover:underline">
+                    <Link href={l.href}>{l.label}</Link>
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
               ))}
             </NavigationMenuList>
