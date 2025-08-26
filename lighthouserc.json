@@ -5,6 +5,8 @@
       "assertions": {
   "categories:performance": ["error", { "minScore": 0.97 }],
   "categories:accessibility": ["error", { "minScore": 0.95 }],
+  "first-contentful-paint": ["warn", { "maxNumericValue": 1600 }],
+  "speed-index": ["warn", { "maxNumericValue": 2200 }],
   "unused-javascript": ["warn", { "maxNumericValue": 0 }],
   "total-blocking-time": ["error", { "maxNumericValue": 150 }],
   "largest-contentful-paint": ["error", { "maxNumericValue": 2200 }],

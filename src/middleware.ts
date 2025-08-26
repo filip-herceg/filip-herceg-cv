@@ -12,6 +12,8 @@ export function middleware(req: Request) {
   if (url.pathname.startsWith('/_next/') || url.pathname.startsWith('/public/')) {
     return NextResponse.next()
   }
+  // Correlation id (reuse if client supplies x-request-id; otherwise generate)
+  const incomingId = (req.headers as Headers).get('x-request-id') || crypto.randomUUID()
   const nonce = generateNonce()
   const res = NextResponse.next({
     headers: {
@@ -19,6 +21,7 @@ export function middleware(req: Request) {
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
       'Permissions-Policy': 'geolocation=()',
+      'x-request-id': incomingId,
     },
   })
   const csp = [

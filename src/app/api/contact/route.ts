@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { logger } from '@/lib/logger'
+import { logger, withRequestContext, logEvent, logError } from '@/lib/logger'
 import { Resend } from 'resend'
 import { contactSchema } from './schema'
 
@@ -34,19 +34,23 @@ async function sendEmail(data: z.infer<typeof contactSchema>) {
 }
 
 export async function POST(req: Request) {
+  const reqLogger = withRequestContext(req)
   try {
     const json = await req.json()
     const parsed = contactSchema.safeParse(json)
     if (!parsed.success) {
+      logEvent(reqLogger, 'domain:contact.validation_failed', { issues: parsed.error.issues.length })
       return NextResponse.json(
         { error: 'Validation failed', issues: parsed.error.issues },
         { status: 400 },
       )
     }
+    logEvent(reqLogger, 'domain:contact.accepted', { name: parsed.data.name })
     const result = await sendEmail(parsed.data)
+    logEvent(reqLogger, 'domain:contact.sent', { accepted: result.accepted })
     return NextResponse.json({ received: true, result }, { status: result.accepted ? 202 : 503 })
   } catch (e) {
-    logger.error({ err: e, event: 'contact.error' })
+    logError(reqLogger, 'domain:contact.exception', e)
     return NextResponse.json({ error: 'Bad request' }, { status: 400 })
   }
 }
