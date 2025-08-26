@@ -35,4 +35,9 @@ describe('API: og & rum stats', () => {
     const res = await rumPOST(new Request('http://test/rum', { method: 'POST', body: JSON.stringify({ name: 'LCP' }) }))
     expect(res.status).toBe(400)
   })
+
+  it('rum POST accepts valid metric', async () => {
+    const res = await rumPOST(new Request('http://test/rum', { method: 'POST', body: JSON.stringify({ name: 'LCP', value: 123 }) }))
+    expect(res.status).toBe(200)
+  })
 })

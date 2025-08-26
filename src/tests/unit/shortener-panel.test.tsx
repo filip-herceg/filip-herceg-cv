@@ -38,4 +38,29 @@ describe('ShortenerPanel', () => {
     const resetBtn = screen.getByRole('button', { name: /reset/i })
     expect(resetBtn).toBeDisabled()
   })
+
+  it('removes and re-adds a project (branch coverage)', () => {
+    const initialSel = { skills: data.skills.map(s => s.id), projects: data.projects.slice(0, 2).map(p => p.id) }
+    function Harness() {
+      const [sel, setSel] = useState(initialSel)
+      return (
+        <ShortenerPanel
+          data={data}
+          selection={sel as any}
+          onChange={setSel as any}
+          onCopyPermalink={async () => {}}
+          onOpenPrint={() => {}}
+          onReset={() => {}}
+        />
+      )
+    }
+    render(<Harness />)
+    const projectToToggle = data.projects[0]
+    const getBox = () => screen.getByRole('checkbox', { name: projectToToggle.title }) as HTMLInputElement
+    expect(getBox().checked).toBe(true)
+    fireEvent.click(getBox()) // remove
+    expect(getBox().checked).toBe(false)
+    fireEvent.click(getBox()) // add back
+    expect(getBox().checked).toBe(true)
+  })
 })
