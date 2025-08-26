@@ -1,0 +1,22 @@
+{
+  "summary": {
+    "jsTotalGzip": 0,
+    "jsLargestChunkGzip": 0,
+    "jsFiles": 0,
+    "imageCount": 1,
+    "largestImage": 0,
+    "budgets": {
+      "jsTotalGzip": 184320,
+      "jsLargestChunkGzip": 92160,
+      "largestImage": 122880,
+      "maxImages": 6
+    }
+  },
+  "jsDetails": [],
+  "images": [
+    {
+      "file": "og.png",
+      "size": 0
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { CvDataSchema, CvSelectionSchema } from '@/lib/cv/schema'
-import { decodePreset, selectionFromExpanded } from '@/lib/cv/permalink'
+import { decodePreset } from '@/lib/cv/permalink'
 import { sampleCvData, sampleCvDesign } from '@/lib/cv/sample-data'
 import CvView from '@/components/cv/CvView'
 import dynamic from 'next/dynamic'
@@ -15,7 +15,7 @@ export default async function CvPage({ searchParams }: { searchParams: Record<st
   for (const [k,v] of Object.entries(searchParams)) {
     if (typeof v === 'string') usp.set(k, v)
   }
-  let selection: any | undefined
+  let selection: { mode?: 'short'; skills?: string[]; projects?: string[] } | undefined
   // Try token first
   const token = usp.get('cv')
   if (token) {
