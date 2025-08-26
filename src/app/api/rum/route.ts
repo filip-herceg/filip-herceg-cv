@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { logger } from '@/lib/logger'
+import { withRequestContext, logEvent, logError } from '@/lib/logger'
 import { record } from '@/lib/rum'
 
 const vitalsSchema = z.object({
@@ -12,16 +12,18 @@ const vitalsSchema = z.object({
 })
 
 export async function POST(req: Request) {
+  const child = withRequestContext(req)
   try {
     const body = await req.json()
     const parsed = vitalsSchema.safeParse(body)
     if (!parsed.success) {
+      logEvent(child, 'perf:rum.metric.invalid')
       return NextResponse.json({ error: 'invalid metric' }, { status: 400 })
     }
-  logger.debug({ event: 'web-vitals', metric: parsed.data })
-  record(parsed.data)
+    record(parsed.data)
+    logEvent(child, 'perf:rum.metric', { name: parsed.data.name, value: parsed.data.value })
   } catch (e) {
-    logger.warn({ event: 'web-vitals.error', err: e })
+    logError(child, 'perf:rum.metric.error', e as Error)
   }
   return NextResponse.json({ ok: true })
 }

@@ -49,11 +49,33 @@ export function scrubObject<T extends Record<string, unknown>>(obj: T): { cleane
   return { cleaned, redactions }
 }
 
-export function withRequestContext(req: Request) {
-  const id = (req.headers as Headers).get('x-request-id') || crypto.randomUUID()
-  const url = new URL(req.url)
-  return logger.child({ requestId: id, path: url.pathname, method: (req as any).method || 'GET', privacy: privacyLevel() }) // eslint-disable-line @typescript-eslint/no-explicit-any
-}
+  // Create a child logger enriched with per-request context. Tests sometimes invoke
+  // route handlers without passing an actual Fetch API Request object; we make
+  // this helper resilient to undefined or partial inputs so those direct calls
+  // still work and logging doesn't throw.
+  export function withRequestContext(req?: Request | { headers?: any; url?: string; method?: string }) {
+    try {
+      const headers: any = req && (req as any).headers
+      const getHeader = (name: string) => {
+        if (!headers) return undefined
+        if (typeof headers.get === 'function') return headers.get(name)
+        return headers[name.toLowerCase()] || headers[name]
+      }
+      const id = getHeader('x-request-id') || crypto.randomUUID()
+      const rawUrl = (req as any)?.url || 'http://local/unknown'
+      let pathname = '/unknown'
+      try {
+        pathname = new URL(rawUrl).pathname
+      } catch {
+        // ignore URL parse errors; keep fallback pathname
+      }
+      const method = (req as any)?.method || 'GET'
+      return logger.child({ requestId: id, path: pathname, method, privacy: privacyLevel() })
+    } catch {
+      // Absolute fallback – should be rare
+      return logger
+    }
+  }
 
 export function logEvent(base: pino.Logger, event: string, fields: Record<string, unknown> = {}) {
   const { cleaned, redactions } = scrubObject(fields)

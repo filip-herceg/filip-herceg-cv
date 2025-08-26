@@ -4,6 +4,7 @@ import { CvSelectionSchema } from '@/lib/cv/schema'
 import { sampleCvData } from '@/lib/cv/sample-data'
 import { existsSync } from 'fs'
 import type { Browser } from 'puppeteer-core'
+import { withRequestContext, logEvent, logError } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -26,6 +27,8 @@ function buildBaseUrl(req: NextRequest): string {
 }
 
 export async function GET(req: NextRequest) {
+  const child = withRequestContext(req)
+  const started = Date.now()
   const url = new URL(req.url)
   const paramsRaw = {
     skills: url.searchParams.get('skills') || undefined,
@@ -52,6 +55,7 @@ export async function GET(req: NextRequest) {
         })
 
     if (!executablePath) {
+      logEvent(child, 'domain:cv.pdf.unsupported', { reason: 'no_chromium' })
       return NextResponse.json({ error: 'PDF generation not supported (no Chromium binary)', status: 501 }, { status: 501 })
     }
 
@@ -83,6 +87,8 @@ export async function GET(req: NextRequest) {
     pdfDoc.setKeywords(['CV','Resume', person.title, 'Short'].filter(Boolean) as string[])
   const final = Buffer.from(await pdfDoc.save())
 
+    const duration = Date.now() - started
+    logEvent(child, 'domain:cv.pdf.success', { ms: duration, selection: Object.keys(selection).length > 0 })
     return new NextResponse(final, {
       status: 200,
       headers: {
@@ -94,12 +100,10 @@ export async function GET(req: NextRequest) {
   } catch (err: unknown) {
     const e = err as Error & { message?: string }
     if (e?.message?.includes('Navigation timeout')) {
+      logError(child, 'domain:cv.pdf.timeout', e)
       return NextResponse.json({ error: 'Render timeout', status: 504 }, { status: 504 })
     }
-    if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.error('[cv/pdf] generation error', e)
-    }
+    logError(child, 'domain:cv.pdf.error', e)
     return NextResponse.json({ error: 'PDF generation failed', status: 500 }, { status: 500 })
   } finally {
     try { await browser?.close() } catch {}

@@ -18,7 +18,7 @@ Provide structured, privacy-aware logging with:
 | PII Scrubber | Small function replacing email patterns & long hex tokens with `[redacted]` | Applied to object shallow clone before logging |
 | Privacy Levels | `low` (default) only scrubs obvious sensitive fields; `high` also scrubs all emails, domains from URLs | Env driven |
 | Structured Error Helper | `logError(logger, err, event)` extracts safe subset (name,message) and attaches hash of stack | Avoids dumping sensitive stack lines |
-| RUM Aggregation Logging | Periodic (on stats route call) logs summary event `perf.rum.stats` | Controlled by env flag |
+| RUM Aggregation Logging | (Done) stats route emits `perf:rum.stats` with metric count | Could add sampling later |
 
 ## Schema (Event Field Conventions)
 | Field | Type | Description |
@@ -31,13 +31,15 @@ Provide structured, privacy-aware logging with:
 | redactions | string[] | Fields removed / masked |
 
 ## Acceptance Criteria
-- New middleware adds `x-request-id` and CSP nonce remains unaffected.
-- Contact route logs include requestId and no raw email when LOG_PRIVACY=high.
-- Unit tests assert scrubbing and request context enrichment.
-- Coverage stays >=80% branches.
+- New middleware adds `x-request-id` and CSP nonce remains unaffected. ✅
+- Contact route logs include requestId and no raw email when LOG_PRIVACY=high. ✅ (scrubber + test)
+- CV export & PDF routes emit namespaced success / error / cache events. ✅
+- RUM metric & stats endpoints emit `perf:rum.metric` & `perf:rum.stats`. ✅
+- Unit tests assert scrubbing, high privacy URL host masking, error helper. ✅
+- Coverage stays >=80% branches. ✅
 
 ## Follow-ups (Optional)
 - Ship logs to external sink (e.g., OpenTelemetry exporter) – out of scope.
 - Add dynamic sampling for high-volume routes.
 
-Status: Draft ⏳.
+Status: In Progress – core logging implemented; optional sampling / external shipping deferred.
