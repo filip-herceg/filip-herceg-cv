@@ -93,6 +93,10 @@ Workflows in `.github/workflows`:
 - `ci.yml`: lint, typecheck, build, Lighthouse, Docker build+push (main)
 - `cd.yml`: Helm deploy on push to main
 
+Coverage badge JSON artifact produced in CI (job build-test). You can publish it via Shields endpoint (e.g. shields.io/endpoint) or commit a rendered SVG in a follow-up action.
+
+Canary validation with an ephemeral kind cluster (`canary-kind` job) installs the Helm chart using the built image digest prior to production CD.
+
 Required repository secrets:
 
 - `K8S_SERVER` – API server URL

@@ -52,6 +52,18 @@ jobs:
         with:
           name: coverage-report
           path: coverage
+      - name: Generate coverage badge json
+        if: always()
+        run: |
+          pct=$(grep -m1 'All files' coverage/lcov-report/index.html | sed -E 's/.*Statements[^0-9]*([0-9]+\.?[0-9]*).*/\1/' || echo 0)
+          color=red
+          awk "BEGIN{exit ($pct>=90)?0:1}" && color=brightgreen || (awk "BEGIN{exit ($pct>=80)?0:1}" && color=yellow || true)
+          echo '{"schemaVersion":1,"label":"coverage","message":"'"'$pct%'"'","color":"'"'$color'"'"}' > coverage-badge.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-badge
+          path: coverage-badge.json
   static-analysis:
     runs-on: ubuntu-latest
     steps:
@@ -216,8 +228,16 @@ jobs:
           provenance: true
           sbom: true
           tags: ghcr.io/${{ github.repository }}:${{ github.sha }},ghcr.io/${{ github.repository }}:latest
-      - name: Export image digest
-        run: echo "digest=$(docker inspect ghcr.io/${{ github.repository }}:latest --format='{{json .RepoDigests}}')" >> $GITHUB_OUTPUT
+      - name: Capture image digest
+        id: digest
+        run: |
+          d=$(docker inspect ghcr.io/${{ github.repository }}:${{ github.sha }} --format='{{index .RepoDigests 0}}' | cut -d'@' -f2)
+          echo "digest=$d" >> $GITHUB_OUTPUT
+          echo "$d" > image-digest.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-digest
+          path: image-digest.txt
   supply-chain:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -239,6 +259,38 @@ jobs:
           name: supply-chain-artifacts
           path: |
             sbom.spdx.json
+  canary-kind:
+    runs-on: ubuntu-latest
+    needs: docker
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download image digest
+        uses: actions/download-artifact@v4
+        with:
+          name: image-digest
+      - name: Read digest
+        id: d
+        run: echo "digest=$(cat image-digest.txt)" >> $GITHUB_OUTPUT
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.9.0
+        with:
+          cluster_name: canary
+      - name: Pull + load image
+        run: |
+          docker pull ghcr.io/${{ github.repository }}:${{ github.sha }}
+          kind load docker-image ghcr.io/${{ github.repository }}:${{ github.sha }} --name canary
+      - name: Helm install (canary)
+        run: |
+          helm upgrade --install web ./helm \
+            --namespace canary --create-namespace \
+            --set image.repository=ghcr.io/${{ github.repository }} \
+            --set image.tag=${{ github.sha }} \
+            --set image.digest=${{ steps.d.outputs.digest }} \
+            --set ingress.enabled=false
+      - name: Wait for rollout
+        run: kubectl rollout status deployment/web -n canary --timeout=120s
+      - name: Logs
+        run: kubectl logs deployment/web -n canary --tail=50 || true
   summary:
     runs-on: ubuntu-latest
     needs:

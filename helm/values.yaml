@@ -2,6 +2,8 @@ replicaCount: 2
 image:
   repository: ghcr.io/OWNER/filip-herceg-cv
   tag: latest
+  # Optional: if provided, overrides tag (supply full digest like sha256:....)
+  digest: ""
   pullPolicy: IfNotPresent
 ingress:
   enabled: true
