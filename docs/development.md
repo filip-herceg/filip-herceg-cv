@@ -91,13 +91,16 @@ Future: swap to Postgres (update `provider` and connection string) when multi-in
 
 ## Internationalization (i18n)
 
-Baseline i18n is configured via Next.js `i18n` (locales: `en` default, `de`). Navigation links use a locale prefix for non-default locales (`/de/...`). A lightweight translation utility lives in `src/lib/i18n` with flat JSON message catalogs.
+Locales: `en` (default) & `de`, path‑based (`/de/...`). Translation catalogs live in `src/lib/i18n` and are accessed via `t(locale, key)`. Phase 2 implementation added:
 
-`<LocaleHead />` (client component) adjusts `<html lang>` dynamically and injects basic `hreflang` alternate links for SEO. For now alternates are coarse (current path mirrored for `en` & `de`); future enhancements will:
+- Localized metadata (title, description, Open Graph, canonical, alternates)
+- Structured data (`WebSite` + `Person` JSON-LD)
+- Localized sitemap + consistent hreflang links
+- Broad UI text coverage (navigation, hero, projects, contact form, tags)
 
-- Generate per-locale sitemap entries
-- Add page-level `generateMetadata` overrides for richer Open Graph translations
-- Localize persisted CV content once multi-locale persistence lands
+See `i18n-seo-phase2.md` for full details & future roadmap (CV data localization, richer JSON-LD, Twitter cards).
+
+`<LocaleHead />` plus layout ensure `<html lang>` + dynamic alternates; `localizedMeta()` centralizes per-page metadata generation.
 
 Add a translation:
 1. Add key to `messages.en.json` and translated value to `messages.de.json`.
@@ -123,8 +126,8 @@ expect(screen.getByRole('link', { name: 'Startseite' })).toBeInTheDocument();
 
 Troubleshooting:
 
-- Wrong language? Ensure the first path segment matches a configured locale and that navigation uses `href` with or without prefix correctly.
-- Missing translation key: `t()` falls back to key string; search for the key and add it to all catalogs.
-- Hreflang not visible in tests: The `<LocaleHead />` component manipulates the DOM in a `useEffect`; wait asynchronously (`waitFor`) before asserting.
+- Wrong language? Ensure the first path segment matches a configured locale and that navigation uses correct prefixed links.
+- Missing translation key: `t()` falls back to the key itself; add to all catalogs.
+- Hreflang missing? Inspect rendered head in tests; use `waitFor` if client effect timing matters (though most alternates now server-provided via metadata).
 
 

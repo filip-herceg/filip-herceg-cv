@@ -10,4 +10,4 @@
 - [Persistence & Service](persistence.md)
 
 Related areas forthcoming:
-- Sitemap & i18n SEO (pending)
+- [Internationalization & SEO Phase 2](i18n-seo-phase2.md)

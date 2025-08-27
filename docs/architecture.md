@@ -23,24 +23,17 @@ Hybrid model:
 
 Read path only today; write/admin flows are planned.
 
-### Internationalization (Current Status)
+### Internationalization (Status After Phase 2)
 
-Initial internationalization (i18n) infrastructure is in place:
+Phase 2 completed the i18n & SEO uplift:
 
-- Next.js `i18n` config enables locales `en` (default) & `de`.
-- Path-based locale prefix for non-default locales (`/de/...`).
-- Lightweight message catalogs (`messages.en.json`, `messages.de.json`) + helper `t(locale, key)` used in navigation UI.
-- `<LocaleHead />` client component sets `<html lang>` and injects `hreflang` alternates (currently coarse: mirrors current path in both locales & `x-default`).
-- Per‑locale in‑memory CV cache keying already anticipates future multi-locale persisted data (today underlying DB content is effectively single-locale / language‑agnostic).
+- Locales: `en` (default) & `de` path-based (`/de/...`).
+- Message catalogs with simple lookup `t(locale, key)` now applied across navigation, hero, section headings, projects, contact form, tags.
+- Central helpers: `detectLocaleFromPath`, `localeFromHeaders`, `localizedMeta` (builds canonical, alternates, Open Graph w/ locale & alternateLocale).
+- `<LocaleHead />` / root layout ensure `<html lang>` plus consistent hreflang links; sitemap entries localized (with alternates).
+- Structured data (JSON-LD) for `WebSite` + `Person` injected per page render.
 
-Pending (Phase 2 – i18n SEO & Content Enhancements):
-
-1. Localized sitemap with `<xhtml:link rel="alternate" hreflang="..."/>` entries.
-2. Page-level localized metadata via `generateMetadata` (title, description, Open Graph, canonical, `og:locale:alternate`).
-3. Localized persisted CV content (additional tables or locale column) and negotiation fallback chain.
-4. Lazy loading / code-splitting of large translation sets when catalogue size grows.
-
-Non-goals (for now): runtime locale negotiation via Accept-Language (explicit URL chosen for cacheability / SEO clarity).
+Upcoming (Phase 3 candidates): localized persisted CV content, richer JSON-LD (BreadcrumbList, Projects), Twitter Card metadata, dynamic catalog loading, analytics on missing keys. Accept-Language negotiation remains out-of-scope for cacheability & SEO clarity.
 
 ## Key Decisions
 
