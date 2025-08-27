@@ -104,3 +104,27 @@ Add a translation:
 2. Use `t(locale, 'key')` in components (pass locale inferred from path).
 3. Add / update tests if UI text changes.
 
+Example:
+
+```tsx
+import { t } from '@/lib/i18n';
+
+export function Greeting({ locale }: { locale: string }) {
+	return <p>{t(locale, 'nav.home')}</p>;
+}
+```
+
+Testing localized output (Vitest + Testing Library):
+
+```ts
+render(<SiteHeader pathname="/de" />);
+expect(screen.getByRole('link', { name: 'Startseite' })).toBeInTheDocument();
+```
+
+Troubleshooting:
+
+- Wrong language? Ensure the first path segment matches a configured locale and that navigation uses `href` with or without prefix correctly.
+- Missing translation key: `t()` falls back to key string; search for the key and add it to all catalogs.
+- Hreflang not visible in tests: The `<LocaleHead />` component manipulates the DOM in a `useEffect`; wait asynchronously (`waitFor`) before asserting.
+
+

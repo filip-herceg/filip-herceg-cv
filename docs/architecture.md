@@ -21,7 +21,26 @@ Hybrid model:
 - On missing rows, validation failure, or query error the service falls back to embedded static JSON (original bootstrap) with `source: static`.
 - Contact endpoint remains a stub with optional email provider (Resend) integration when env vars present.
 
-Read path only today; write/admin flows are planned. Initial internationalization (i18n) infrastructure added (Next.js i18n config, locale-prefixed routing support via header + middleware-friendly detection, translation resources for `en` & `de`). Further localized persistence is on the roadmap.
+Read path only today; write/admin flows are planned.
+
+### Internationalization (Current Status)
+
+Initial internationalization (i18n) infrastructure is in place:
+
+- Next.js `i18n` config enables locales `en` (default) & `de`.
+- Path-based locale prefix for non-default locales (`/de/...`).
+- Lightweight message catalogs (`messages.en.json`, `messages.de.json`) + helper `t(locale, key)` used in navigation UI.
+- `<LocaleHead />` client component sets `<html lang>` and injects `hreflang` alternates (currently coarse: mirrors current path in both locales & `x-default`).
+- Per‑locale in‑memory CV cache keying already anticipates future multi-locale persisted data (today underlying DB content is effectively single-locale / language‑agnostic).
+
+Pending (Phase 2 – i18n SEO & Content Enhancements):
+
+1. Localized sitemap with `<xhtml:link rel="alternate" hreflang="..."/>` entries.
+2. Page-level localized metadata via `generateMetadata` (title, description, Open Graph, canonical, `og:locale:alternate`).
+3. Localized persisted CV content (additional tables or locale column) and negotiation fallback chain.
+4. Lazy loading / code-splitting of large translation sets when catalogue size grows.
+
+Non-goals (for now): runtime locale negotiation via Accept-Language (explicit URL chosen for cacheability / SEO clarity).
 
 ## Key Decisions
 
@@ -37,6 +56,7 @@ Read path only today; write/admin flows are planned. Initial internationalizatio
 | Scaling       | HPA CPU-based                | Simple initial elasticity                               |
 | Caching       | In-memory (60s TTL)          | Avoid repeated DB aggregation per request               |
 | PDF Generation| Playwright (conditional)     | Enables printable/export flows; graceful 501 fallback   |
+| i18n Strategy | Explicit locale in URL       | SEO-friendly, cacheable & user-copyable links           |
 
 ## Diagram (Logical)
 
@@ -68,9 +88,10 @@ Cache invalidation will accompany future write APIs (admin edits) by clearing lo
 
 ## Roadmap (Next)
 
-1. CRUD & Admin Auth (protect write endpoints, invalidate cache)
-2. Localization workflow (multi-locale persistence + hydrated DB per locale)
-3. Distributed cache (Redis) when >1 replica
-4. Observability: metrics for cache hit ratio & load latency
-5. Migrate dev DB to Postgres in CI for parity
-6. Incremental i18n SEO: per-page hreflang refinement & sitemap locale alternates
+1. Incremental i18n SEO: sitemap alternates & localized metadata (complete F01)
+2. CRUD & Admin Auth (protect write endpoints, invalidate cache)
+3. Multi-locale persistence model (schema evolution + negotiation fallback)
+4. Distributed cache (Redis) when >1 replica
+5. Observability: metrics for cache hit ratio & load latency
+6. Migrate dev DB to Postgres in CI for parity
+7. Structured PDF export service hardening & queue offloading (optional)

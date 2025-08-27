@@ -8,6 +8,7 @@
 Additional soft health indicators (log-derived):
 - `cv-service` warnings about parse failures indicate DB data inconsistency; app still serves static fallback.
 - Elevated fallback rate suggests migration or seeding issues.
+- Locale head injection issues (missing `<link hreflang>` in prod) can degrade SEO; verify by inspecting rendered HTML for representative pages in each locale.
 
 ## Logs
 
@@ -25,6 +26,7 @@ Additional soft health indicators (log-derived):
   - Cache hit ratio for CV aggregate service
   - DB load latency (histogram)
   - Fallback count (counter)
+  - (Planned) Per-locale request distribution & missing translation key counts
 
 ## Scaling
 
@@ -59,6 +61,7 @@ Required environment variables for outbound email via Resend:
 4. View logs: `kubectl logs -f <pod> -n portfolio`
 5. If image pull issues: verify registry creds & tag
 6. Rollback if regression linked to deploy
+7. If SEO/i18n regression suspected: fetch `/` and `/de` HTML, confirm `<html lang>` and `hreflang` links.
 
 ## Backups / DR (Future)
 
@@ -73,3 +76,8 @@ Required environment variables for outbound email via Resend:
 - NetworkPolicies
 - Image scanning in CI
  - Restrict DB network access (if moving off-pod) via NetworkPolicy / security groups.
+
+## Internationalization Ops Notes
+
+- Current hreflang strategy is dynamic DOM insertion; static pre-rendered alternates & sitemap localization still pending. Expect search engines to pick up alternates but completeness improves after sitemap feature lands.
+- Adding a new locale requires: update `next.config.mjs`, add message catalog JSON, extend tests, and (later) add locale-specific DB content.

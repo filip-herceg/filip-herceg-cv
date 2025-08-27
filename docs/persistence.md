@@ -12,6 +12,7 @@ The CV data has transitioned from a purely static JSON bundle to a hybrid approa
 - ORM: Prisma
 - Dev Database: SQLite (file based via `DATABASE_URL=file:...`)
 - Entities (simplified): `person`, `skill`, `project`, `experience`, `education`, `certification`, `trait`, `hobby`, `design`
+- Locale dimension: Not yet materialized; all rows currently treated as language‑agnostic. Future schema will introduce either a `locale` column per entity or locale-specific join tables.
 - JSON fields stored as string columns (`*Json`) and parsed at read time.
 
 ## Service Contract
@@ -34,11 +35,12 @@ In-memory map keyed by locale. TTL = 60s. Cache hit currently reported as `sourc
 
 ## Roadmap
 1. Write API & admin auth (mutations + cache invalidation).
-2. Locale dimension (multi-locale rows, negotiation strategy).
+2. Locale dimension (multi-locale rows, negotiation strategy) aligned with i18n Phase 2.
 3. Postgres migration (connection pooling, migrations).
 4. Distinguish `source: cache` vs `db` for observability.
 5. Optional Redis cache for multi-pod deployment.
 6. Structured metrics (hit ratio, latency histograms, fallback counter).
+7. Content diff tooling to verify locale parity during rollout.
 
 ## Local Seeding Tips
 ```bash
