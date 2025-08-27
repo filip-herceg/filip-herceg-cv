@@ -1,6 +1,8 @@
 'use client'
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { t } from '@/lib/i18n'
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -15,12 +17,30 @@ import MotionToggle from './motion-toggle'
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
+  const pathname = usePathname()
+  const router = useRouter()
+  // Extract current locale from leading segment (e.g., /de/about)
+  const segments = pathname.split('/').filter(Boolean)
+  const possibleLocale = segments[0]
+  const supported = ['en','de']
+  const locale = supported.includes(possibleLocale) ? possibleLocale : 'en'
+  function withLocale(href: string) {
+    if (locale === 'en') return href // default locale not prefixed
+    return href === '/' ? `/${locale}` : `/${locale}${href}`
+  }
   const links = [
-    { href: '/', label: 'Home' },
-    { href: '/about', label: 'About' },
-    { href: '/projects', label: 'Projects' },
-    { href: '/contact', label: 'Contact' },
+    { href: '/', label: t(locale,'nav.home') },
+    { href: '/about', label: t(locale,'nav.about') },
+    { href: '/projects', label: t(locale,'nav.projects') },
+    { href: '/contact', label: t(locale,'nav.contact') },
   ]
+  const switchLocale = (next: string) => {
+    if (next === locale) return
+    // Remove existing locale segment if present
+    const rest = supported.includes(possibleLocale) ? '/' + segments.slice(1).join('/') : pathname
+    const target = next === 'en' ? (rest === '/' ? '/' : rest) : `/${next}${rest === '/' ? '' : rest}`
+    router.push(target)
+  }
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur bg-background/70 border-b">
       <div className="container flex h-14 items-center justify-between">
@@ -33,7 +53,7 @@ export function SiteHeader() {
               {links.map(l => (
                 <NavigationMenuItem key={l.href}>
                   <NavigationMenuLink asChild className="px-3 py-2 text-sm hover:underline">
-                    <Link href={l.href}>{l.label}</Link>
+                    <Link href={withLocale(l.href)}>{l.label}</Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
               ))}
@@ -41,12 +61,17 @@ export function SiteHeader() {
           </NavigationMenu>
         </nav>
         <div className="flex items-center gap-3">
+          <div className="flex gap-1 text-xs border rounded px-2 py-1">
+            <button aria-label="English" className={locale==='en'? 'font-semibold underline' : ''} onClick={()=>switchLocale('en')}>{t(locale,'lang.english')}</button>
+            <span className="opacity-40">/</span>
+            <button aria-label="Deutsch" className={locale==='de'? 'font-semibold underline' : ''} onClick={()=>switchLocale('de')}>{t(locale,'lang.german')}</button>
+          </div>
           <MotionToggle />
           <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger className="md:hidden px-3 py-2 text-sm border rounded">Menu</SheetTrigger>
           <SheetContent side="right" className="flex flex-col gap-4 pt-10">
             {links.map((l) => (
-              <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="text-lg">
+              <Link key={l.href} href={withLocale(l.href)} onClick={() => setOpen(false)} className="text-lg">
                 {l.label}
               </Link>
             ))}

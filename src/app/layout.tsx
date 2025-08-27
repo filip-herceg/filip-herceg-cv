@@ -7,6 +7,7 @@ import { Inter } from 'next/font/google'
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' })
 import Vitals from '@/components/layout/vitals'
+import { LocaleHead } from '@/components/layout/locale-head'
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL || 'http://localhost:3000'),
@@ -33,8 +34,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+  <html lang="en" suppressHydrationWarning>
   <body className={`${inter.className} min-h-screen font-sans antialiased`}>
+    <LocaleHead />
         {/* JSON-LD Schema.org */}
         <script
           type="application/ld+json"

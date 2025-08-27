@@ -21,7 +21,7 @@ Hybrid model:
 - On missing rows, validation failure, or query error the service falls back to embedded static JSON (original bootstrap) with `source: static`.
 - Contact endpoint remains a stub with optional email provider (Resend) integration when env vars present.
 
-Read path only today; write/admin & localization flows are planned (see Roadmap).
+Read path only today; write/admin flows are planned. Initial internationalization (i18n) infrastructure added (Next.js i18n config, locale-prefixed routing support via header + middleware-friendly detection, translation resources for `en` & `de`). Further localized persistence is on the roadmap.
 
 ## Key Decisions
 
@@ -69,7 +69,8 @@ Cache invalidation will accompany future write APIs (admin edits) by clearing lo
 ## Roadmap (Next)
 
 1. CRUD & Admin Auth (protect write endpoints, invalidate cache)
-2. Localization workflow (multi-locale persistence)
+2. Localization workflow (multi-locale persistence + hydrated DB per locale)
 3. Distributed cache (Redis) when >1 replica
 4. Observability: metrics for cache hit ratio & load latency
 5. Migrate dev DB to Postgres in CI for parity
+6. Incremental i18n SEO: per-page hreflang refinement & sitemap locale alternates

@@ -3,6 +3,11 @@ const nextConfig = {
   reactStrictMode: true,
   // Removed standalone output for now to avoid missing route modules in packaged start; default output works with tests.
   poweredByHeader: false,
+  i18n: {
+    locales: ['en', 'de'],
+    defaultLocale: 'en',
+    localeDetection: true,
+  },
   images: { formats: ['image/avif', 'image/webp'] },
   eslint: {
     // We lint separately in CI; allow build for perf budget script

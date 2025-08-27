@@ -88,3 +88,19 @@ npx prisma studio
 You can override the DB file path by exporting `DATABASE_URL` before starting dev.
 
 Future: swap to Postgres (update `provider` and connection string) when multi-instance.
+
+## Internationalization (i18n)
+
+Baseline i18n is configured via Next.js `i18n` (locales: `en` default, `de`). Navigation links use a locale prefix for non-default locales (`/de/...`). A lightweight translation utility lives in `src/lib/i18n` with flat JSON message catalogs.
+
+`<LocaleHead />` (client component) adjusts `<html lang>` dynamically and injects basic `hreflang` alternate links for SEO. For now alternates are coarse (current path mirrored for `en` & `de`); future enhancements will:
+
+- Generate per-locale sitemap entries
+- Add page-level `generateMetadata` overrides for richer Open Graph translations
+- Localize persisted CV content once multi-locale persistence lands
+
+Add a translation:
+1. Add key to `messages.en.json` and translated value to `messages.de.json`.
+2. Use `t(locale, 'key')` in components (pass locale inferred from path).
+3. Add / update tests if UI text changes.
+
