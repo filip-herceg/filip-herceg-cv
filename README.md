@@ -125,6 +125,21 @@ metrics:
 
 Prometheus scrape annotations are added automatically to the Service when `metrics.enabled` is true. Provide an exporter or integrate instrumentation to serve metrics at `/metrics`.
 
+If you run Prometheus Operator, enable a ServiceMonitor:
+
+```yaml
+metrics:
+	enabled: true
+	serviceMonitor:
+		enabled: true
+		interval: 30s
+		scrapeTimeout: 10s
+		labels:
+			release: prometheus-stack
+```
+
+Rollback strategy: CD workflow records the previous Helm revision and automatically rolls back if the deployment or smoke check fails, then surfaces recent events and pod descriptions for diagnosis.
+
 Required repository secrets:
 
 - `K8S_SERVER` – API server URL
