@@ -129,7 +129,7 @@ export function localeFromHeaders(): 'en' | 'de' {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { headers } = require('next/headers') as typeof import('next/headers')
   const h: any = headers()
-  // @ts-ignore - Next types may treat headers() as returning a promise; we defensively access
+  // @ts-ignore: headers() typing mismatch (sometimes Promise in type defs); safe at runtime
   const path = typeof h?.get === 'function' ? (h.get('x-pathname') || '') : ''
     return detectLocaleFromPath(path)
   } catch {

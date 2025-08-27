@@ -1,5 +1,4 @@
 declare module 'prom-client' {
-  // Minimal types needed; importing as namespace
   export interface RegistryOptions { register?: Registry }
   export class Registry {
     constructor();
@@ -21,4 +20,11 @@ declare module 'prom-client' {
     inc(value?: number): void;
     dec(value?: number): void;
   }
+  const _default: {
+    Registry: typeof Registry;
+    collectDefaultMetrics: typeof collectDefaultMetrics;
+    Counter: typeof Counter;
+    Gauge: typeof Gauge;
+  }
+  export default _default;
 }
