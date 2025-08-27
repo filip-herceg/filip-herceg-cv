@@ -1,6 +1,7 @@
 ## Filip Herceg – Portfolio
 
 ![Coverage](https://raw.githubusercontent.com/filip-herceg/filip-herceg-cv/badges/badges/coverage.svg)
+<!-- Alternative dynamic badge via Shields: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/filip-herceg/filip-herceg-cv/badges/badges/coverage.json -->
 
 Production-grade personal portfolio built with:
 

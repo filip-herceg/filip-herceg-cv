@@ -426,6 +426,7 @@ jobs:
           git checkout -B badges
           mkdir -p badges
           mv coverage.svg badges/coverage.svg
-          git add badges/coverage.svg
+          cp coverage-badge.json badges/coverage.json
+          git add badges/coverage.svg badges/coverage.json
           git commit -m "chore: update coverage badge [skip ci]" || echo "No changes to commit"
           git push origin badges
