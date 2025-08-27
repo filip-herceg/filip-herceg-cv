@@ -4,9 +4,15 @@
   "nav.projects": "Projekte",
   "nav.contact": "Kontakt",
   "lang.english": "Englisch",
-  "lang.german": "Deutsch"
-  ,"meta.home.title": "Filip Herceg – Software Engineer"
-  ,"meta.home.description": "Portfolio, Projekte und Lebenslauf von Filip Herceg, Software Engineer für performante Webplattformen und Developer Experience."
-  ,"meta.about.title": "Über mich – Filip Herceg"
-  ,"meta.about.description": "Hintergrund, Fähigkeiten und Timeline von Filip Herceg."
+  "lang.german": "Deutsch",
+  "meta.home.title": "Filip Herceg – Software Engineer",
+  "meta.home.description": "Portfolio, Projekte und Lebenslauf von Filip Herceg, Software Engineer für performante Webplattformen und Developer Experience.",
+  "meta.about.title": "Über mich – Filip Herceg",
+  "meta.about.description": "Hintergrund, Fähigkeiten und Timeline von Filip Herceg.",
+  "meta.projects.title": "Projekte – Filip Herceg",
+  "meta.projects.description": "Ausgewählte Engineering-, Tooling- und Plattformprojekte.",
+  "meta.contact.title": "Kontakt – Filip Herceg",
+  "meta.contact.description": "Kontaktaufnahme mit Filip Herceg.",
+  "meta.cv.title": "Lebenslauf – Filip Herceg",
+  "meta.cv.description": "Lebenslauf von Filip Herceg mit Erfahrung, Projekten und Fähigkeiten."
 }

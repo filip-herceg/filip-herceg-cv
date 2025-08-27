@@ -24,7 +24,7 @@ jobs:
   security-audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -49,7 +49,7 @@ jobs:
       matrix:
         node: [18, 20]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
@@ -80,7 +80,7 @@ jobs:
   static-analysis:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Dockerfile lint (hadolint)
         uses: hadolint/hadolint-action@v3.1.0
         with:
@@ -100,7 +100,7 @@ jobs:
   gitleaks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Gitleaks scan
         uses: gitleaks/gitleaks-action@v2
         env:
@@ -115,9 +115,9 @@ jobs:
   trivy-fs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Trivy FS scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.32.0
         with:
           scan-type: fs
           ignore-unfixed: true
@@ -136,7 +136,7 @@ jobs:
       security-events: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: github/codeql-action/init@v3
         with:
           languages: javascript
@@ -146,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -166,7 +166,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -189,7 +189,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -224,7 +224,7 @@ jobs:
       - gitleaks
       - dependency-review
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -254,14 +254,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Generate SBOM (syft)
         uses: anchore/sbom-action@v0
         with:
           image: ghcr.io/${{ github.repository }}:latest
           output-file: sbom.spdx.json
       - name: Scan image (grype)
-        uses: anchore/scan-action@v4
+        uses: anchore/scan-action@v6
         with:
           image: ghcr.io/${{ github.repository }}:latest
           fail-build: false

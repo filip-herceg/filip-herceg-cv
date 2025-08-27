@@ -1,8 +1,16 @@
 export const dynamic = 'error'
 import { Section } from '@/components/ui/section'
 import PresetProjects from '@/components/visuals/preset-projects'
+import { localizedMeta } from '@/lib/i18n'
+import { headers } from 'next/headers'
 
-export const metadata = { title: 'Projects – Filip Herceg' }
+export async function generateMetadata() {
+  const h = headers()
+  const path = h.get('x-pathname') || ''
+  const seg = path.split('/').filter(Boolean)[0]
+  const locale = ['de'].includes(seg) ? seg : 'en'
+  return localizedMeta(locale, 'projects', { path: 'projects' })
+}
 
 const projectData = [
   {
@@ -26,7 +34,7 @@ export default function ProjectsPage() {
   return (
     <main>
       <Section className="pt-24">
-        <h1 className="text-3xl font-bold mb-6">Projects</h1>
+  <h1 className="text-3xl font-bold mb-6">Projects</h1>
   <PresetProjects projects={projectData} />
       </Section>
     </main>

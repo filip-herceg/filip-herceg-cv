@@ -4,6 +4,17 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
+import { localizedMeta } from '@/lib/i18n'
+import { headers } from 'next/headers'
+
+export const dynamic = 'error'
+export async function generateMetadata() {
+  const h = headers()
+  const path = h.get('x-pathname') || ''
+  const seg = path.split('/').filter(Boolean)[0]
+  const locale = ['de'].includes(seg) ? seg : 'en'
+  return localizedMeta(locale, 'contact', { path: 'contact' })
+}
 
 export default function ContactPage() {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')

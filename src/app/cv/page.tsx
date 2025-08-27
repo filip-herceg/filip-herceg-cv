@@ -2,10 +2,21 @@ import { CvDataSchema, CvSelectionSchema } from '@/lib/cv/schema'
 import { decodePreset } from '@/lib/cv/permalink'
 import { getAggregate } from '@/lib/cv/service'
 import CvView from '@/components/cv/CvView'
-import dynamic from 'next/dynamic'
+import dynamicImport from 'next/dynamic'
+import { localizedMeta } from '@/lib/i18n'
+import { headers } from 'next/headers'
+
+export const dynamic = 'error'
+export async function generateMetadata() {
+  const h = headers()
+  const path = h.get('x-pathname') || ''
+  const seg = path.split('/').filter(Boolean)[0]
+  const locale = ['de'].includes(seg) ? seg : 'en'
+  return localizedMeta(locale, 'cv', { path: 'cv' })
+}
 
 // Client-only builder (no SSR) to keep full page lean
-const ShortModeContainer = dynamic(() => import('@/components/cv/ShortModeContainer'), { ssr: false })
+const ShortModeContainer = dynamicImport(() => import('@/components/cv/ShortModeContainer'), { ssr: false })
 
 // Full CV page with optional short builder mode
 export default async function CvPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
