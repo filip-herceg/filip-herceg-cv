@@ -1,10 +1,29 @@
 import en from './messages.en.json'
 import de from './messages.de.json'
+// NOTE: German kept eagerly for now to preserve SSR correctness; additional locales will be lazy.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const lazyCache: Record<string, Record<string, string>> = { en, de }
 
-export const messages: Record<string, Record<string, string>> = { en, de }
+export const messages: Record<string, Record<string, string>> = lazyCache
+
+async function loadLocale(locale: string): Promise<Record<string, string>> {
+  if (lazyCache[locale]) return lazyCache[locale]
+  switch (locale) {
+    case 'de':
+      return lazyCache.de
+    default:
+      return lazyCache.en
+  }
+}
 
 export function t(locale: string, key: string): string {
   const dict = messages[locale] || messages.en
+  return dict[key] || key
+}
+
+// Async variant that ensures the catalog is loaded (used for future client-side code splitting / Suspense patterns)
+export async function tAsync(locale: string, key: string): Promise<string> {
+  const dict = await loadLocale(locale)
   return dict[key] || key
 }
 

@@ -50,7 +50,7 @@
 | ID | Feature | Theme | Priority | Effort (S/M/L) | KPI Impact | Acceptance Criteria | Status |
 |----|---------|-------|----------|----------------|------------|--------------------|--------|
 | F01 | Locale routing & switcher | i18n | High | M | Global reach | /en & /de pages; hreflang tags present (routing + switcher + metadata alternates implemented) | Done |
-| F02 | Translation resource loader (lazy) | i18n | High | M | Perf (bundle) | Only active locale JSON loaded; fallback to en verified; bundle size test | Planned |
+| F02 | Translation resource loader (lazy) | i18n | High | M | Perf (bundle) | Only active locale JSON loaded; fallback to en verified; bundle size test | In Progress |
 | F03 | Structured CV data module (static JSON) | Content | High | M | Agility | Initial static JSON + Zod validation scaffold (now extended by DB service & fallback) | Done |
 | F16 | Persistent CV data layer (DB + schema) | Content | High | M | Agility | Empty default DB; Prisma schema; loader pulls per-locale rows; fallback removed | Planned |
 | F17 | Admin auth & CRUD UI | Content | High | M | Agility/Security | Secure login, protected /admin, create/update/delete entities, validation | Planned |
