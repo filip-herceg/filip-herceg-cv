@@ -69,3 +69,10 @@ networkPolicy:
         app.kubernetes.io/name: ingress-nginx
   # Additional egress CIDRs for destinations beyond DNS/HTTPS (e.g., database/private)
   extraEgressCidrs: []
+
+metrics:
+  enabled: false
+  port: 9464
+  serviceMonitor:
+    enabled: false
+    interval: 30s

@@ -45,6 +45,8 @@ helm upgrade --install web ./helm \
 	--set image.repository=ghcr.io/OWNER/filip-herceg-cv \
 	--set image.tag=latest \
 	--set ingress.host=yourdomain.tld
+	# Enable metrics endpoint on port 9464
+	--set metrics.enabled=true
 ```
 
 ### CV Feature & API
@@ -96,6 +98,18 @@ Workflows in `.github/workflows`:
 Coverage badge JSON artifact produced in CI (job build-test). You can publish it via Shields endpoint (e.g. shields.io/endpoint) or commit a rendered SVG in a follow-up action.
 
 Canary validation with an ephemeral kind cluster (`canary-kind` job) installs the Helm chart using the built image digest prior to production CD.
+
+### Metrics & Observability
+
+Helm values:
+
+```yaml
+metrics:
+	enabled: true      # exposes /metrics on the service (port 9464)
+	port: 9464
+```
+
+Prometheus scrape annotations are added automatically to the Service when `metrics.enabled` is true. Provide an exporter or integrate instrumentation to serve metrics at `/metrics`.
 
 Required repository secrets:
 

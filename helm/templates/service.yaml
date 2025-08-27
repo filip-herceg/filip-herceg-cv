@@ -4,6 +4,12 @@ metadata:
   name: {{ include "app.fullname" . }}
   labels:
     {{- include "app.labels" . | nindent 4 }}
+  {{- if .Values.metrics.enabled }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "{{ .Values.metrics.port }}"
+    prometheus.io/path: "/metrics"
+  {{- end }}
 spec:
   selector:
     {{- include "app.selectorLabels" . | nindent 4 }}
@@ -11,3 +17,8 @@ spec:
     - name: http
       port: 80
       targetPort: http
+    {{- if .Values.metrics.enabled }}
+    - name: metrics
+      port: {{ .Values.metrics.port }}
+      targetPort: metrics
+    {{- end }}
