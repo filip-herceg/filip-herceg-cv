@@ -6,8 +6,17 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import GradientBG from '@/components/visuals/gradient-bg'
 import FadeInOnView from '@/components/visuals/fade-in-on-view'
+import { localizedMeta } from '@/lib/i18n'
+import { headers } from 'next/headers'
 
-export const metadata = { title: 'Filip Herceg – Software Engineer' }
+export async function generateMetadata() {
+  // Derive locale from pathname header (middleware added locale segment) or default 'en'
+  const h = headers()
+  const path = h.get('x-pathname') || ''
+  const seg = path.split('/').filter(Boolean)[0]
+  const locale = ['de'].includes(seg) ? seg : 'en'
+  return localizedMeta(locale, 'home')
+}
 export const dynamic = 'error' // ensure full static generation
 
 export default function HomePage() {

@@ -1,7 +1,16 @@
 export const dynamic = 'error'
 import { Section } from '@/components/ui/section'
 
-export const metadata = { title: 'About – Filip Herceg' }
+import { localizedMeta } from '@/lib/i18n'
+import { headers } from 'next/headers'
+
+export async function generateMetadata() {
+  const h = headers()
+  const path = h.get('x-pathname') || ''
+  const seg = path.split('/').filter(Boolean)[0]
+  const locale = ['de'].includes(seg) ? seg : 'en'
+  return localizedMeta(locale, 'about')
+}
 
 export default function AboutPage() {
   const skills = ['TypeScript', 'React', 'Next.js', 'Node.js', 'Kubernetes', 'CI/CD']
