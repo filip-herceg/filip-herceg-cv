@@ -7,3 +7,4 @@
 - [Operations & Runbook](operations.md)
 - [Contributing](contributing.md)
 - [Permalink & Short Mode](permalink.md)
+ - [Persistence & Service](persistence.md)

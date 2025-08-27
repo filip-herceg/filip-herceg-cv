@@ -5,15 +5,26 @@
 - Liveness/readiness: HTTP 200 on `/api/healthz`
 - External uptime check recommended
 
+Additional soft health indicators (log-derived):
+- `cv-service` warnings about parse failures indicate DB data inconsistency; app still serves static fallback.
+- Elevated fallback rate suggests migration or seeding issues.
+
 ## Logs
 
 - App logs to stdout
 - Aggregate via cluster logging (e.g., Loki, ELK, Cloud provider)
+- `cv-service` logger emits:
+  - `cv data parse failed from db` / `cv design parse failed from db` (warn) when Zod validation fails.
+  - `db load failed; falling back to static` (warn) on query errors.
 
 ## Metrics
 
 - Add Prometheus sidecar or OpenTelemetry exporter (future)
 - Lighthouse scores trend (CI history)
+- Future custom metrics:
+  - Cache hit ratio for CV aggregate service
+  - DB load latency (histogram)
+  - Fallback count (counter)
 
 ## Scaling
 
@@ -53,6 +64,7 @@ Required environment variables for outbound email via Resend:
 
 - Static site assets rebuildable from source
 - Consider off-site backup for contact submissions if persisted later
+- When Postgres introduced: enable automated snapshots & point-in-time recovery.
 
 ## Security Hardening (Future)
 
@@ -60,3 +72,4 @@ Required environment variables for outbound email via Resend:
 - Read-only root filesystem
 - NetworkPolicies
 - Image scanning in CI
+ - Restrict DB network access (if moving off-pod) via NetworkPolicy / security groups.
