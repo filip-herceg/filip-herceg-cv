@@ -51,7 +51,10 @@
 |----|---------|-------|----------|----------------|------------|--------------------|--------|
 | F01 | Locale routing & switcher | i18n | High | M | Global reach | /en & /de pages; hreflang tags present | Planned |
 | F02 | Translation resource loader (lazy) | i18n | High | M | Perf (bundle) | Only active locale JSON loaded; tests for fallback | Planned |
-| F03 | Structured CV data module | Content | High | M | Agility | Single source file(s) validated by Zod in build | Planned |
+| F03 | Structured CV data module (static JSON) | Content | High | M | Agility | (Superseded) Initial static JSON + Zod validation scaffold | Done |
+| F16 | Persistent CV data layer (DB + schema) | Content | High | M | Agility | Empty default DB; Prisma schema; loader pulls per-locale rows; fallback removed | Planned |
+| F17 | Admin auth & CRUD UI | Content | High | M | Agility/Security | Secure login, protected /admin, create/update/delete entities, validation | Planned |
+| F18 | Localization workflow & translation status | i18n | High | M | Global reach | Per-locale row creation, status indicators, missing translation fallback logic | Planned |
 | F04 | prom-client exporter (/metrics) | Observability | High | S | Reliability | Counters: pdf_requests_total, permalink_creates_total; gauge: pdf_cache_entries | Planned |
 | F05 | ServiceMonitor verification test | Observability | Medium | S | Ops | helm template includes ServiceMonitor when enabled | Planned |
 | F06 | Grafana dashboard refinement (panels) | Observability | Medium | S | Insight | Dashboard JSON includes new counters | Planned |

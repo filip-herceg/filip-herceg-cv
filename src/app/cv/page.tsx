@@ -1,6 +1,6 @@
 import { CvDataSchema, CvSelectionSchema } from '@/lib/cv/schema'
 import { decodePreset } from '@/lib/cv/permalink'
-import { sampleCvData, sampleCvDesign } from '@/lib/cv/sample-data'
+import { getAggregate } from '@/lib/cv/service'
 import CvView from '@/components/cv/CvView'
 import dynamic from 'next/dynamic'
 
@@ -9,7 +9,8 @@ const ShortModeContainer = dynamic(() => import('@/components/cv/ShortModeContai
 
 // Full CV page with optional short builder mode
 export default async function CvPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
-  const data = CvDataSchema.parse(sampleCvData)
+  const { data, design } = await getAggregate('en')
+  const validated = CvDataSchema.parse(data)
   // Build URLSearchParams from searchParams record
   const usp = new URLSearchParams()
   for (const [k,v] of Object.entries(searchParams)) {
@@ -34,11 +35,11 @@ export default async function CvPage({ searchParams }: { searchParams: Record<st
   const isShort = selection?.mode === 'short'
   return isShort ? (
     <main className="mx-auto w-full p-4 md:p-6">
-      <ShortModeContainer data={data} design={sampleCvDesign} initialSelection={selection} />
+      <ShortModeContainer data={validated} design={design} initialSelection={selection} />
     </main>
   ) : (
     <main className="mx-auto max-w-4xl p-4 md:p-6">
-      <CvView data={data} design={sampleCvDesign} selection={selection} />
+      <CvView data={validated} design={design} selection={selection} />
     </main>
   )
 }

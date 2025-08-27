@@ -1,0 +1,14 @@
+{
+  "page": { "size": "A4", "margin": "16mm", "columns": 2, "gutter": "8mm" },
+  "palette": { "mode": "light", "primary": "#1e293b", "accent": "#0ea5e9", "background": "#ffffff", "surface": "#f1f5f9", "text": "#0f172a", "mutedText": "#64748b" },
+  "typography": { "body": "system-ui, sans-serif", "heading": "system-ui, sans-serif", "scale": 1 },
+  "shapes": [
+    { "kind": "stripe", "position": "top-right", "opacity": 0.08, "accent": "#0ea5e9" },
+    { "kind": "blob", "position": "bottom-left", "opacity": 0.06, "accent": "#38bdf8" }
+  ],
+  "sections": [
+    { "id": "profile", "label": "Profile", "order": 1, "enabled": true },
+    { "id": "skills", "label": "Skills", "order": 2, "enabled": true },
+    { "id": "projects", "label": "Projects", "order": 3, "enabled": true }
+  ]
+}

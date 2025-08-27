@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { CvSelectionSchema } from '@/lib/cv/schema'
-import { sampleCvData } from '@/lib/cv/sample-data'
+import { getAggregate } from '@/lib/cv/service'
 import { existsSync } from 'fs'
 import type { Browser } from 'puppeteer-core'
 import { withRequestContext, logEvent, logError } from '@/lib/logger'
@@ -80,7 +80,8 @@ export async function GET(req: NextRequest) {
 
     // Metadata injection
   const pdfDoc = await PDFDocument.load(pdfUint8)
-    const person = sampleCvData.person
+  const { data } = await getAggregate('en')
+  const person = data.person
     pdfDoc.setTitle(`${person.name} – CV`)
     pdfDoc.setAuthor(person.name)
     pdfDoc.setSubject('Curriculum Vitae')

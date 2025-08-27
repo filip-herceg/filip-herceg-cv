@@ -1,0 +1,144 @@
+// Prisma schema for dynamic CV persistence (Step 1)
+// SQLite for development; can switch to PostgreSQL in production by datasource url.
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Core person info per locale (single row expected per locale)
+model Person {
+  id        String   @id @default(cuid())
+  locale    String   @unique
+  name      String
+  title     String
+  profile   String
+  email     String
+  location  String?
+  phone     String?
+  website   String?
+  github    String?
+  linkedin  String?
+  twitter   String?
+  linksJson String?  // JSON string array serialized
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Skill {
+  id        String
+  locale    String
+  name      String
+  category  String
+  level     String?
+  years     Int?
+  tagsJson  String? // JSON string array
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@id([id, locale])
+}
+
+model Project {
+  id        String
+  locale    String
+  title     String
+  role      String
+  period    String
+  company   String?
+  summary   String
+  highlightsJson String? // JSON array
+  stackJson     String? // JSON array
+  impact    String?
+  linksJson String? // JSON array objects
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@id([id, locale])
+}
+
+model Experience {
+  id        String
+  locale    String
+  company   String
+  role      String
+  period    String
+  location  String?
+  employmentType String?
+  summary   String?
+  achievementsJson String? // JSON array
+  stackJson     String? // JSON array
+  tagsJson      String? // JSON array
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@id([id, locale])
+}
+
+model Education {
+  id        String
+  locale    String
+  institution String
+  degree     String
+  field      String?
+  period     String
+  location   String?
+  grade      String?
+  summary    String?
+  highlightsJson String? // JSON array
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@id([id, locale])
+}
+
+model Certification {
+  id        String
+  locale    String
+  name      String
+  issuer    String
+  year      Int?
+  url       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@id([id, locale])
+}
+
+model Trait {
+  id        String
+  locale    String
+  name      String
+  description String?
+  category  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@id([id, locale])
+}
+
+model Hobby {
+  id        String
+  locale    String
+  name      String
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@id([id, locale])
+}
+
+model Design {
+  id        String   @id @default(cuid())
+  locale    String   @unique
+  pageJson      String // serialized JSON
+  paletteJson   String
+  typographyJson String
+  shapesJson    String
+  sectionsJson  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Meta {
+  key   String @id
+  value String
+  updatedAt DateTime @updatedAt
+}

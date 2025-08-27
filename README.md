@@ -190,6 +190,29 @@ Notes:
 - Add analytics / web vitals RUM endpoint.
 - Additional CV improvements: theming switch, multi-language CV data, caching for PDF renders.
 
+### Dynamic CV Persistence (In Progress)
+
+Phase 2 introduces a database-backed, per-instance editable CV. Current state:
+
+- Prisma + SQLite dev datasource (`DATABASE_URL=file:./dev.db`)
+- Seed script to import existing static JSON once: `npm run prisma:migrate:dev && npm run db:seed:cv`
+- Service layer (`src/lib/cv/service.ts`) attempts DB aggregate then falls back to static JSON until data seeded.
+
+Upcoming slices (see `docs/cv-persistence-i18n-plan.md`): admin auth, CRUD UI, localization workflow, removal of static fallback.
+
+Environment additions:
+```
+DATABASE_URL=file:./dev.db
+ADMIN_PASSWORD_HASH= # bcrypt hash for bootstrap
+```
+
+To switch to Postgres later:
+```
+DATABASE_URL=postgresql://user:pass@host:5432/dbname?schema=public
+```
+
+NOTE: Until the CV pages & API routes are migrated to the service layer they still reference static exports (migration underway).
+
 ---
 
 MIT License.
