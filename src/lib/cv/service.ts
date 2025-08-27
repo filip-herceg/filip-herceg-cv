@@ -3,7 +3,13 @@ import { CvDataSchema, CvDesignSchema, type CvData, type CvDesign } from './sche
 import { getCvData as getStaticCvData, getCvDesign as getStaticCvDesign } from './loader'
 import pino from 'pino'
 
-const prisma = new PrismaClient()
+let prisma: PrismaClient | undefined
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient()
+  }
+  return prisma
+}
 const log = pino({ name: 'cv-service' })
 
 // Simple in-memory cache (locale -> aggregate) to minimize DB round trips.
@@ -20,16 +26,17 @@ export async function getAggregate(locale: string = 'en'): Promise<{ data: CvDat
 
   // Attempt DB load (Step 1: simplistic approach aggregating all rows)
   try {
+    const client = getPrisma()
     const [person, skills, projects, experiences, education, certifications, traits, hobbies, design] = await Promise.all([
-      prisma.person.findUnique({ where: { locale } }),
-      prisma.skill.findMany({ where: { locale } }),
-      prisma.project.findMany({ where: { locale } }),
-      prisma.experience.findMany({ where: { locale } }),
-      prisma.education.findMany({ where: { locale } }),
-      prisma.certification.findMany({ where: { locale } }),
-      prisma.trait.findMany({ where: { locale } }),
-      prisma.hobby.findMany({ where: { locale } }),
-      prisma.design.findUnique({ where: { locale } })
+      client.person.findUnique({ where: { locale } }),
+      client.skill.findMany({ where: { locale } }),
+      client.project.findMany({ where: { locale } }),
+      client.experience.findMany({ where: { locale } }),
+      client.education.findMany({ where: { locale } }),
+      client.certification.findMany({ where: { locale } }),
+      client.trait.findMany({ where: { locale } }),
+      client.hobby.findMany({ where: { locale } }),
+      client.design.findUnique({ where: { locale } })
     ])
 
     if (person) {
@@ -53,9 +60,9 @@ export async function getAggregate(locale: string = 'en'): Promise<{ data: CvDat
   projects: projects.map((p: any) => ({ id: p.id, title: p.title, role: p.role, period: p.period, company: p.company ?? undefined, summary: p.summary, highlights: p.highlightsJson ? JSON.parse(p.highlightsJson) : [], stack: p.stackJson ? JSON.parse(p.stackJson) : [], impact: p.impact ?? undefined, links: p.linksJson ? JSON.parse(p.linksJson) : undefined })),
   experiences: experiences.map((e: any) => ({ id: e.id, company: e.company, role: e.role, period: e.period, location: e.location ?? undefined, employmentType: e.employmentType ?? undefined, summary: e.summary ?? undefined, achievements: e.achievementsJson ? JSON.parse(e.achievementsJson) : [], stack: e.stackJson ? JSON.parse(e.stackJson) : [], tags: e.tagsJson ? JSON.parse(e.tagsJson) : [] })),
   education: education.map((ed: any) => ({ id: ed.id, institution: ed.institution, degree: ed.degree, field: ed.field ?? undefined, period: ed.period, location: ed.location ?? undefined, grade: ed.grade ?? undefined, summary: ed.summary ?? undefined, highlights: ed.highlightsJson ? JSON.parse(ed.highlightsJson) : [] })),
-        certifications: certifications.map(c => ({ id: c.id, name: c.name, issuer: c.issuer, year: c.year ?? undefined, url: c.url ?? undefined })),
-        traits: traits.map(t => ({ id: t.id, name: t.name, description: t.description ?? undefined, category: t.category ?? undefined })),
-        hobbies: hobbies.map(h => ({ id: h.id, name: h.name, description: h.description ?? undefined }))
+  certifications: certifications.map((c: any) => ({ id: c.id, name: c.name, issuer: c.issuer, year: c.year ?? undefined, url: c.url ?? undefined })),
+  traits: traits.map((t: any) => ({ id: t.id, name: t.name, description: t.description ?? undefined, category: t.category ?? undefined })),
+  hobbies: hobbies.map((h: any) => ({ id: h.id, name: h.name, description: h.description ?? undefined }))
       })
 
       const designParse = design ? CvDesignSchema.safeParse({
