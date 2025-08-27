@@ -103,6 +103,16 @@ An automated job now generates and publishes a static SVG badge to the `badges` 
 
 Canary validation with an ephemeral kind cluster (`canary-kind` job) installs the Helm chart using the built image digest prior to production CD.
 
+Automated releases: Conventional commits merged to `main` trigger a semantic-release job (after canary + supply chain checks). It updates `CHANGELOG.md`, bumps the version in `package.json`, creates a GitHub Release, and retags the container image with both `X.Y.Z` and `vX.Y.Z`.
+
+Commit types mapped:
+ - feat: minor bump (or major if BREAKING CHANGE footer)
+ - fix: patch bump
+ - chore/docs/test/refactor/style/perf: no release unless BREAKING
+ - BREAKING CHANGE: major bump
+
+Use `[skip ci]` in trivial docs-only commits if desired; release commit already includes it automatically.
+
 ### Metrics & Observability
 
 Helm values:

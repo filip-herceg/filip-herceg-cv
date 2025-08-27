@@ -22,7 +22,8 @@
     "format:check": "prettier --check .",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
-    "e2e:ui": "playwright test --ui"
+  "e2e:ui": "playwright test --ui",
+  "release": "semantic-release"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
@@ -66,5 +67,11 @@
     "typescript": "^5",
     "vitest": "^2.0.5",
     "wait-on": "^7.2.0"
+  ,"semantic-release": "^24.0.0"
+  ,"@semantic-release/changelog": "^6.0.3"
+  ,"@semantic-release/git": "^10.0.1"
+  ,"@semantic-release/commit-analyzer": "^13.0.0"
+  ,"@semantic-release/release-notes-generator": "^14.0.0"
+  ,"@semantic-release/github": "^10.0.5"
   }
 }

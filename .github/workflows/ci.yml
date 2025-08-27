@@ -291,6 +291,43 @@ jobs:
         run: kubectl rollout status deployment/web -n canary --timeout=120s
       - name: Logs
         run: kubectl logs deployment/web -n canary --tail=50 || true
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs:
+      - supply-chain
+      - canary-kind
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+      - name: Retag & push docker image with release version
+        env:
+          GH_REPO: ghcr.io/${{ github.repository }}
+        run: |
+          if [ ! -f package.json ]; then echo "package.json missing"; exit 1; fi
+          version=$(jq -r .version package.json)
+          echo "Version: $version"
+          if [ -z "$version" ] || [ "$version" = "null" ]; then echo "No version found"; exit 0; fi
+          echo "Pulling latest image"
+          docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+          docker pull $GH_REPO:latest
+          docker tag $GH_REPO:latest $GH_REPO:$version
+          docker tag $GH_REPO:latest $GH_REPO:v$version
+          docker push $GH_REPO:$version
+          docker push $GH_REPO:v$version
   summary:
     runs-on: ubuntu-latest
     needs:
