@@ -322,3 +322,62 @@ jobs:
         with:
           name: ci-summary
           path: ci-summary.txt
+
+  coverage-badge-publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: build-test
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download coverage badge JSON
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-badge
+      - name: Generate coverage SVG
+        run: |
+          set -e
+          data=$(cat coverage-badge.json)
+          label=$(echo "$data" | jq -r .label)
+          message=$(echo "$data" | jq -r .message)
+          colorName=$(echo "$data" | jq -r .color)
+          case "$colorName" in
+            brightgreen) colorHex="#4c1" ;;
+            yellow) colorHex="#dfb317" ;;
+            *) colorHex="#e05d44" ;;
+          esac
+          # crude width calc (char * 6 + padding)
+          label_w=$(( ${#label} * 6 + 20 ))
+          msg_w=$(( ${#message} * 6 + 20 ))
+            total_w=$(( label_w + msg_w ))
+          cat > coverage.svg <<EOF
+          <svg xmlns="http://www.w3.org/2000/svg" width="${total_w}" height="20" role="img" aria-label="${label}: ${message}">
+            <linearGradient id="smooth" x2="0" y2="100%">
+              <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+              <stop offset="1" stop-opacity=".1"/>
+            </linearGradient>
+            <mask id="round"><rect width="${total_w}" height="20" rx="3" fill="#fff"/></mask>
+            <g mask="url(#round)">
+              <rect width="${label_w}" height="20" fill="#555"/>
+              <rect x="${label_w}" width="${msg_w}" height="20" fill="${colorHex}"/>
+              <rect width="${total_w}" height="20" fill="url(#smooth)"/>
+            </g>
+            <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
+              <text x="$((label_w/2))" y="15" fill="#010101" fill-opacity=".3">${label}</text>
+              <text x="$((label_w/2))" y="14">${label}</text>
+              <text x="$((label_w + msg_w/2))" y="15" fill="#010101" fill-opacity=".3">${message}</text>
+              <text x="$((label_w + msg_w/2))" y="14">${message}</text>
+            </g>
+          </svg>
+          EOF
+      - name: Commit & push badge
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout -B badges
+          mkdir -p badges
+          mv coverage.svg badges/coverage.svg
+          git add badges/coverage.svg
+          git commit -m "chore: update coverage badge [skip ci]" || echo "No changes to commit"
+          git push origin badges

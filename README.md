@@ -1,5 +1,7 @@
 ## Filip Herceg – Portfolio
 
+![Coverage](https://raw.githubusercontent.com/filip-herceg/filip-herceg-cv/badges/badges/coverage.svg)
+
 Production-grade personal portfolio built with:
 
 - Next.js 15 App Router (standalone output)
@@ -96,6 +98,8 @@ Workflows in `.github/workflows`:
 - `cd.yml`: Helm deploy on push to main
 
 Coverage badge JSON artifact produced in CI (job build-test). You can publish it via Shields endpoint (e.g. shields.io/endpoint) or commit a rendered SVG in a follow-up action.
+
+An automated job now generates and publishes a static SVG badge to the `badges` branch (`badges/coverage.svg`). Reference it with the raw.githubusercontent.com URL as shown at the top of this README.
 
 Canary validation with an ephemeral kind cluster (`canary-kind` job) installs the Helm chart using the built image digest prior to production CD.
 
