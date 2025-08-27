@@ -140,6 +140,18 @@ metrics:
 
 Rollback strategy: CD workflow records the previous Helm revision and automatically rolls back if the deployment or smoke check fails, then surfaces recent events and pod descriptions for diagnosis.
 
+Grafana dashboard: enable an embedded dashboard ConfigMap:
+
+```yaml
+metrics:
+	enabled: true
+	grafanaDashboard:
+		enabled: true
+		folder: Applications
+```
+
+Label `grafana_dashboard=1` is added; many Grafana sidecar importers watch for this automatically. Dashboard panels expect standard Node.js / prom-client metrics.
+
 Required repository secrets:
 
 - `K8S_SERVER` – API server URL

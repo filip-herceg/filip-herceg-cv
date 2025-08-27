@@ -78,3 +78,6 @@ metrics:
     interval: 30s
   scrapeTimeout: 10s
   labels: {}
+  grafanaDashboard:
+    enabled: false
+    folder: Applications

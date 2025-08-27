@@ -1,0 +1,48 @@
+{{- if and .Values.metrics.enabled .Values.metrics.grafanaDashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "app.fullname" . }}-grafana-dashboard
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+    {{- if .Values.metrics.grafanaDashboard.folder }}
+    dashboard-folder: {{ .Values.metrics.grafanaDashboard.folder | quote }}
+    {{- end }}
+data:
+  {{ include "app.fullname" . }}-dashboard.json: |
+    {
+      "__inputs": [],
+      "__requires": [{"type":"panel","id":"timeseries","name":"Time series","version":"8.0.0"}],
+      "schemaVersion": 38,
+      "version": 1,
+      "title": "{{ include "app.fullname" . }} Metrics",
+      "refresh": "30s",
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "CPU Usage",
+          "targets": [
+            { "expr": "rate(process_cpu_seconds_total{job='{{ include "app.fullname" . }}'}[5m])" }
+          ],
+          "gridPos": {"h":8,"w":12,"x":0,"y":0}
+        },
+        {
+          "type": "timeseries",
+          "title": "Memory RSS",
+          "targets": [
+            { "expr": "process_resident_memory_bytes{job='{{ include "app.fullname" . }}'}" }
+          ],
+          "gridPos": {"h":8,"w":12,"x":12,"y":0}
+        },
+        {
+          "type": "timeseries",
+          "title": "Event Loop Lag",
+          "targets": [
+            { "expr": "nodejs_eventloop_lag_seconds{job='{{ include "app.fullname" . }}'}" }
+          ],
+          "gridPos": {"h":8,"w":12,"x":0,"y":8}
+        }
+      ]
+    }
+{{- end }}
