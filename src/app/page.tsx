@@ -6,20 +6,21 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import GradientBG from '@/components/visuals/gradient-bg'
 import FadeInOnView from '@/components/visuals/fade-in-on-view'
-import { localizedMeta } from '@/lib/i18n'
-import { headers } from 'next/headers'
+import { localizedMeta, localeFromHeaders, t } from '@/lib/i18n'
 
 export async function generateMetadata() {
-  // Derive locale from pathname header (middleware added locale segment) or default 'en'
-  const h = headers()
-  const path = h.get('x-pathname') || ''
-  const seg = path.split('/').filter(Boolean)[0]
-  const locale = ['de'].includes(seg) ? seg : 'en'
+  const locale = localeFromHeaders()
   return localizedMeta(locale, 'home')
 }
 export const dynamic = 'error' // ensure full static generation
 
 export default function HomePage() {
+  const locale = 'en' // default; runtime client hints not available server-side here
+  const heading = t(locale, 'home.hero.heading')
+  const sub = t(locale, 'home.hero.sub')
+  const emailCta = t(locale, 'home.hero.email')
+  const featured = t(locale, 'home.featured')
+  const allProjects = t(locale, 'home.projects.all')
   const projects = [
     {
       title: 'Portfolio Platform',
@@ -43,19 +44,15 @@ export default function HomePage() {
         <GradientBG />
         <div className="text-center max-w-2xl mx-auto">
           <FadeInOnView>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-              Hi, I&apos;m Filip Herceg.
-            </h1>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{heading}</h1>
           </FadeInOnView>
           <FadeInOnView delay={0.08}>
-            <p className="mt-4 text-lg text-muted-foreground">
-              I build performant web platforms and delightful developer experiences.
-            </p>
+            <p className="mt-4 text-lg text-muted-foreground">{sub}</p>
           </FadeInOnView>
           <FadeInOnView delay={0.16}>
             <div className="mt-6 flex flex-wrap gap-4 justify-center">
               <Button variant="outline" asChild>
-                <Link href="mailto:me@example.com">Email Me</Link>
+                <Link href="mailto:me@example.com">{emailCta}</Link>
               </Button>
             </div>
           </FadeInOnView>
@@ -63,10 +60,10 @@ export default function HomePage() {
       </Section>
       <Section>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold">Featured Projects</h2>
+          <h2 className="text-2xl font-semibold">{featured}</h2>
           <Button asChild variant="ghost" className="gap-1">
             <Link href="/projects">
-              All Projects <ArrowRight size={16} />
+              {allProjects} <ArrowRight size={16} />
             </Link>
           </Button>
         </div>

@@ -3,15 +3,11 @@ import { decodePreset } from '@/lib/cv/permalink'
 import { getAggregate } from '@/lib/cv/service'
 import CvView from '@/components/cv/CvView'
 import dynamicImport from 'next/dynamic'
-import { localizedMeta } from '@/lib/i18n'
-import { headers } from 'next/headers'
+import { localizedMeta, localeFromHeaders, t } from '@/lib/i18n'
 
 export const dynamic = 'error'
 export async function generateMetadata() {
-  const h = headers()
-  const path = h.get('x-pathname') || ''
-  const seg = path.split('/').filter(Boolean)[0]
-  const locale = ['de'].includes(seg) ? seg : 'en'
+  const locale = localeFromHeaders()
   return localizedMeta(locale, 'cv', { path: 'cv' })
 }
 

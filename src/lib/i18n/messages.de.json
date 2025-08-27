@@ -15,4 +15,23 @@
   "meta.contact.description": "Kontaktaufnahme mit Filip Herceg.",
   "meta.cv.title": "Lebenslauf – Filip Herceg",
   "meta.cv.description": "Lebenslauf von Filip Herceg mit Erfahrung, Projekten und Fähigkeiten."
+  ,"home.hero.heading": "Hallo, ich bin Filip Herceg."
+  ,"home.hero.sub": "Ich baue performante Webplattformen und eine hervorragende Developer Experience."
+  ,"home.hero.email": "E-Mail senden"
+  ,"home.featured": "Ausgewählte Projekte"
+  ,"home.projects.all": "Alle Projekte"
+  ,"about.heading": "Über mich"
+  ,"about.body": "Ich bin Software Engineer und fokussiere mich auf robuste, skalierbare Frontend-Plattformen und Tooling, das die Entwicklergeschwindigkeit und Produktqualität verbessert."
+  ,"about.skills": "Fähigkeiten"
+  ,"about.timeline": "Zeitstrahl"
+  ,"about.timeline.placeholder": "Zeitstrahl Platzhalter – Rollen & Meilensteine hinzufügen."
+  ,"projects.heading": "Projekte"
+  ,"contact.heading": "Kontakt"
+  ,"contact.name": "Name"
+  ,"contact.email": "E-Mail"
+  ,"contact.message": "Nachricht"
+  ,"contact.send": "Nachricht senden"
+  ,"contact.sending": "Senden..."
+  ,"contact.sent": "Gesendet!"
+  ,"contact.error": "Etwas ist schief gelaufen."
 }

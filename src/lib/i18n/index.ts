@@ -48,4 +48,25 @@ export function localizedMeta(locale: string, keyBase: string, opts?: { path?: s
   }
 }
 
+// Reusable helpers for detecting locale to remove duplication in pages.
+export function detectLocaleFromPath(path: string | undefined | null): 'en' | 'de' {
+  if (!path) return 'en'
+  const seg = path.split('/').filter(Boolean)[0]
+  return seg === 'de' ? 'de' : 'en'
+}
+
+// Server-side: derive locale from Next headers() (middleware sets x-pathname)
+export function localeFromHeaders(): 'en' | 'de' {
+  try {
+    // Dynamically require to avoid Next edge/runtime issues when imported client-side.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { headers } = require('next/headers') as typeof import('next/headers')
+    const h = headers()
+    const path = h.get('x-pathname') || ''
+    return detectLocaleFromPath(path)
+  } catch {
+    return 'en'
+  }
+}
+
 
