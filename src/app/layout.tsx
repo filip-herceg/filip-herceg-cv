@@ -8,6 +8,7 @@ import { Inter } from 'next/font/google'
 const inter = Inter({ subsets: ['latin'], display: 'swap' })
 import Vitals from '@/components/layout/vitals'
 import { LocaleHead } from '@/components/layout/locale-head'
+import { localeFromHeaders } from '@/lib/i18n'
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL || 'http://localhost:3000'),
@@ -28,31 +29,32 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = localeFromHeaders()
+  const siteUrl = process.env.SITE_URL || 'http://localhost:3000'
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        url: siteUrl,
+        name: 'Filip Herceg – Portfolio',
+        inLanguage: locale,
+      },
+      {
+        '@type': 'Person',
+        name: 'Filip Herceg',
+        url: siteUrl,
+        jobTitle: 'Software Engineer',
+        sameAs: ['https://github.com/filip-herceg'],
+      },
+    ],
+  }
   return (
-  <html lang="en" suppressHydrationWarning>
-  <body className={`${inter.className} min-h-screen font-sans antialiased`}>
-    <LocaleHead />
-        {/* JSON-LD Schema.org */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'Person',
-              name: 'Filip Herceg',
-              url: (process.env.SITE_URL || 'http://localhost:3000'),
-              jobTitle: 'Software Engineer',
-              sameAs: [
-                'https://github.com/filip-herceg',
-              ],
-            }),
-          }}
-        />
+    <html lang={locale} suppressHydrationWarning>
+      <body className={`${inter.className} min-h-screen font-sans antialiased`}>
+        <LocaleHead />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <SiteHeader />
         <ErrorBoundary>
           {children}

@@ -23,19 +23,19 @@ export default function HomePage() {
   const allProjects = t(locale, 'home.projects.all')
   const projects = [
     {
-      title: 'Portfolio Platform',
-      description: 'This site – containerized Next.js with K8s & Helm.',
+      title: t(locale, 'home.project.portfolio.title'),
+      description: t(locale, 'home.project.portfolio.desc'),
       tags: ['Next.js', 'K8s'],
     },
     {
-      title: 'Dev Tooling Suite',
-      description: 'Automation scripts improving DX and release speed.',
-      tags: ['CI', 'Tooling'],
+      title: t(locale, 'home.project.tooling.title'),
+      description: t(locale, 'home.project.tooling.desc'),
+      tags: ['CI', t(locale, 'tag.tooling')],
     },
     {
-      title: 'UI Motion Library',
-      description: 'Reusable animation primitives for product teams.',
-      tags: ['Framer Motion', 'Library'],
+      title: t(locale, 'home.project.motion.title'),
+      description: t(locale, 'home.project.motion.desc'),
+      tags: [t(locale, 'tag.motion'), t(locale, 'tag.library')],
     },
   ]
   return (

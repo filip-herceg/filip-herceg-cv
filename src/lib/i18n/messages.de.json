@@ -34,4 +34,13 @@
   ,"contact.sending": "Senden..."
   ,"contact.sent": "Gesendet!"
   ,"contact.error": "Etwas ist schief gelaufen."
+  ,"home.project.portfolio.title": "Portfolio Plattform"
+  ,"home.project.portfolio.desc": "Diese Seite – containerisiertes Next.js mit K8s & Helm."
+  ,"home.project.tooling.title": "Dev Tooling Suite"
+  ,"home.project.tooling.desc": "Automatisierungsskripte zur Verbesserung von DX und Release-Geschwindigkeit."
+  ,"home.project.motion.title": "UI Motion Bibliothek"
+  ,"home.project.motion.desc": "Wiederverwendbare Animationsbausteine für Produktteams."
+  ,"tag.tooling": "Tooling"
+  ,"tag.motion": "Framer Motion"
+  ,"tag.library": "Bibliothek"
 }
