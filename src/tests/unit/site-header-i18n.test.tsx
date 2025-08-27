@@ -4,12 +4,13 @@ import { SiteHeader } from '@/components/layout/site-header'
 import * as nav from 'next/navigation'
 
 describe('SiteHeader i18n', () => {
-  it('renders German labels when locale segment present and switches to English', () => {
+  it('renders German labels when locale segment present and switches to English', async () => {
     const push = vi.fn()
     vi.spyOn(nav,'usePathname').mockReturnValue('/de')
     vi.spyOn(nav,'useRouter').mockReturnValue({ push } as any)
     render(<SiteHeader />)
-    expect(screen.getByRole('link',{name:'Start'})).toBeInTheDocument()
+    // Lazy loaded translation appears after async import
+    expect(await screen.findByRole('link',{name:'Start'})).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button',{name:'English'}))
     expect(push).toHaveBeenCalledWith('/')
   })

@@ -1,31 +1,79 @@
+import { useEffect, useState, useCallback } from 'react'
 import en from './messages.en.json'
-import de from './messages.de.json'
-// NOTE: German kept eagerly for now to preserve SSR correctness; additional locales will be lazy.
+
+// Default locale eagerly loaded; all others lazy via dynamic import.
+// Cache to avoid repeated dynamic imports in client.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const lazyCache: Record<string, Record<string, string>> = { en, de }
+const catalogCache: Record<string, Record<string, string>> = { en }
 
-export const messages: Record<string, Record<string, string>> = lazyCache
+export type Locale = 'en' | 'de'
+export const defaultLocale: Locale = 'en'
+export const supportedLocales: Locale[] = ['en','de']
 
-async function loadLocale(locale: string): Promise<Record<string, string>> {
-  if (lazyCache[locale]) return lazyCache[locale]
+export async function loadMessages(locale: string): Promise<Record<string,string>> {
+  if (catalogCache[locale]) return catalogCache[locale]
   switch (locale) {
-    case 'de':
-      return lazyCache.de
+    case 'de': {
+      const mod = await import('./messages.de.json')
+      catalogCache[locale] = mod.default
+      return catalogCache[locale]
+    }
     default:
-      return lazyCache.en
+      return catalogCache.en
   }
 }
 
-export function t(locale: string, key: string): string {
-  const dict = messages[locale] || messages.en
-  return dict[key] || key
+export function getSyncMessages(locale: string): Record<string,string> {
+  return catalogCache[locale] || catalogCache.en
 }
 
-// Async variant that ensures the catalog is loaded (used for future client-side code splitting / Suspense patterns)
-export async function tAsync(locale: string, key: string): Promise<string> {
-  const dict = await loadLocale(locale)
-  return dict[key] || key
+export function translate(locale: string, key: string): string {
+  const dict = getSyncMessages(locale)
+  return dict[key] ?? key
 }
+
+export async function translateAsync(locale: string, key: string): Promise<string> {
+  const dict = await loadMessages(locale)
+  return dict[key] ?? key
+}
+
+export interface I18nApi {
+  locale: string
+  t: (key: string) => string
+  ready: boolean
+}
+
+// React hook for client components; loads non-default catalogs lazily.
+export function useI18n(locale: string): I18nApi {
+  const initial = locale === defaultLocale ? getSyncMessages(locale) : undefined
+  const [dict, setDict] = useState<Record<string,string> | undefined>(initial)
+  useEffect(() => {
+    let active = true
+    if (locale === defaultLocale) {
+      setDict(getSyncMessages(locale))
+      return
+    }
+    // load lazily
+    loadMessages(locale).then(d => { if (active) setDict(d) })
+    return () => { active = false }
+  }, [locale])
+
+  const tFn = useCallback((key: string) => {
+    if (!dict) return key // while loading show key (short wait)
+    return dict[key] ?? key
+  }, [dict])
+
+  return { locale, t: tFn, ready: !!dict }
+}
+
+// Backwards compatible exports
+export const t = (locale: string, key: string) => translate(locale, key)
+export const tAsync = (locale: string, key: string) => translateAsync(locale, key)
+
+// messages map kept for legacy usages (e.g. tests) but only includes loaded catalogs
+export const messages: Record<string, Record<string,string>> = catalogCache
+
+// localizedMeta kept as-is below
 
 function localeToOg(locale: string) {
   // Map simple locale code to OpenGraph locale format
@@ -80,8 +128,9 @@ export function localeFromHeaders(): 'en' | 'de' {
     // Dynamically require to avoid Next edge/runtime issues when imported client-side.
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { headers } = require('next/headers') as typeof import('next/headers')
-    const h = headers()
-    const path = h.get('x-pathname') || ''
+  const h: any = headers()
+  // @ts-ignore - Next types may treat headers() as returning a promise; we defensively access
+  const path = typeof h?.get === 'function' ? (h.get('x-pathname') || '') : ''
     return detectLocaleFromPath(path)
   } catch {
     return 'en'

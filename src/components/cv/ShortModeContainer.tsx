@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { buildPermalink, encodePreset } from '@/lib/cv/permalink'
+import { permalinkCreatesTotal } from '@/lib/metrics'
 import type { CvData, CvSelection } from '@/lib/cv/schema'
 import type { CvDesign } from '@/lib/cv/schema'
 import CvView from './CvView'
@@ -49,18 +50,22 @@ export const ShortModeContainer: React.FC<Props> = ({ data, design, initialSelec
   const onChange = useCallback((sel: CvSelection) => setSelection(sel), [])
 
   const onCopyPermalink = useCallback(async () => {
-    const url = await buildPermalink(`${window.location.origin}${pathname}`, selectionToPreset(selection))
-    await navigator.clipboard.writeText(url)
-  }, [selection, pathname])
+    try {
+      const url = await buildPermalink(`${window.location.origin}${pathname}`, selectionToPreset(selection))
+      await navigator.clipboard.writeText(url)
+      try { permalinkCreatesTotal.inc() } catch {}
+    } catch {
+      // ignore copy errors
+    }
+  }, [pathname, selection])
 
   const onOpenPrint = useCallback(() => {
-  const params = new URLSearchParams()
-  if (selection.skills?.length) params.set('skills', selection.skills.join(','))
-  if (selection.projects?.length) params.set('projects', selection.projects.join(','))
-  const printUrl = `/cv/print?${params.toString()}`
+    const params = new URLSearchParams()
+    if (selection.skills?.length) params.set('skills', selection.skills.join(','))
+    if (selection.projects?.length) params.set('projects', selection.projects.join(','))
+    const printUrl = `/cv/print?${params.toString()}`
     const w = window.open(printUrl, '_blank')
     if (w) {
-      // Attempt auto-print after load
       const listener = () => {
         try { w.print() } catch {}
         w.removeEventListener('load', listener)

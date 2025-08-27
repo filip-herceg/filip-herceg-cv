@@ -5,6 +5,7 @@ import { getAggregate } from '@/lib/cv/service'
 import { existsSync } from 'fs'
 import type { Browser } from 'puppeteer-core'
 import { withRequestContext, logEvent, logError } from '@/lib/logger'
+import { pdfRequestsTotal } from '@/lib/metrics'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -55,7 +56,8 @@ export async function GET(req: NextRequest) {
         })
 
     if (!executablePath) {
-      logEvent(child, 'domain:cv.pdf.unsupported', { reason: 'no_chromium' })
+  logEvent(child, 'domain:cv.pdf.unsupported', { reason: 'no_chromium' })
+  pdfRequestsTotal.inc({ result: 'unsupported' })
       return NextResponse.json({ error: 'PDF generation not supported (no Chromium binary)', status: 501 }, { status: 501 })
     }
 
@@ -89,7 +91,8 @@ export async function GET(req: NextRequest) {
   const final = Buffer.from(await pdfDoc.save())
 
     const duration = Date.now() - started
-    logEvent(child, 'domain:cv.pdf.success', { ms: duration, selection: Object.keys(selection).length > 0 })
+  logEvent(child, 'domain:cv.pdf.success', { ms: duration, selection: Object.keys(selection).length > 0 })
+  pdfRequestsTotal.inc({ result: 'success' })
     return new NextResponse(final, {
       status: 200,
       headers: {
@@ -102,9 +105,11 @@ export async function GET(req: NextRequest) {
     const e = err as Error & { message?: string }
     if (e?.message?.includes('Navigation timeout')) {
       logError(child, 'domain:cv.pdf.timeout', e)
+      pdfRequestsTotal.inc({ result: 'timeout' })
       return NextResponse.json({ error: 'Render timeout', status: 504 }, { status: 504 })
     }
     logError(child, 'domain:cv.pdf.error', e)
+    pdfRequestsTotal.inc({ result: 'error' })
     return NextResponse.json({ error: 'PDF generation failed', status: 500 }, { status: 500 })
   } finally {
     try { await browser?.close() } catch {}

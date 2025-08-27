@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { t } from '@/lib/i18n'
+import { t, useI18n } from '@/lib/i18n'
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -28,11 +28,12 @@ export function SiteHeader() {
     if (locale === 'en') return href // default locale not prefixed
     return href === '/' ? `/${locale}` : `/${locale}${href}`
   }
+  const { t: tHook } = useI18n(locale)
   const links = [
-    { href: '/', label: t(locale,'nav.home') },
-    { href: '/about', label: t(locale,'nav.about') },
-    { href: '/projects', label: t(locale,'nav.projects') },
-    { href: '/contact', label: t(locale,'nav.contact') },
+    { href: '/', label: tHook('nav.home') },
+    { href: '/about', label: tHook('nav.about') },
+    { href: '/projects', label: tHook('nav.projects') },
+    { href: '/contact', label: tHook('nav.contact') },
   ]
   const switchLocale = (next: string) => {
     if (next === locale) return
@@ -62,9 +63,9 @@ export function SiteHeader() {
         </nav>
         <div className="flex items-center gap-3">
           <div className="flex gap-1 text-xs border rounded px-2 py-1">
-            <button aria-label="English" className={locale==='en'? 'font-semibold underline' : ''} onClick={()=>switchLocale('en')}>{t(locale,'lang.english')}</button>
+            <button aria-label="English" className={locale==='en'? 'font-semibold underline' : ''} onClick={()=>switchLocale('en')}>{tHook('lang.english')}</button>
             <span className="opacity-40">/</span>
-            <button aria-label="Deutsch" className={locale==='de'? 'font-semibold underline' : ''} onClick={()=>switchLocale('de')}>{t(locale,'lang.german')}</button>
+            <button aria-label="Deutsch" className={locale==='de'? 'font-semibold underline' : ''} onClick={()=>switchLocale('de')}>{tHook('lang.german')}</button>
           </div>
           <MotionToggle />
           <Sheet open={open} onOpenChange={setOpen}>
