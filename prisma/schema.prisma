@@ -142,3 +142,21 @@ model Meta {
   value String
   updatedAt DateTime @updatedAt
 }
+
+// Administrative auth (single-user or small set). F17.
+model AdminUser {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+}
+
+model Session {
+  id        String    @id @default(cuid())
+  userId    String
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime  @default(now())
+  @@index([userId])
+}
