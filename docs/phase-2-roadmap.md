@@ -56,9 +56,9 @@
 | F17 | Admin auth & CRUD UI | Content | High | M | Agility/Security | Secure login, protected /admin, create/update/delete entities, validation | Planned |
 | F18 | Localization workflow & translation status | i18n | High | M | Global reach | Per-locale row creation, status indicators, missing translation fallback logic | Planned |
 | F04 | prom-client exporter (/metrics) | Observability | High | S | Reliability | Counters: pdf_requests_total, permalink_creates_total; gauge: pdf_cache_entries | Done |
-| F05 | ServiceMonitor verification test | Observability | Medium | S | Ops | helm template includes ServiceMonitor when enabled | Planned |
-| F06 | Grafana dashboard refinement (panels) | Observability | Medium | S | Insight | Dashboard JSON includes new counters | Planned |
-| F07 | PDF hash cache (LRU) | Performance | High | M | Perf p95 | Cache hit test; hashed by selection params | Planned |
+| F05 | ServiceMonitor verification test | Observability | Medium | S | Ops | helm template includes ServiceMonitor when enabled | Done |
+| F06 | Grafana dashboard refinement (panels) | Observability | Medium | S | Insight | Dashboard JSON includes new counters | Done |
+| F07 | PDF hash cache (LRU) | Performance | High | M | Perf p95 | Cache hit test; hashed by selection params | Done |
 | F08 | Interaction analytics aggregation API | Personalization | Medium | M | Engagement | /api/analytics/popular returns top skills/projects | Planned |
 | F09 | Command palette (fuzzy) | UX | Medium | M | Accessibility | Keyboard accessible, aria roles, tests | Planned |
 | F10 | High contrast theme | UX | Medium | S | Accessibility | Meets WCAG contrast ratios; toggle persists | Planned |

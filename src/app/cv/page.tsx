@@ -3,7 +3,7 @@ import { decodePreset } from '@/lib/cv/permalink'
 import { getAggregate } from '@/lib/cv/service'
 import CvView from '@/components/cv/CvView'
 import dynamicImport from 'next/dynamic'
-import { localizedMeta, localeFromHeaders, t } from '@/lib/i18n'
+import { localizedMeta, localeFromHeaders } from '@/lib/i18n'
 
 export const dynamic = 'error'
 export async function generateMetadata() {

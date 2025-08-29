@@ -1,15 +1,13 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 /**
  * Simple performance budget checks for JS bundle & images.
  * Intended to run after `next build`.
  */
 import { createGzip } from 'node:zlib'
-import { pipeline } from 'node:stream'
-import { promisify } from 'node:util'
 import fs from 'node:fs'
 import path from 'node:path'
 
-const pipe = promisify(pipeline)
 
 const ROOT = process.cwd()
 const NEXT_STATIC = path.join(ROOT, '.next', 'static', 'chunks')
@@ -113,9 +111,9 @@ function analyzeImages() {
   fs.writeFileSync(reportPath, JSON.stringify({ summary, jsDetails: js.details, images }, null, 2))
 
   if (failures.length) {
-    console.error('Performance budget failures:\n' + failures.join('\n'))
+  process.stderr.write('Performance budget failures:\n' + failures.join('\n') + '\n')
     process.exitCode = 1
   } else {
-    console.log('Performance budgets OK')
+  process.stdout.write('Performance budgets OK\n')
   }
-})().catch(err => { console.error(err); process.exit(1) })
+})().catch(err => { process.stderr.write(String(err) + '\n'); process.exit(1) })

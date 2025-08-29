@@ -6,6 +6,60 @@ metadata:
   labels:
     {{- include "app.labels" . | nindent 4 }}
     grafana_dashboard: "1"
+    {{- range $k, $v := .Values.metrics.grafanaDashboard.labels }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+  annotations:
+    {{- if .Values.metrics.grafanaDashboard.folder }}
+    grafana_folder: {{ .Values.metrics.grafanaDashboard.folder | quote }}
+    {{- end }}
+data:
+  filip-herceg-cv-dashboard.json: |-
+    {
+      "schemaVersion": 39,
+      "title": "CV Platform Overview",
+      "version": 1,
+      "refresh": "30s",
+      "timezone": "browser",
+      "panels": [
+        {
+          "id": 1,
+          "title": "PDF Requests by Result (rate)",
+          "type": "timeseries",
+          "targets": [
+            { "expr": "rate(pdf_requests_total[5m])", "legendFormat": "{{result}}" }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "PDF Cache Entries",
+          "type": "stat",
+          "targets": [ { "expr": "pdf_cache_entries" } ]
+        },
+        {
+          "id": 3,
+          "title": "PDF Cache Hit Ratio",
+          "type": "gauge",
+          "targets": [ { "expr": "pdf_cache_hits_total / (pdf_cache_hits_total + pdf_cache_misses_total)" } ],
+          "fieldConfig": { "defaults": { "min": 0, "max": 1 } }
+        },
+        {
+          "id": 4,
+          "title": "Permalink Creates (rate)",
+          "type": "timeseries",
+          "targets": [ { "expr": "rate(permalink_creates_total[5m])" } ]
+        }
+      ]
+    }
+{{- end }}
+{{- if and .Values.metrics.enabled .Values.metrics.grafanaDashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "app.fullname" . }}-grafana-dashboard
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
     {{- if .Values.metrics.grafanaDashboard.folder }}
     dashboard-folder: {{ .Values.metrics.grafanaDashboard.folder | quote }}
     {{- end }}

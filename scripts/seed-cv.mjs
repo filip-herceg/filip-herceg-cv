@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 // Seed script: imports current static JSON CV data into the database (locale 'en') if empty.
 import { PrismaClient } from '@prisma/client'
 import cvData from '../src/lib/cv/data/cv.en.json' assert { type: 'json' }
@@ -10,10 +11,10 @@ const locale = 'en'
 async function main() {
   const existing = await prisma.person.findUnique({ where: { locale } })
   if (existing) {
-    console.log('Seed skipped: person row already exists for locale', locale)
+  process.stdout.write(`Seed skipped: person row already exists for locale ${locale}\n`)
     return
   }
-  console.log('Seeding CV data for locale', locale)
+  process.stdout.write(`Seeding CV data for locale ${locale}\n`)
   await prisma.person.create({ data: {
     locale,
     name: cvData.person.name,
@@ -60,7 +61,7 @@ async function main() {
     sectionsJson: JSON.stringify(cvDesign.sections)
   } })
 
-  console.log('Seed complete')
+  process.stdout.write('Seed complete\n')
 }
 
-main().catch(e => { console.error(e); process.exit(1) }).finally(() => prisma.$disconnect())
+main().catch(e => { process.stderr.write(String(e) + '\n'); process.exit(1) }).finally(() => prisma.$disconnect())

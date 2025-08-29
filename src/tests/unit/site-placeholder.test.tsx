@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest'
-import React from 'react'
 import SitePlaceholder from '@/app/site/page'
 
 describe('Site placeholder page', () => {

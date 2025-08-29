@@ -22,9 +22,7 @@ Registry initialization happens once per server process in `src/lib/metrics.ts`.
 ### Planned Additions
 | Roadmap ID | Metric | Rationale |
 |------------|--------|-----------|
-| F07 | (Derived) `pdf_cache_hit_ratio` panel (hits / (hits + misses)) | Measure caching effectiveness |
 | F08 | `cv_selection_events_total{kind=<skill|project>}` | Foundation for “popular selections” aggregation |
-| S05 | Active updates to `pdf_cache_entries` | Track memory footprint + eviction dynamics |
 | F12 | Tracing spans (OpenTelemetry) with duration attributes exported to collector | Correlate timing with counters |
 
 ## 3. Usage & Scraping
@@ -39,15 +37,16 @@ In Kubernetes, expose `/api/metrics` via Service + optional `ServiceMonitor` (se
 
 Helm settings:
 * Enable metrics port & annotations: `metrics.enabled=true` (adds port + scrape annotations)
-* Enable ServiceMonitor (Prometheus Operator): `metrics.serviceMonitor.enabled=true`
-* Customize interval / timeout: `metrics.serviceMonitor.interval`, `metrics.serviceMonitor.scrapeTimeout`
+* Enable ServiceMonitor (Prometheus Operator): `metrics.serviceMonitor.enabled=true` (renders ServiceMonitor CRD if operator installed)
+* Customize interval / timeout: `metrics.serviceMonitor.interval`, `metrics.scrapeTimeout`
+* Enable bundled Grafana dashboard ConfigMap: `metrics.grafanaDashboard.enabled=true` (labeled for sidecar import). Folder annotation via `metrics.grafanaDashboard.folder`.
 
 ServiceMonitor test (F05) will assert rendered `ServiceMonitor` YAML when both flags true.
 
-Grafana dashboards (F06) will visualize:
-* PDF request rate & error ratio
-* Cache size & hit ratio (post F07)
-* Permalink creation velocity (week trend)
+Grafana dashboard (F06) now included (ConfigMap). Panels:
+* PDF request rate by result (5m rate)
+* Cache size (gauge/stat) & hit ratio (expression)
+* Permalink create rate
 
 ## 4. Extension Guidelines
 When adding a new metric:
@@ -76,7 +75,7 @@ Structured logs (Pino) include: `requestId`, `path`, `method`, domain events (`d
 |-------|--------|---------------|
 | Endpoint health | GET `/api/metrics` | 200, non-empty body, contains known metric names |
 | Error ratio | PromQL: `sum(rate(pdf_requests_total{status!="success"}[5m])) / sum(rate(pdf_requests_total[5m]))` | < 0.01 sustained |
-| Cache growth (post F07) | `max_over_time(pdf_cache_entries[6h])` | Plateau below configured limit |
+| Cache growth | `max_over_time(pdf_cache_entries[6h])` | Plateau below configured limit |
 | Unsupported PDF detection | `increase(pdf_requests_total{status="unsupported"}[1h])` | Should remain 0 in production cluster |
 
 ---

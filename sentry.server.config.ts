@@ -1,11 +1,21 @@
 // Optional Sentry server init; only runs if @sentry/nextjs is available.
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const Sentry = require('@sentry/nextjs') as { init?: (cfg: unknown) => void }
-  Sentry.init?.({
-    dsn: process.env.SENTRY_DSN,
-    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.1),
-    release: process.env.RELEASE || process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA,
-    environment: process.env.ENV || process.env.NODE_ENV,
+import * as Sentry from '@sentry/nextjs'
+import { RewriteFrames } from '@sentry/integrations'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _sentry = Sentry as any
+if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  _sentry.init?.({
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    enabled: true,
+    environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
+    tracesSampleRate: 0.1,
+    profilesSampleRate: 0.1,
+    replaysSessionSampleRate: 0.0,
+    replaysOnErrorSampleRate: 1.0,
+    integrations: [
+      new RewriteFrames({
+        root: global.process.cwd(),
+      }),
+    ],
   })
-} catch {}
+}

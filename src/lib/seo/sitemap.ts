@@ -29,7 +29,6 @@ export function buildSitemapEntries(options?: {
   const siteUrl = (options?.siteUrl || process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
   const pages = options?.pages || DEFAULT_PAGES;
   const locales = options?.locales || ['en', 'de'];
-  const defaultLocale = locales[0];
   const date = options?.lastModified || new Date();
 
   return pages.map(p => {

@@ -1,7 +1,17 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, type Skill, type Project, type Experience, type Education, type Certification, type Trait, type Hobby } from '@prisma/client'
 import { CvDataSchema, CvDesignSchema, type CvData, type CvDesign } from './schema'
 import { getCvData as getStaticCvData, getCvDesign as getStaticCvDesign } from './loader'
 import pino from 'pino'
+
+// Narrow JSON.parse results to unknown so Zod validates and we avoid implicit any
+function safeJson<T>(raw: string | null | undefined, fallback: T): T {
+  if (!raw) return fallback
+  try {
+    return JSON.parse(raw) as unknown as T
+  } catch {
+    return fallback
+  }
+}
 
 let prisma: PrismaClient | undefined
 function getPrisma() {
@@ -27,7 +37,7 @@ export async function getAggregate(locale: string = 'en'): Promise<{ data: CvDat
   // Attempt DB load (Step 1: simplistic approach aggregating all rows)
   try {
     const client = getPrisma()
-    const [person, skills, projects, experiences, education, certifications, traits, hobbies, design] = await Promise.all([
+  const [person, skills, projects, experiences, education, certifications, traits, hobbies, design] = await Promise.all([
       client.person.findUnique({ where: { locale } }),
       client.skill.findMany({ where: { locale } }),
       client.project.findMany({ where: { locale } }),
@@ -54,23 +64,23 @@ export async function getAggregate(locale: string = 'en'): Promise<{ data: CvDat
               linkedin: person.linkedin ?? undefined,
               twitter: person.twitter ?? undefined
             },
-            links: person.linksJson ? JSON.parse(person.linksJson) : undefined
+            links: safeJson(person.linksJson, undefined)
         },
-  skills: skills.map((s: any) => ({ id: s.id, name: s.name, category: s.category, level: s.level ?? undefined, years: s.years ?? undefined, tags: s.tagsJson ? JSON.parse(s.tagsJson) : undefined })),
-  projects: projects.map((p: any) => ({ id: p.id, title: p.title, role: p.role, period: p.period, company: p.company ?? undefined, summary: p.summary, highlights: p.highlightsJson ? JSON.parse(p.highlightsJson) : [], stack: p.stackJson ? JSON.parse(p.stackJson) : [], impact: p.impact ?? undefined, links: p.linksJson ? JSON.parse(p.linksJson) : undefined })),
-  experiences: experiences.map((e: any) => ({ id: e.id, company: e.company, role: e.role, period: e.period, location: e.location ?? undefined, employmentType: e.employmentType ?? undefined, summary: e.summary ?? undefined, achievements: e.achievementsJson ? JSON.parse(e.achievementsJson) : [], stack: e.stackJson ? JSON.parse(e.stackJson) : [], tags: e.tagsJson ? JSON.parse(e.tagsJson) : [] })),
-  education: education.map((ed: any) => ({ id: ed.id, institution: ed.institution, degree: ed.degree, field: ed.field ?? undefined, period: ed.period, location: ed.location ?? undefined, grade: ed.grade ?? undefined, summary: ed.summary ?? undefined, highlights: ed.highlightsJson ? JSON.parse(ed.highlightsJson) : [] })),
-  certifications: certifications.map((c: any) => ({ id: c.id, name: c.name, issuer: c.issuer, year: c.year ?? undefined, url: c.url ?? undefined })),
-  traits: traits.map((t: any) => ({ id: t.id, name: t.name, description: t.description ?? undefined, category: t.category ?? undefined })),
-  hobbies: hobbies.map((h: any) => ({ id: h.id, name: h.name, description: h.description ?? undefined }))
+  skills: skills.map((s: Skill & { tagsJson?: string | null }) => ({ id: s.id, name: s.name, category: s.category, level: s.level ?? undefined, years: (s as Skill & { years?: number }).years ?? undefined, tags: safeJson<Record<string,string>[] | string[] | undefined>(s.tagsJson, undefined) })),
+  projects: projects.map((p: Project & { highlightsJson?: string | null; stackJson?: string | null; impact?: string | null; linksJson?: string | null; company?: string | null }) => ({ id: p.id, title: p.title, role: p.role, period: p.period, company: p.company ?? undefined, summary: p.summary, highlights: safeJson<string[]>(p.highlightsJson, []), stack: safeJson<string[]>(p.stackJson, []), impact: p.impact ?? undefined, links: safeJson<Record<string,string>[] | undefined>(p.linksJson, undefined) })),
+  experiences: experiences.map((e: Experience & { location?: string | null; employmentType?: string | null; summary?: string | null; achievementsJson?: string | null; stackJson?: string | null; tagsJson?: string | null }) => ({ id: e.id, company: e.company, role: e.role, period: e.period, location: e.location ?? undefined, employmentType: e.employmentType ?? undefined, summary: e.summary ?? undefined, achievements: safeJson<string[]>(e.achievementsJson, []), stack: safeJson<string[]>(e.stackJson, []), tags: safeJson<string[]>(e.tagsJson, [] ) })),
+  education: education.map((ed: Education & { field?: string | null; location?: string | null; grade?: string | null; summary?: string | null; highlightsJson?: string | null }) => ({ id: ed.id, institution: ed.institution, degree: ed.degree, field: ed.field ?? undefined, period: ed.period, location: ed.location ?? undefined, grade: ed.grade ?? undefined, summary: ed.summary ?? undefined, highlights: safeJson<string[]>(ed.highlightsJson, []) })),
+  certifications: certifications.map((c: Certification & { year?: number | null; url?: string | null }) => ({ id: c.id, name: c.name, issuer: c.issuer, year: c.year ?? undefined, url: c.url ?? undefined })),
+  traits: traits.map((t: Trait & { description?: string | null; category?: string | null }) => ({ id: t.id, name: t.name, description: t.description ?? undefined, category: t.category ?? undefined })),
+  hobbies: hobbies.map((h: Hobby & { description?: string | null }) => ({ id: h.id, name: h.name, description: h.description ?? undefined }))
       })
 
       const designParse = design ? CvDesignSchema.safeParse({
-        page: JSON.parse(design.pageJson),
-        palette: JSON.parse(design.paletteJson),
-        typography: JSON.parse(design.typographyJson),
-        shapes: JSON.parse(design.shapesJson),
-        sections: JSON.parse(design.sectionsJson)
+        page: safeJson(design.pageJson, {}),
+        palette: safeJson(design.paletteJson, {}),
+        typography: safeJson(design.typographyJson, {}),
+        shapes: safeJson(design.shapesJson, {}),
+        sections: safeJson(design.sectionsJson, {})
       }) : null
 
       if (dataParse.success && designParse?.success) {

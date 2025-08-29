@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
-import { Sheet, SheetContent, SheetHeader, SheetFooter, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetFooter } from '@/components/ui/sheet'
 
 // Exercise header/footer/title/description always-present offscreen elements plus ensure children render.
 

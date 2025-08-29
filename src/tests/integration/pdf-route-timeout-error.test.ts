@@ -13,14 +13,6 @@ vi.mock('pdf-lib', () => ({
   },
 }))
 
-const launchTemplate = () => ({
-  newPage: async () => ({
-    setDefaultTimeout: () => {},
-    goto: async () => true,
-    pdf: async () => new Uint8Array([1,2,3]),
-  }),
-  close: async () => {},
-})
 
 describe('GET /api/cv/pdf timeout & error branches', () => {
   const prev = process.env.CHROMIUM_PATH

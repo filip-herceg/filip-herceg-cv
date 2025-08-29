@@ -3,7 +3,6 @@ import en from './messages.en.json'
 
 // Default locale eagerly loaded; all others lazy via dynamic import.
 // Cache to avoid repeated dynamic imports in client.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const catalogCache: Record<string, Record<string, string>> = { en }
 
 export type Locale = 'en' | 'de'
@@ -123,13 +122,16 @@ export function detectLocaleFromPath(path: string | undefined | null): 'en' | 'd
 }
 
 // Server-side: derive locale from Next headers() (middleware sets x-pathname) – sync helper
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function localeFromHeaders(): 'en' | 'de' {
   try {
-    // next/headers only valid in server context
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { headers } = require('next/headers') as typeof import('next/headers')
-    const h = headers()
-    const path = (h as any).get?.('x-pathname') || ''
+  // next/headers only valid in server context; dynamic require acceptable here.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports -- server runtime only: synchronous helper needs headers()
+  const mod = require('next/headers') as typeof import('next/headers')
+  const h = mod.headers()
+  // headers() in next/headers returns a Headers-like with get()
+  // Cast to any to avoid importing next types in shared lib layer.
+  const path = (h as unknown as { get: (k: string)=>string|undefined }).get('x-pathname') || ''
     return detectLocaleFromPath(path)
   } catch {
     return 'en'

@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { t, useI18n } from '@/lib/i18n'
+import { useI18n } from '@/lib/i18n'
 import {
   NavigationMenu,
   NavigationMenuItem,
