@@ -16,6 +16,7 @@ const eslintConfig = [
       '**/.next/**', // nested (safety for execution from subdir)
       'coverage/**',
       'dist/**'
+  ,'scripts/**'
     ],
   },
   {

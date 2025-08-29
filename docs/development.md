@@ -22,8 +22,10 @@ Visit http://localhost:3000
 | dev             | Start dev server (Next.js)                        |
 | build           | Production build (standalone)                     |
 | start           | Run built app                                    |
-| lint            | ESLint (flat config)                              |
+| lint            | ESLint (flat config; non-blocking warnings)       |
+| lint:ci         | Strict ESLint (no cache, max warnings = 0)        |
 | typecheck       | TypeScript check                                 |
+| typecheck:watch | Continuous TS checking (watch mode)              |
 | test            | Vitest unit + integration w/ coverage             |
 | test:watch      | Watch mode for Vitest                            |
 | e2e / e2e:headed| Playwright end-to-end tests                      |
@@ -41,7 +43,27 @@ npx shadcn add <component>
 
 - Prettier (.prettierrc)
 - EditorConfig enforced
-- ESLint extends next/core-web-vitals + custom rules
+- ESLint flat config extends next/core-web-vitals + custom rules
+- Strict gate: CI & task `Lint: strict (CI)` use `npm run lint:ci` (fails on any warning)
+- Scripts under `scripts/` are excluded from strict console rules to avoid false positives; application code (`src/`) enforces no `console.log`.
+
+### Recommended local workflow
+
+1. Rely on the background `CI: lint+typecheck+build+test` task for full checks.
+2. For rapid feedback while coding, optionally run in parallel:
+	- `npm run typecheck:watch`
+	- `npm run test:watch`
+3. Use `npm run lint:fix` before committing; Husky pre-commit (see below) will block if strict lint fails.
+
+### Pre-commit hook (Husky)
+
+If Husky is installed, a pre-commit hook runs: `npm run lint:ci && npm run typecheck && npm test -- --run --passWithNoTests` to catch issues early. Install & enable:
+
+```bash
+npx husky install
+```
+
+To skip hooks (rare/emergency): `git commit -m "msg" --no-verify`.
 
 ## Import Paths
 
