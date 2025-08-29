@@ -59,6 +59,13 @@ kubectl create secret generic portfolio-env -n portfolio \
 
 (Reference name must match deployment envFrom.)
 
+Auth bootstrap (initial admin) uses environment variables:
+
+- `ADMIN_BOOTSTRAP_USERNAME`
+- `ADMIN_BOOTSTRAP_PASSWORD`
+
+Provide them via the same Secret or a dedicated `admin-auth` secret and mount as env. After first successful bootstrap the password can be rotated by invoking the password change endpoint; ensure you then update the secret and roll pods to avoid drift between stored secret and DB hash.
+
 ## Ingress TLS
 
 Add cert-manager annotations in `helm/templates/ingress.yaml` and supply a ClusterIssuer.

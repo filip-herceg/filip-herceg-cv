@@ -80,6 +80,36 @@ Stack in place:
 
 Service layer tests spin up an ephemeral SQLite database file per spec by setting `DATABASE_URL=file:...` before importing Prisma client usage. This validates DB branch, fallback (invalid design), and cache hit behavior.
 
+### Admin Auth Testing & Architecture (F17 Refactor)
+
+Auth utilities were refactored to a framework‑agnostic handler pattern for robustness and testability:
+
+- Pure handler functions in `src/lib/auth/handlers.ts` implement login, logout, me, password change, CSRF issuance.
+- A thin adapter layer (the Next.js route files) maps `Request` to handler input and applies returned cookie instructions.
+- Cookie access is abstracted behind a `CookieStore` interface with two implementations:
+	- `NextCookieStore` (wrapping `next/headers` request-scoped cookies API)
+	- `MemoryCookieStore` (used in tests for deterministic inspection)
+- Session lifecycle logic (creation, sliding renewal, destruction) lives in `src/lib/auth/session.ts` and never calls Next APIs directly.
+- Rate limiting + exponential backoff are injected via a `RateLimiter` interface (default in-memory map; replace with Redis in multi-instance deployments).
+- Handlers return a structured `HandlerResult` containing `{ status, body, cookies }`; the route adapter applies cookie mutations.
+
+Benefits:
+1. Unit/integration tests run without a Next runtime (no "cookies() outside request scope" errors).
+2. Future features (MFA, Redis rate limiting, session revocation) only require new injected dependencies – not route rewrites.
+3. High observability: metrics (`auth_login_attempts_total`, `auth_active_sessions`) updated inside handlers via injected metric objects.
+4. Security improvements: sliding session renewal, fixation mitigation (rotation on password change), enforced minimal password strength, exponential backoff, CSRF protection.
+
+To add a new auth endpoint:
+1. Create a pure handler returning `HandlerResult`.
+2. Add a route file that builds an `AuthContext`, invokes the handler, and applies cookie instructions.
+3. Write tests using `MemoryCookieStore` and (optionally) a fake clock / random source by overriding `ctx.clock` for edge cases (e.g., session renewal thresholds).
+
+Test patterns are shown in `src/tests/integration/admin-auth.test.ts` after the refactor.
+
+#### Metrics Test Note
+
+Because `prom-client` maintains a global registry that can interfere across test files, the metrics counter test swaps in a lightweight fake counter (`{ inc() }`) to assert that handlers increment both success and failure paths deterministically. This isolates behavioral verification (the handler calls) from library internals while other runtime tests (e.g. `/api/metrics`) exercise the real registry.
+
 Run all tests:
 
 ```bash

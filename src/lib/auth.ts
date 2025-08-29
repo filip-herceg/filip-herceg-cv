@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { cookies } from 'next/headers'
+import { authPrisma } from './auth/prisma-subset'
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
 
 let prisma: PrismaClient | undefined
@@ -25,53 +25,28 @@ export function verifyPassword(password: string, stored: string): boolean {
   } catch { return false }
 }
 
-// Session cookie name
-const SESSION_COOKIE = 'cv_admin_session'
-const SESSION_TTL_HOURS = 12
-
-export async function createSession(userId: string) {
-  const expiresAt = new Date(Date.now() + SESSION_TTL_HOURS*3600*1000)
-  const session = await db().session.create({ data: { userId, expiresAt } })
-  const c = await cookies()
-  c.set(SESSION_COOKIE, session.id, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', expires: expiresAt })
-  return session
-}
-
-export async function destroySession() {
-  const c = await cookies(); const id = c.get(SESSION_COOKIE)?.value
-  if (id) { await db().session.delete({ where: { id } }).catch(()=>{}) }
-  c.delete(SESSION_COOKIE)
-}
-
-export async function currentUser() {
-  const c = await cookies(); const id = c.get(SESSION_COOKIE)?.value
-  if (!id) return null
-  const session = await db().session.findUnique({ where: { id }, include: { user: true } })
-  if (!session) return null
-  if (session.expiresAt.getTime() < Date.now()) { await destroySession(); return null }
-  return session.user
-}
-
-export async function requireAuth(): Promise<{ id: string; username: string }> {
-  const u = await currentUser()
-  if (!u) throw new Error('UNAUTHORIZED')
-  return { id: u.id, username: u.username }
-}
+// NOTE: Legacy session helpers moved to framework-agnostic handlers (src/lib/auth/*)
+// This file intentionally retains only cryptographic primitives & bootstrap listUsers/changePassword
+// to avoid breaking existing imports while refactor routes rely on new handlers.
 
 // Bootstrap helper: if no admin user exists and ADMIN_BOOTSTRAP_PASSWORD provided, create one.
 export async function ensureAdminBootstrap() {
   const username = process.env.ADMIN_BOOTSTRAP_USERNAME || 'admin'
   const password = process.env.ADMIN_BOOTSTRAP_PASSWORD
   if (!password) return
-  const existing = await db().adminUser.findFirst({ where: { username } })
+  const p = authPrisma(db())
+  const existing = await p.adminUser.findFirst({ where: { username } })
   if (existing) return
-  await db().adminUser.create({ data: { username, passwordHash: hashPassword(password) } })
+  await p.adminUser.create({ data: { username, passwordHash: hashPassword(password) } })
 }
 
 export async function listUsers() {
-  return db().adminUser.findMany({ select: { id: true, username: true, createdAt: true } })
+  interface MinimalUser { id: string; username: string; createdAt: Date }
+  type FindManyArgs = { select: { id: true; username: true; createdAt: true } }
+  const p = authPrisma(db()) as unknown as { adminUser: { findMany(args: FindManyArgs): Promise<MinimalUser[]> } }
+  return p.adminUser.findMany({ select: { id: true, username: true, createdAt: true } })
 }
 
 export async function changePassword(userId: string, newPassword: string) {
-  return db().adminUser.update({ where: { id: userId }, data: { passwordHash: hashPassword(newPassword) } })
+  return authPrisma(db()).adminUser.update({ where: { id: userId }, data: { passwordHash: hashPassword(newPassword) } })
 }

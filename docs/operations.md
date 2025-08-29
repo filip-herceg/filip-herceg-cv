@@ -20,13 +20,22 @@ Additional soft health indicators (log-derived):
 
 ## Metrics
 
-- Add Prometheus sidecar or OpenTelemetry exporter (future)
-- Lighthouse scores trend (CI history)
-- Future custom metrics:
-  - Cache hit ratio for CV aggregate service
-  - DB load latency (histogram)
-  - Fallback count (counter)
-  - (Planned) Per-locale request distribution & missing translation key counts
+Current exposed via `/api/metrics` (Prometheus exposition format):
+
+- `auth_login_attempts_total{result="success|failure"}`
+- `auth_active_sessions` (Gauge)
+- `auth_rate_limiter_backend{backend="memory|redis"}` (Gauge always set to 1 for active backend)
+- `auth_login_backoff_ms` (Gauge – last applied backoff delay)
+- `auth_rate_limit_failures_total` (Counter – failed credential attempts triggering backoff)
+- CV aggregation counters (source classification) if implemented (see service layer)
+- RUM vitals aggregated stats
+
+Planned additions:
+
+- Cache hit ratio & load latency histogram
+- DB parse / static fallback counter (cv)
+- Per-locale request distribution & missing translation key counts
+- PDF generation duration & failure counters
 
 ## Scaling
 
@@ -76,6 +85,49 @@ Required environment variables for outbound email via Resend:
 - NetworkPolicies
 - Image scanning in CI
  - Restrict DB network access (if moving off-pod) via NetworkPolicy / security groups.
+ - CSP / security headers middleware (pending)
+- Redis-backed rate limiter + session store (enables consistent backoff across replicas) – Redis limiter implemented (enable via REDIS_URL); session store still Prisma-backed
+ - MFA / TOTP for admin auth once write endpoints exist
+
+## Auth Operations Notes
+
+- Session TTL & sliding renewal: Renew occurs when remaining lifetime < configured fraction (0.5). Monitor `auth_active_sessions` after scaling events to detect orphaned sessions (consider TTL sweep job when moving to external store).
+- Password change triggers session id rotation; all existing session cookies invalidated (mitigates fixation). Ensure load balancer cookie affinity is not required.
+-- Rate limiting: Exponential backoff on failed admin logins; defaults to in-memory per pod. Set `REDIS_URL` to enable distributed `RedisRateLimiter`. A `FallbackRateLimiter` wrapper automatically degrades to memory on first Redis error (logged once with `auth.rate_limiter.redis_error` then `auth.rate_limiter.fallback_activated`). Backoff includes optional jitter (\u00b1 fraction) via `AUTH_BACKOFF_JITTER_FRACTION` to reduce thundering herd alignment.
+
+## Runtime Configuration
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| DATABASE_URL | Prisma database URL (Postgres recommended in prod) | (unset -> SQLite file) |
+| REDIS_URL | Enables RedisRateLimiter for distributed login throttling | unset |
+| ADMIN_BOOTSTRAP_USERNAME | Initial admin user if none exist | admin |
+| ADMIN_BOOTSTRAP_PASSWORD | Initial admin password | unset |
+| AUTH_SESSION_TTL_MS | Session lifetime milliseconds | 43200000 |
+| AUTH_SESSION_RENEW_FRACTION | Sliding renewal threshold fraction | 0.5 |
+| AUTH_BACKOFF_BASE_MS | Base backoff for failed logins | 250 |
+| AUTH_BACKOFF_MAX_MS | Max backoff cap | 2000 |
+| AUTH_BACKOFF_JITTER_FRACTION | Jitter fraction (0.25 = \u00b125%) | 0 |
+| AUTH_RATE_LIMIT_TTL_SECONDS | Failure window / sliding TTL seconds | 600 |
+| SENTRY_* | Observability (tracing, replays) | varies |
+
+Helm: set values under `env:` in `values.yaml`; the Secret template lowercases keys.
+
+## Production Readiness Quick Audit
+
+| Area | Status | Action |
+|------|--------|--------|
+| Health Endpoint | Ready | None |
+| Auth Basic Security | Ready (hashing, renewal, rotation) | Add MFA later |
+| Metrics | Ready (auth + base) | Add latency / cache metrics |
+| Logging | Structured JSON | Forward to central store |
+| DB | SQLite (dev-grade) | Migrate to Postgres for HA |
+| Rate Limiting | In-memory | External store (Redis) |
+| Secrets Mgmt | Kubernetes Secret | Add rotation SOP |
+| CI Gates | Lint/Type/Test/Coverage/LHCI | Add SBOM & image signing |
+| PDF Generation | Graceful 501 fallback | Add queue + timeout metrics |
+| i18n | Path-based + metadata | Localize persisted CV data |
+
 
 ## Internationalization Ops Notes
 

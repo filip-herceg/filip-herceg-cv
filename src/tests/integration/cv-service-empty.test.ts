@@ -7,10 +7,9 @@ import path from 'node:path'
 const dbFile = path.join(process.cwd(), 'test-cv-empty.sqlite')
 process.env.DATABASE_URL = `file:${dbFile}`
 
-import { PrismaClient } from '@prisma/client'
 import { getAggregate } from '@/lib/cv/service'
 
-const prisma = new PrismaClient()
+  // prisma client intentionally not referenced directly; service handles its own access
 
 beforeAll(async () => {
   if (fs.existsSync(dbFile)) fs.unlinkSync(dbFile)

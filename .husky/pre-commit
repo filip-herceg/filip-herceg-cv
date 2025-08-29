@@ -1,12 +1,16 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
 
-# Fast fail if anything breaks
-# Auto-fix first to reduce churn
+# Husky v9+ simple hook (no sourcing). Ensure fast feedback before commit.
+
+# Auto-fix lint issues silently first
 npm run lint:fix >/dev/null 2>&1 || true
+
 # Strict lint gate
 npm run lint:ci || exit 1
+
 # Type correctness
 npm run typecheck || exit 1
-# Fast tests (no coverage, run all; for change-only you could add --changed)
+
+# Fast tests (no coverage to keep hook quick)
 npm test -- --run --passWithNoTests || exit 1
+

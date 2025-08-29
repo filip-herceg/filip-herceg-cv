@@ -45,6 +45,42 @@ export const cvAggregateLoadsTotal = new client.Counter({
   registers: [registry],
 })
 
+// Auth metrics
+export const authLoginAttemptsTotal = new client.Counter({
+  name: 'auth_login_attempts_total',
+  help: 'Admin auth login attempts by result (success | failure)',
+  labelNames: ['result'] as const,
+  registers: [registry],
+})
+
+export const authActiveSessions = new client.Gauge({
+  name: 'auth_active_sessions',
+  help: 'Number of active (non-expired) admin sessions',
+  registers: [registry],
+})
+
+// Rate limiter backend indicator (value always 1 for the active backend with its label)
+export const authRateLimiterBackend = new client.Gauge({
+  name: 'auth_rate_limiter_backend',
+  help: 'Indicates which backend is active for the auth rate limiter',
+  labelNames: ['backend'] as const,
+  registers: [registry],
+})
+
+// Observed backoff delays (ms)
+export const authLoginBackoffMs = new client.Gauge({
+  name: 'auth_login_backoff_ms',
+  help: 'Gauge reporting last applied login backoff delay in milliseconds',
+  registers: [registry],
+})
+
+// Rate limiter failures (invalid credential attempts)
+export const authRateLimitFailuresTotal = new client.Counter({
+  name: 'auth_rate_limit_failures_total',
+  help: 'Total count of rate limited (failed credential) attempts',
+  registers: [registry],
+})
+
 // Simple helper to expose metrics (text format)
 export async function renderMetrics(): Promise<string> {
   return registry.metrics()

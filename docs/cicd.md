@@ -48,3 +48,7 @@ Configured in `lighthouserc.json` (warn level). CI will not fail but logs regres
 - Add SBOM generation (syft)
 - Sign images (cosign)
 - Add dependency review gate
+ - Push image with git SHA + provenance attestations
+ - Publish Prometheus alert rules alongside Helm release
+ - Integrate security headers & CSP scan in CI (e.g., zap baseline)
+ - Performance budget enforcement (fail on significant Lighthouse regression)
