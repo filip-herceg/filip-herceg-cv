@@ -122,15 +122,14 @@ export function detectLocaleFromPath(path: string | undefined | null): 'en' | 'd
   return seg === 'de' ? 'de' : 'en'
 }
 
-// Server-side: derive locale from Next headers() (middleware sets x-pathname)
+// Server-side: derive locale from Next headers() (middleware sets x-pathname) – sync helper
 export function localeFromHeaders(): 'en' | 'de' {
   try {
-    // Dynamically require to avoid Next edge/runtime issues when imported client-side.
+    // next/headers only valid in server context
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { headers } = require('next/headers') as typeof import('next/headers')
-  const h: any = headers()
-  // @ts-ignore: headers() typing mismatch (sometimes Promise in type defs); safe at runtime
-  const path = typeof h?.get === 'function' ? (h.get('x-pathname') || '') : ''
+    const h = headers()
+    const path = (h as any).get?.('x-pathname') || ''
     return detectLocaleFromPath(path)
   } catch {
     return 'en'

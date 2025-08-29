@@ -55,7 +55,7 @@
 | F16 | Persistent CV data layer (DB + schema) | Content | High | M | Agility | Empty default DB; Prisma schema; loader pulls per-locale rows; fallback removed | Planned |
 | F17 | Admin auth & CRUD UI | Content | High | M | Agility/Security | Secure login, protected /admin, create/update/delete entities, validation | Planned |
 | F18 | Localization workflow & translation status | i18n | High | M | Global reach | Per-locale row creation, status indicators, missing translation fallback logic | Planned |
-| F04 | prom-client exporter (/metrics) | Observability | High | S | Reliability | Counters: pdf_requests_total, permalink_creates_total; gauge: pdf_cache_entries | In Progress |
+| F04 | prom-client exporter (/metrics) | Observability | High | S | Reliability | Counters: pdf_requests_total, permalink_creates_total; gauge: pdf_cache_entries | Done |
 | F05 | ServiceMonitor verification test | Observability | Medium | S | Ops | helm template includes ServiceMonitor when enabled | Planned |
 | F06 | Grafana dashboard refinement (panels) | Observability | Medium | S | Insight | Dashboard JSON includes new counters | Planned |
 | F07 | PDF hash cache (LRU) | Performance | High | M | Perf p95 | Cache hit test; hashed by selection params | Planned |
@@ -67,6 +67,17 @@
 | F13 | CSP tightening + report endpoint | Security | Low | S | Security | CSP blocks inline eval; violation logs captured | Planned |
 | F14 | Synthetic uptime GitHub Action | Reliability | Low | S | Reliability | Nightly job fails on >1 failed probe | Planned |
 | F15 | Popular selections widget | Personalization | Low | S | Engagement | Widget visible when analytics data available | Planned |
+
+### Stabilization & Migration Track
+| ID | Task | Theme | Priority | Effort | Acceptance Criteria | Status |
+|----|------|-------|----------|--------|---------------------|--------|
+| S01 | Rollback Node16/ESM big-bang attempt | Tooling | Critical | S | Typecheck <5 errors restored (pre-migration baseline) | Done |
+| S02 | prom-client type resolution fix | Observability | High | XS | No TS2307; metrics module typed | Done |
+| S03 | Metrics endpoint test coverage | Observability | High | S | Test asserts counters & gauge names in /api/metrics output | Done |
+| S04 | Observability docs page | Docs | Medium | S | docs/observability.md created referencing metrics, ServiceMonitor & dashboard notes | Done |
+| S05 | PDF cache gauge integration | Performance | Medium | M | pdf_cache_entries reflects cache size; hit/miss counters present | Done |
+| S06 | Phased ESM migration plan (incremental) | Tooling | Low | S | Plan documented; no code breakage (see section 15) | Done |
+| S07 | Optional OTel tracing scaffold | Observability | Low | M | Tracing behind feature flag; no prod impact | Done |
 
 ## 7. Acceptance Criteria (Summaries)
 Each feature must:
@@ -132,7 +143,7 @@ Each feature must:
 - Headless CMS integration worth stub (Contentlayer vs simple local JSON)?
 
 ## 15. Next Immediate Action
-With F01 (locale routing & switcher) and foundational metadata/localized UI complete, proceed to F02 (lazy translation resource loader) to mitigate bundle growth before expanding locales. Mark F02 **In Progress** on branch creation and add tests asserting only active locale JSON is bundled.
+Stabilize cache & tracing scaffold: monitor cache metrics for expected growth plateau; draft detailed phased ESM migration plan (separate doc) and evaluate adding histogram for PDF latency.
 
 ---
 _Maintain this file in PRs; it’s a living artifact._

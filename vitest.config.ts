@@ -20,6 +20,7 @@ export default defineConfig({
   'scripts/**',
   'src/types/**',
   'src/lib/cv/types.ts',
+  'src/lib/stubs/**', // legacy temporary stubs (should trend toward deletion)
   'src/tests/**', // exclude test files themselves from coverage matrix
   '**/*.d.ts', // ignore declaration files
         '.next/**',

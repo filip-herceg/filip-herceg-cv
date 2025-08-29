@@ -1,11 +1,16 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { CvSelectionSchema } from '@/lib/cv/schema'
-import { getAggregate } from '@/lib/cv/service'
+// getAggregate (Prisma) & PDFDocument (pdf-lib) are intentionally lazy-loaded to avoid
+// pulling heavy / native deps (and Prisma generated client) for early-return paths
+// such as the unsupported (no Chromium) scenario. This also fixes a test that
+// failed due to an environment-specific Prisma generated package.json resolution issue.
 import { existsSync } from 'fs'
 import type { Browser } from 'puppeteer-core'
 import { withRequestContext, logEvent, logError } from '@/lib/logger'
 import { pdfRequestsTotal } from '@/lib/metrics'
+import { pdfCache, PdfCache } from '@/lib/pdf-cache'
+import { startSpan } from '@/lib/tracing'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -15,7 +20,7 @@ async function getPuppeteer() {
   return (await import('puppeteer-core'))
 }
 
-import { PDFDocument } from 'pdf-lib'
+// (pdf-lib lazy via dynamic import later)
 
 const DEFAULT_TIMEOUT_MS = 20000
 
@@ -46,9 +51,30 @@ export async function GET(req: NextRequest) {
   // mode=short doesn't change print rendering; omit to keep canonical print URLs
   const target = `${base}/cv/print${qp.toString() ? `?${qp.toString()}` : ''}`
 
+  // Cache handling
+  const cacheKey = PdfCache.hash(selection as Record<string, unknown>)
+  const span = startSpan('pdf.generate', { cacheKey })
+  const cached = pdfCache.get(cacheKey)
+  if (cached) {
+    logEvent(child, 'domain:cv.pdf.cache_hit', { cacheKey })
+    pdfRequestsTotal.inc({ result: 'success' })
+    span.setAttribute('cache.hit', true)
+    span.end()
+    return new NextResponse(new Uint8Array(cached), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'inline; filename="cached-cv.pdf"',
+        'Cache-Control': 'no-store',
+        'X-Cache': 'HIT',
+      },
+    })
+  }
+  span.setAttribute('cache.hit', false)
+
   let browser: Browser | null = null
   try {
-    const puppeteer = await getPuppeteer()
+  const puppeteer = await getPuppeteer()
     const executablePath = process.env.CHROMIUM_PATH ||
       ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', 'C:/Program Files/Google/Chrome/Application/chrome.exe']
         .find((p) => {
@@ -81,6 +107,9 @@ export async function GET(req: NextRequest) {
     })
 
     // Metadata injection
+  // Lazy import heavy modules only when we know we produced a PDF
+  const { PDFDocument } = await import('pdf-lib')
+  const { getAggregate } = await import('@/lib/cv/service')
   const pdfDoc = await PDFDocument.load(pdfUint8)
   const { data } = await getAggregate('en')
   const person = data.person
@@ -93,12 +122,17 @@ export async function GET(req: NextRequest) {
     const duration = Date.now() - started
   logEvent(child, 'domain:cv.pdf.success', { ms: duration, selection: Object.keys(selection).length > 0 })
   pdfRequestsTotal.inc({ result: 'success' })
+    pdfCache.set(cacheKey, final)
+    span.setAttribute('cache.stored', true)
+    span.setAttribute('duration_ms', duration)
+    span.end()
     return new NextResponse(final, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="${person.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-cv.pdf"`,
         'Cache-Control': 'no-store',
+        'X-Cache': 'MISS',
       },
     })
   } catch (err: unknown) {
@@ -106,10 +140,14 @@ export async function GET(req: NextRequest) {
     if (e?.message?.includes('Navigation timeout')) {
       logError(child, 'domain:cv.pdf.timeout', e)
       pdfRequestsTotal.inc({ result: 'timeout' })
+      span.setAttribute('error', 'timeout')
+      span.end()
       return NextResponse.json({ error: 'Render timeout', status: 504 }, { status: 504 })
     }
     logError(child, 'domain:cv.pdf.error', e)
     pdfRequestsTotal.inc({ result: 'error' })
+    span.setAttribute('error', e?.message || 'unknown')
+    span.end()
     return NextResponse.json({ error: 'PDF generation failed', status: 500 }, { status: 500 })
   } finally {
     try { await browser?.close() } catch {}
