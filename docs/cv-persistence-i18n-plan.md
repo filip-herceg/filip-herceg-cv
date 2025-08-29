@@ -116,4 +116,4 @@ Adds F16–F18 replacing static content path for long-term. Earlier F01/F02 depe
 - Where to store design shapes: normalized vs JSON? Start JSON.
 
 ## Next Action
-Implement Step 1: Introduce Prisma schema & service layer read path (keeping existing JSON as seeding source until DB populated). Update loader to attempt DB first, fallback to JSON (temporary) with warning log.
+Implement Step 1: Introduce Prisma schema & service layer read path (DONE). Loader/service now returns an onboarding "empty" placeholder when DB uninitialized (no static JSON fallback at runtime). Next steps add admin write path & seeding utility.

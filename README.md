@@ -152,6 +152,7 @@ metrics:
 ```
 
 Label `grafana_dashboard=1` is added; many Grafana sidecar importers watch for this automatically. Dashboard panels expect standard Node.js / prom-client metrics.
+Additional panel added: CV aggregate loads by source (`cv_aggregate_loads_total{source}`) distinguishing `empty` onboarding placeholder vs real `db` content. After initial admin population, `empty` series should approach zero.
 
 Required repository secrets:
 

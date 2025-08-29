@@ -18,6 +18,7 @@ Registry initialization happens once per server process in `src/lib/metrics.ts`.
 | `pdf_cache_entries` | Gauge | none | Size of the in‑memory PDF hash cache | Updated by cache layer |
 | `pdf_cache_hits_total` | Counter | none | Count of cache hits for PDF requests | PDF cache get() |
 | `pdf_cache_misses_total` | Counter | none | Count of cache misses for PDF requests | PDF cache get() |
+| `cv_aggregate_loads_total` | Counter | `source` (`db`\|`empty`) | Counts CV aggregate load operations and whether data came from persisted DB or onboarding empty placeholder | CV service `getAggregate` |
 
 ### Planned Additions
 | Roadmap ID | Metric | Rationale |
@@ -47,6 +48,7 @@ Grafana dashboard (F06) now included (ConfigMap). Panels:
 * PDF request rate by result (5m rate)
 * Cache size (gauge/stat) & hit ratio (expression)
 * Permalink create rate
+* CV aggregate loads by source (empty vs db) – helps verify onboarding placeholder usage shrinks after initial admin population
 
 ## 4. Extension Guidelines
 When adding a new metric:
@@ -54,6 +56,10 @@ When adding a new metric:
 2. Keep label cardinality low; avoid user-specific labels (privacy + memory safety).
 3. Add a test asserting the metric name appears in `/api/metrics` output (maintains coverage & prevents accidental removal).
 4. Update this document & the roadmap acceptance criteria.
+5. If the metric introduces a new label, ensure label cardinality is tightly bounded (e.g., `source` has only `empty|db`).
+
+### Onboarding Placeholder (`source="empty"`)
+Until an admin populates CV content, the service returns a deterministic onboarding aggregate (placeholder person name, empty arrays) and records `cv_aggregate_loads_total{source="empty"}`. Once real records exist and validate, loads emit `{source="db"}`. A sudden reappearance of `empty` in production after being `db` previously can signal data regression or validation failure.
 
 ## 5. Testing Strategy
 * Unit: `metrics.ts` imported and snapshot / string contains expectations.

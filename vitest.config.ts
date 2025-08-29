@@ -37,7 +37,11 @@ export default defineConfig({
       'src/tests/unit/**/*.{test,spec}.{ts,tsx}',
   'src/tests/integration/**/*.{test,spec}.{ts,tsx}',
     ],
-    exclude: ['src/tests/e2e/**']
+    exclude: [
+      'src/tests/e2e/**',
+      // Exclude deprecated legacy static fallback test (superseded by onboarding empty state F16)
+      'src/tests/integration/cv-service-fallback.test.ts'
+    ]
   },
   resolve: {
     alias: {

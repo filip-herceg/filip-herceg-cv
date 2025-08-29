@@ -19,5 +19,6 @@ describe('Helm templating (observability artifacts)', () => {
     expect(output).toMatch(/kind: ConfigMap/)
     expect(output).toMatch(/grafana-dashboard/) // name suffix
     expect(output).toMatch(/pdf_cache_hits_total/)
+  expect(output).toMatch(/cv_aggregate_loads_total/)
   })
 })

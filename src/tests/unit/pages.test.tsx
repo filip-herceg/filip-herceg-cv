@@ -28,10 +28,9 @@ describe('Static pages', () => {
 })
 
 describe('CV page', () => {
-  it('renders full CV (non-short mode)', async () => {
+  it('renders full CV (non-short mode) with placeholder when DB empty', async () => {
     await renderCv()
-    // Expect sample name present
-    expect(screen.getByText(/Jane Developer/)).toBeInTheDocument()
+    expect(screen.getByText(/Your Name/)).toBeInTheDocument()
   })
   it('renders short mode when mode=short', async () => {
     vi.doMock('next/dynamic', () => ({ __esModule: true, default: (importer: any) => importer() }))

@@ -100,7 +100,9 @@ npm run e2e
 
 ## Persistence (Local Dev)
 
-Prisma schema targets SQLite for simplicity. The first DB-backed CV load requires seeding at least `person` and `design` rows; otherwise the app transparently falls back to embedded static JSON. To inspect or modify data:
+Prisma schema targets SQLite for simplicity. If the database is empty (no `person` + `design` rows for a locale) the service now returns a deterministic onboarding placeholder (minimal person name "Your Name", empty arrays, default design sections) rather than reading embedded static JSON (legacy behavior removed in F16). This state is observable via the Prometheus counter `cv_aggregate_loads_total{source="empty"}`. Once you add real rows, loads switch to `source="db"`.
+
+To inspect or modify data:
 
 ```bash
 npx prisma db push

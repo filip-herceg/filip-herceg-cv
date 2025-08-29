@@ -1,0 +1,6 @@
+Legacy test removed: cv-service-fallback.test.ts
+
+This file documents the removal of the old static CV JSON runtime fallback path.
+Implemented F16 introduced persistent DB + onboarding empty placeholder.
+Original test asserted source==='static'; now replaced by onboarding 'empty' source + metric cv_aggregate_loads_total{source}.
+File retained only for historical reference; not executed by Vitest (different folder & extension).

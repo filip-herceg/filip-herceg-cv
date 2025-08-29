@@ -37,6 +37,14 @@ export const pdfCacheMissesTotal = new client.Counter({
   registers: [registry],
 })
 
+// CV aggregate load counter (labels by source: db | empty)
+export const cvAggregateLoadsTotal = new client.Counter({
+  name: 'cv_aggregate_loads_total',
+  help: 'CV aggregate loads by source (db | empty)',
+  labelNames: ['source'] as const,
+  registers: [registry],
+})
+
 // Simple helper to expose metrics (text format)
 export async function renderMetrics(): Promise<string> {
   return registry.metrics()

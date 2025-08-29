@@ -1,6 +1,6 @@
 import { PrismaClient, type Skill, type Project, type Experience, type Education, type Certification, type Trait, type Hobby } from '@prisma/client'
 import { CvDataSchema, CvDesignSchema, type CvData, type CvDesign } from './schema'
-import { getCvData as getStaticCvData, getCvDesign as getStaticCvDesign } from './loader'
+import { cvAggregateLoadsTotal } from '@/lib/metrics'
 import pino from 'pino'
 
 // Narrow JSON.parse results to unknown so Zod validates and we avoid implicit any
@@ -27,7 +27,10 @@ interface AggregateCacheEntry { data: CvData; design: CvDesign; loadedAt: number
 const aggregateCache = new Map<string, AggregateCacheEntry>()
 const CACHE_TTL_MS = 60_000
 
-export async function getAggregate(locale: string = 'en'): Promise<{ data: CvData; design: CvDesign; source: 'db' | 'static' }> {
+// Returns aggregate CV data+design. Possible sources:
+// - db: loaded fully from persistence (validated)
+// - empty: database has no person/design rows yet (fresh deploy) -> provide empty onboarding state
+export async function getAggregate(locale: string = 'en'): Promise<{ data: CvData; design: CvDesign; source: 'db' | 'empty' }> {
   const now = Date.now()
   const cached = aggregateCache.get(locale)
   if (cached && now - cached.loadedAt < CACHE_TTL_MS) {
@@ -49,7 +52,7 @@ export async function getAggregate(locale: string = 'en'): Promise<{ data: CvDat
       client.design.findUnique({ where: { locale } })
     ])
 
-    if (person) {
+  if (person) {
       const dataParse = CvDataSchema.safeParse({
         person: {
           name: person.name,
@@ -86,6 +89,7 @@ export async function getAggregate(locale: string = 'en'): Promise<{ data: CvDat
       if (dataParse.success && designParse?.success) {
         const entry: AggregateCacheEntry = { data: dataParse.data, design: designParse.data, loadedAt: now }
         aggregateCache.set(locale, entry)
+        try { cvAggregateLoadsTotal.inc({ source: 'db' }) } catch {}
         return { data: entry.data, design: entry.design, source: 'db' }
       } else {
         if (!dataParse.success) log.warn({ err: dataParse.error }, 'cv data parse failed from db')
@@ -95,9 +99,29 @@ export async function getAggregate(locale: string = 'en'): Promise<{ data: CvDat
   } catch (e) {
     log.warn({ err: e }, 'db load failed; falling back to static')
   }
-
-  // Fallback to static bootstrap (temporary until DB seeded)
-  const staticData = getStaticCvData('en')
-  const staticDesign = getStaticCvDesign('en')
-  return { data: staticData, design: staticDesign, source: 'static' }
+  // EMPTY onboarding state: minimal valid structures to allow UI to render informative prompt.
+  const empty: CvData = {
+    person: {
+      name: 'Your Name',
+      title: 'Role / Title',
+      profile: 'Welcome! Start by seeding your CV data via the upcoming admin interface.',
+      contact: { email: 'you@example.com' },
+      links: []
+    },
+    skills: [],
+    projects: []
+  }
+  const emptyDesign: CvDesign = {
+    page: { size: 'A4', margin: '16mm', columns: 2, gutter: '8mm' },
+    palette: { mode: 'light', primary: '#1e293b', accent: '#0ea5e9', background: '#ffffff', surface: '#f1f5f9', text: '#0f172a', mutedText: '#64748b' },
+    typography: { body: 'system-ui, sans-serif', heading: 'system-ui, sans-serif', scale: 1 },
+    shapes: [],
+    sections: [
+      { id: 'profile', label: 'Profile', order: 1, enabled: true },
+      { id: 'skills', label: 'Skills', order: 2, enabled: true },
+      { id: 'projects', label: 'Projects', order: 3, enabled: true }
+    ]
+  }
+  try { cvAggregateLoadsTotal.inc({ source: 'empty' }) } catch {}
+  return { data: empty, design: emptyDesign, source: 'empty' }
 }

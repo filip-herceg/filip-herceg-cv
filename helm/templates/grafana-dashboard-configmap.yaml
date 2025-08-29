@@ -48,6 +48,14 @@ data:
           "title": "Permalink Creates (rate)",
           "type": "timeseries",
           "targets": [ { "expr": "rate(permalink_creates_total[5m])" } ]
+        },
+        {
+          "id": 5,
+          "title": "CV Aggregate Loads by Source (rate)",
+          "type": "timeseries",
+          "targets": [ { "expr": "rate(cv_aggregate_loads_total[5m])", "legendFormat": "{{source}}" } ],
+          "description": "Shows frequency of CV aggregate fetches split by 'db' vs 'empty' onboarding placeholder. Aim for 'empty' to drop after initial admin population.",
+          "fieldConfig": { "defaults": { "unit": "req/s" } }
         }
       ]
     }
