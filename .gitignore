@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# SQLite test/dev databases (ephemeral)
+*.sqlite
+*.sqlite-journal
+*.db
+
+# If you ever want to persist a dev DB under version control, override with a negation rule:
+# !prisma/seed-data.db

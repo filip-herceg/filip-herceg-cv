@@ -177,6 +177,8 @@ describe('admin auth', () => {
   const calls: Record<string, number> = { failure: 0, success: 0 }
   const fakeCounter = { inc: ({ result }: { result: string }) => { calls[result] = (calls[result] || 0) + 1 } }
   ;(ctx.metrics as any).loginAttempts = fakeCounter
+  // Speed up test by skipping actual sleep delays from exponential backoff
+  ctx.clock.sleep = async () => {}
   await handleLogin({ username: 'root', password: 'bad' }, ctx)
   await handleLogin({ username: 'root', password: 'bad' }, ctx).catch(() => {})
   // Previous tests may have rotated password multiple times; force-set a known password for this test
