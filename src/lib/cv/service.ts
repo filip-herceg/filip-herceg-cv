@@ -125,3 +125,13 @@ export async function getAggregate(locale: string = 'en'): Promise<{ data: CvDat
   try { cvAggregateLoadsTotal.inc({ source: 'empty' }) } catch {}
   return { data: empty, design: emptyDesign, source: 'empty' }
 }
+
+// Invalidate a specific locale (or all if locale === '*') – used by admin mutations
+export function invalidateAggregateCache(locale: string) {
+  if (locale === '*') {
+    aggregateCache.clear()
+    return
+  }
+  aggregateCache.delete(locale)
+}
+

@@ -81,6 +81,14 @@ export const authRateLimitFailuresTotal = new client.Counter({
   registers: [registry],
 })
 
+// Admin CV entity mutations (CRUD). Labels: entity (skill/project/...), action (create|update|delete), result (success|error)
+export const cvEntityMutationsTotal = new client.Counter({
+  name: 'cv_entity_mutations_total',
+  help: 'Total admin CV entity mutations by entity, action and result',
+  labelNames: ['entity', 'action', 'result'] as const,
+  registers: [registry],
+})
+
 // Simple helper to expose metrics (text format)
 export async function renderMetrics(): Promise<string> {
   return registry.metrics()

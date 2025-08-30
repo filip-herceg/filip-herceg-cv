@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { SiteHeader } from '@/components/layout/site-header'
 import * as nav from 'next/navigation'
 
@@ -9,8 +9,11 @@ describe('SiteHeader i18n', () => {
     vi.spyOn(nav,'usePathname').mockReturnValue('/de')
     vi.spyOn(nav,'useRouter').mockReturnValue({ push } as any)
     render(<SiteHeader />)
-    // Lazy loaded translation appears after async import
-    expect(await screen.findByRole('link',{name:'Start'})).toBeInTheDocument()
+    // Initially keys may render (fallback) then replaced once async catalog loads
+    // Wait for one of the translated labels (nav.home => Start)
+    await waitFor(async () => {
+      expect(await screen.findByRole('link',{ name: 'Start' })).toBeInTheDocument()
+    })
     fireEvent.click(screen.getByRole('button',{name:'English'}))
     expect(push).toHaveBeenCalledWith('/')
   })

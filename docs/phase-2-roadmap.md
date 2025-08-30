@@ -138,6 +138,10 @@ Each feature must:
 - [ ] a11y checks pass
 - [ ] Performance budgets respected
 
+### F17 Progress Log
+- Slice 1 (A–F) started: added auth guard, admin aggregate route, skill create/delete endpoints, cache invalidation, integration test for skill CRUD.
+
+
 ## 14. Open Questions (Initial)
 - Choose second locale: `de` already hinted—confirm? (If unconfirmed before Sprint 1, proceed with `de` + stub translator.)
 - Headless CMS integration worth stub (Contentlayer vs simple local JSON)?

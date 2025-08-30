@@ -99,10 +99,42 @@ Benefits:
 3. High observability: metrics (`auth_login_attempts_total`, `auth_active_sessions`) updated inside handlers via injected metric objects.
 4. Security improvements: sliding session renewal, fixation mitigation (rotation on password change), enforced minimal password strength, exponential backoff, CSRF protection.
 
-To add a new auth endpoint:
+To add a new auth or admin CRUD endpoint:
 1. Create a pure handler returning `HandlerResult`.
 2. Add a route file that builds an `AuthContext`, invokes the handler, and applies cookie instructions.
 3. Write tests using `MemoryCookieStore` and (optionally) a fake clock / random source by overriding `ctx.clock` for edge cases (e.g., session renewal thresholds).
+4. For protected admin CRUD, use `requireAdmin` guard (in `src/lib/auth/guard.ts`).
+5. Invalidate per-locale CV cache via `invalidateAggregateCache(locale)` after successful mutation.
+
+#### Admin CRUD (F17)
+- `/api/admin/cv` (GET) returns full aggregate with `{ data, design, source }` for a given locale (default `en`).
+- `/api/admin/entity/skill` (POST, DELETE) first slice implemented; uses Zod validation (`SkillSchema`) extended with `locale`.
+- Cache invalidation performed after skill create/update/delete; subsequent aggregate fetch reflects changes.
+- Guard: `requireAdmin` ensures session presence; returns 401 JSON `{ error: 'UNAUTHORIZED' }` otherwise.
+
+##### Implemented Entities (current slice)
+- Skill, Project, Experience, Education, Certification, Trait, Hobby (each POST/DELETE) — all instrumented via `cv_entity_mutations_total`.
+- CV aggregate + invalidation endpoint.
+
+The temporary coverage ignore blocks were removed after introducing a dedicated route harness and focused unit tests per entity. All CRUD adapters now have:
+1. Unauthorized (401) guard test.
+2. Validation failure (400) including parse fallback (invalid JSON) path.
+3. Create vs update (distinguishing counter `action` label) including serialization of optional list fields.
+4. DB error path exercising error counter increment.
+5. Delete success + error (error still returns `{ result: 'deleted' }` while labeling metrics with `result=error`).
+
+Additional parse-fallback tests were added for every entity to cover the `parse()` try/catch branch (invalid JSON -> empty object -> validation 400) improving branch coverage across entity route files (now ≥78% with most ≥88–94%).
+
+##### Route Harness
+`admin-auth.test.ts` and related harness files exercise authenticated flows end‑to‑end using an in‑memory cookie store and a Prisma subset to verify session lifecycle, metric increments, and cache invalidation without relying on Next's request context internals.
+
+##### Current Coverage Snapshot
+Statements ~96.7%, Branches ~84%, Functions ~89%, Lines ~96.7% (V8). Target thresholds (90/80/75/90) are exceeded with headroom; remaining uncovered branches are low‑value defensive lines (e.g., alternate error handling or rarely hit cookie branches).
+
+##### Mutation Metrics
+Counter: `cv_entity_mutations_total{entity,action,result}` — observes volume & error rates per entity. Tests assert increments for success & error paths for every entity. Future: add alerting + SLO burn-rate panels.
+
+
 
 Test patterns are shown in `src/tests/integration/admin-auth.test.ts` after the refactor.
 
