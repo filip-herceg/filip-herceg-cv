@@ -29,32 +29,29 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const locale = localeFromHeaders()
-  const siteUrl = process.env.SITE_URL || 'http://localhost:3000'
-  const jsonLd = {
+function buildJsonLd(locale: string, siteUrl: string) {
+  return {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'WebSite',
-        url: siteUrl,
-        name: 'Filip Herceg – Portfolio',
-        inLanguage: locale,
-      },
-      {
-        '@type': 'Person',
-        name: 'Filip Herceg',
-        url: siteUrl,
-        jobTitle: 'Software Engineer',
-        sameAs: ['https://github.com/filip-herceg'],
-      },
+      { '@type': 'WebSite', url: siteUrl, name: 'Filip Herceg – Portfolio', inLanguage: locale },
+      { '@type': 'Person', name: 'Filip Herceg', url: siteUrl, jobTitle: 'Software Engineer', sameAs: ['https://github.com/filip-herceg'] },
     ],
   }
+}
+
+export default function RootLayout({ children }: { readonly children: React.ReactNode }) {
+  const locale = localeFromHeaders()
+  const siteUrl = process.env.SITE_URL || 'http://localhost:3000'
+  const jsonLd = buildJsonLd(locale, siteUrl)
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen font-sans antialiased`}>
         <LocaleHead />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <script
+          // Structured data for SEO
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <SiteHeader />
         <ErrorBoundary>
           {children}

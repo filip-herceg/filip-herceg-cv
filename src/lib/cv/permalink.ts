@@ -1,14 +1,13 @@
 import { CvSelectionSchema } from './schema'
 
-// Polyfill atob/btoa for Node environments (SSR / tests)
+// Polyfill atob/btoa for Node environments (SSR / tests) lazily to reduce side-effects at module load
 interface GlobalAtobBtoa { atob?(s: string): string; btoa?(s: string): string }
-const g = globalThis as GlobalAtobBtoa
-if (typeof g.atob === 'undefined') {
-  g.atob = (str: string) => Buffer.from(str, 'base64').toString('binary')
+function ensureBase64Polyfill() {
+  const g = globalThis as GlobalAtobBtoa
+  if (typeof g.atob === 'undefined') g.atob = (str: string) => Buffer.from(str, 'base64').toString('binary')
+  if (typeof g.btoa === 'undefined') g.btoa = (str: string) => Buffer.from(str, 'binary').toString('base64')
 }
-if (typeof g.btoa === 'undefined') {
-  g.btoa = (str: string) => Buffer.from(str, 'binary').toString('base64')
-}
+ensureBase64Polyfill()
 
 // Lightweight base64url helpers (no padding)
 function toBase64Url(bytes: Uint8Array): string {
@@ -74,7 +73,10 @@ function sanitize(selection: PresetSelection): PresetSelection {
     const arr = selection[key]
     if (Array.isArray(arr) && arr.length) {
       const uniq = Array.from(new Set(arr.filter(Boolean)))
-      if (uniq.length) out[key] = uniq.sort((a,b)=>a.localeCompare(b))
+      if (uniq.length) {
+        uniq.sort((a,b)=>a.localeCompare(b))
+        out[key] = uniq
+      }
     }
   }
   if (selection.mode === 'short') out.mode = 'short'
@@ -118,7 +120,7 @@ export async function decodePreset(input: string | URLSearchParams): Promise<Dec
   for (const k of ['skills','projects','experiences','education'] as const) {
     const arr = rec[k]
     if (Array.isArray(arr) && arr.every(x => typeof x === 'string')) {
-      queryShape[k] = (arr as string[]).join(',')
+      queryShape[k] = arr.join(',')
     }
   }
   if (rec.mode === 'short') queryShape.mode = 'short'

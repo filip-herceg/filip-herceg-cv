@@ -21,11 +21,15 @@ if (process.env.REDIS_URL) {
 }
 
 let prismaSingleton: PrismaClient | undefined
-function prisma() { return prismaSingleton ??= new PrismaClient() }
+function prisma() {
+  prismaSingleton ??= new PrismaClient()
+  return prismaSingleton
+}
 
 export interface BuildAuthContextOptions { store: CookieStore; rateLimiter?: RateLimiter }
 
-export function buildAuthContext({ store, rateLimiter }: BuildAuthContextOptions): AuthContext {
+export function buildAuthContext(opts: BuildAuthContextOptions): AuthContext {
+  const { store, rateLimiter } = opts
   const cfg = loadAuthConfig()
   return {
     prisma: prisma(),
@@ -40,11 +44,16 @@ export function buildAuthContext({ store, rateLimiter }: BuildAuthContextOptions
       production: cfg.production,
     },
     clock: { now: () => Date.now(), randomBytes: (n: number) => randomBytes(n), sleep: (ms: number) => new Promise(r => setTimeout(r, ms)) },
-  rateLimiter: rateLimiter || (process.env.REDIS_URL && RedisCtor
-  ? withFallback(
-    createRedisRateLimiter(new RedisCtor(process.env.REDIS_URL, { lazyConnect: true }) as unknown as RedisLike, { baseMs: cfg.backoff.baseMs, maxMs: cfg.backoff.maxMs, jitterFraction: cfg.backoff.jitterFraction, ttlSeconds: cfg.backoff.ttlSeconds }),
-    new MemoryRateLimiter({ baseMs: cfg.backoff.baseMs, maxMs: cfg.backoff.maxMs, jitterFraction: cfg.backoff.jitterFraction, ttlSeconds: cfg.backoff.ttlSeconds })
-    )
-      : new MemoryRateLimiter({ baseMs: cfg.backoff.baseMs, maxMs: cfg.backoff.maxMs, jitterFraction: cfg.backoff.jitterFraction, ttlSeconds: cfg.backoff.ttlSeconds })),
+    rateLimiter: rateLimiter ?? buildRateLimiter(cfg),
   }
+}
+
+function buildRateLimiter(cfg: ReturnType<typeof loadAuthConfig>): RateLimiter {
+  const baseOpts = { baseMs: cfg.backoff.baseMs, maxMs: cfg.backoff.maxMs, jitterFraction: cfg.backoff.jitterFraction, ttlSeconds: cfg.backoff.ttlSeconds }
+  if (process.env.REDIS_URL && RedisCtor) {
+    const redis = createRedisRateLimiter(new RedisCtor(process.env.REDIS_URL, { lazyConnect: true }) as unknown as RedisLike, baseOpts)
+    const memory = new MemoryRateLimiter(baseOpts)
+    return withFallback(redis, memory)
+  }
+  return new MemoryRateLimiter(baseOpts)
 }

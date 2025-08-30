@@ -8,6 +8,14 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  yaml-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint YAML (ci workflow only for now)
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: .github/workflows/ci.yml
   dependency-review:
     runs-on: ubuntu-latest
     permissions:
@@ -214,6 +222,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs:
+      - yaml-lint
       - build-test
       - e2e
       - lighthouse
@@ -341,22 +350,14 @@ jobs:
           docker push $GH_REPO:v$version
   summary:
     runs-on: ubuntu-latest
-    needs:
-      - build-test
-      - static-analysis
-      - security-audit
-      - gitleaks
-      - trivy-fs
-      - codeql
-      - lighthouse
-      - a11y
-      - e2e
+    needs: [yaml-lint, build-test, static-analysis, security-audit, gitleaks, trivy-fs, codeql, lighthouse, a11y, e2e]
     if: always()
     steps:
       - name: Generate summary
         run: |
           cat <<EOF > ci-summary.txt
           Build/Test: ${{ needs.build-test.result }}
+          YAML Lint: ${{ needs.yaml-lint.result }}
           Static Analysis: ${{ needs.static-analysis.result }}
           Security Audit: ${{ needs.security-audit.result }}
           Gitleaks: ${{ needs.gitleaks.result }}

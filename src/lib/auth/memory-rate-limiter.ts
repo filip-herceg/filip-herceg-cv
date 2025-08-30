@@ -8,11 +8,11 @@ export interface MemoryRateLimiterOptions {
 
 export class MemoryRateLimiter implements RateLimiter {
   public readonly backendType = 'memory'
-  private fails = new Map<string, { count: number; expiresAt: number }>()
-  private ttlMs: number
-  private base: number
-  private max: number
-  private jitterFraction: number
+  private readonly fails = new Map<string, { count: number; expiresAt: number }>()
+  private readonly ttlMs: number
+  private readonly base: number
+  private readonly max: number
+  private readonly jitterFraction: number
   constructor(opts?: Partial<MemoryRateLimiterOptions> & { ttlSeconds?: number }) {
     this.base = opts?.baseMs ?? Number(process.env.AUTH_BACKOFF_BASE_MS || 250)
     this.max = opts?.maxMs ?? Number(process.env.AUTH_BACKOFF_MAX_MS || 2000)

@@ -6,21 +6,13 @@ import { XIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
-function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
-  return <SheetPrimitive.Root data-slot="sheet" {...props} />
-}
+const withSlot = <P extends { children?: React.ReactNode }>(Comp: React.ComponentType<P>, slot: string) =>
+  function SlotComp(props: P) { return <Comp data-slot={slot} {...props} /> }
 
-function SheetTrigger({ ...props }: React.ComponentProps<typeof SheetPrimitive.Trigger>) {
-  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
-}
-
-function SheetClose({ ...props }: React.ComponentProps<typeof SheetPrimitive.Close>) {
-  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
-}
-
-function SheetPortal({ ...props }: React.ComponentProps<typeof SheetPrimitive.Portal>) {
-  return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
-}
+const Sheet = withSlot(SheetPrimitive.Root, 'sheet')
+const SheetTrigger = withSlot(SheetPrimitive.Trigger, 'sheet-trigger')
+const SheetClose = withSlot(SheetPrimitive.Close, 'sheet-close')
+const SheetPortal = withSlot(SheetPrimitive.Portal as any, 'sheet-portal') // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,

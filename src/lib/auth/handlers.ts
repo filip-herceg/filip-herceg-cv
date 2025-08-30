@@ -85,7 +85,7 @@ export async function handlePasswordChange(input: PasswordChangeInput, ctx: Auth
 
 export async function handleIssueCsrf(ctx: AuthContext): Promise<HandlerResult<{ csrfToken: string }>> {
   const token = ctx.clock.randomBytes(24).toString('base64url')
-  return success(200, { csrfToken: token }, { set: [{ name: ctx.config.csrfCookieName, value: token, options: { httpOnly: false, sameSite: 'lax', secure: ctx.config.production, path: '/' } }] })
+  return success(200, { csrfToken: token }, { set: [{ name: ctx.config.csrfCookieName, value: token, options: csrfCookieOptions(ctx) }] })
 }
 
 async function ensureBootstrap(ctx: AuthContext) {
@@ -94,4 +94,8 @@ async function ensureBootstrap(ctx: AuthContext) {
   const existing = await authPrisma(ctx.prisma).adminUser.findFirst({ where: { username } })
   if (existing) return
   await authPrisma(ctx.prisma).adminUser.create({ data: { username, passwordHash: hashPassword(password) } })
+}
+
+function csrfCookieOptions(ctx: AuthContext) {
+  return { httpOnly: false, sameSite: 'lax' as const, secure: ctx.config.production, path: '/' }
 }

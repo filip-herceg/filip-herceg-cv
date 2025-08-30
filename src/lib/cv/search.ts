@@ -7,7 +7,8 @@ export interface SearchDoc {
   terms: string[]
   boost: number
   facets: Record<string, string | number | undefined>
-  raw: Skill | Project | Experience | Education | Certification | unknown
+  // 'raw' keeps original entity; avoid 'unknown' at end so union remains meaningful
+  raw: Skill | Project | Experience | Education | Certification
   periodSort?: number // derived recency sort (epoch ms or year)
 }
 export type SearchKind = 'skill' | 'project' | 'experience' | 'education' | 'certification'
@@ -69,31 +70,31 @@ export function buildIndex(data: CvData): SearchDoc[] {
     docs.push({ ...doc, terms })
   }
 
-  const skills = data.skills as Skill[]
+  const skills = data.skills
   for (const s of skills) {
     push({ kind: 'skill', id: s.id, title: s.name, boost: KIND_BOOST.skill, raw: s, facets: { category: s.category }, text: [s.name, s.tags?.join(' ') || ''] })
   }
 
-  const projects = data.projects as Project[]
+  const projects = data.projects
   for (const p of projects) {
     push({ kind: 'project', id: p.id, title: p.title, boost: KIND_BOOST.project, raw: p, facets: {}, text: [p.title, p.summary, p.highlights.join(' '), p.stack.join(' '), p.impact || ''] })
   }
 
   const experiences = data.experiences || []
-  for (const e of experiences as Experience[]) {
+  for (const e of experiences) {
     const achievements = e.achievements?.map(a => a.summary + ' ' + (a.impact || '')).join(' ') || ''
     const periodSort = derivePeriodSort(e.period, now)
     push({ kind: 'experience', id: e.id, title: e.role, boost: KIND_BOOST.experience, raw: e, facets: { employmentType: e.employmentType }, periodSort, text: [e.role, e.company, e.summary || '', achievements, (e.stack || []).join(' ')] })
   }
 
   const education = data.education || []
-  for (const ed of education as Education[]) {
+  for (const ed of education) {
     const periodSort = derivePeriodSort(ed.period, now)
     push({ kind: 'education', id: ed.id, title: ed.degree, boost: KIND_BOOST.education, raw: ed, facets: { institution: ed.institution }, periodSort, text: [ed.degree, ed.institution, (ed.highlights || []).join(' '), ed.summary || ''] })
   }
 
   const certs = data.certifications || []
-  for (const c of certs as Certification[]) {
+  for (const c of certs) {
     push({ kind: 'certification', id: c.id, title: c.name, boost: KIND_BOOST.certification, raw: c, facets: { issuer: c.issuer, year: c.year }, text: [c.name, c.issuer, String(c.year || '')] })
   }
 
@@ -103,42 +104,43 @@ export function buildIndex(data: CvData): SearchDoc[] {
 function derivePeriodSort(period: string, fallback: number): number | undefined {
   // Expect formats like '2023 – 2024' or '2022 – Present' or single '2024'
   const yearMatch = period.match(/(19|20)\d{2}/g)
-  if (!yearMatch || !yearMatch.length) return undefined
+  if (!yearMatch?.length) return undefined
   const lastYear = parseInt(yearMatch[yearMatch.length - 1], 10)
   return new Date(lastYear, 11, 31).getTime() || fallback
 }
 
-function matchAndScore(doc: SearchDoc, tokens: string[]): { matched: boolean; score: number; titleHit: boolean; narrativeHit: boolean; stackHit: boolean } {
+function matchAndScore(
+  doc: SearchDoc,
+  tokens: string[]
+): { matched: boolean; score: number; titleHit: boolean; narrativeHit: boolean; stackHit: boolean } {
   if (!tokens.length) return { matched: true, score: doc.boost, titleHit: false, narrativeHit: false, stackHit: false }
-  let score = 0
+  // Token scoring
+  let base = 0
+  for (const q of tokens) {
+    const exact = doc.terms.includes(q)
+    if (exact) { base += 1; continue }
+    const prefix = doc.terms.some(t => t.startsWith(q))
+    if (prefix) { base += 0.5; continue }
+    return { matched: false, score: 0, titleHit: false, narrativeHit: false, stackHit: false }
+  }
+  // Field bonuses aggregated via small helpers
+  type Rich = { title?: string; name?: string; role?: string; summary?: string; highlights?: string[]; achievements?: ExperienceAchievement[]; stack?: string[]; tags?: string[] }
+  const raw = doc.raw as Rich
+  const lcTokens = tokens
+  const containsAny = (text: string) => lcTokens.some(t => text.includes(t))
   let titleHit = false
   let narrativeHit = false
   let stackHit = false
-  for (const qt of tokens) {
-    let tokenMatched = false
-    for (const dt of doc.terms) {
-      if (dt === qt) { score += 1; tokenMatched = true; break }
-      if (dt.startsWith(qt)) { score += 0.5; tokenMatched = true; break }
-    }
-    if (!tokenMatched) return { matched: false, score: 0, titleHit, narrativeHit, stackHit }
-  }
-  // Field bonuses (heuristic via raw)
-  type TitleLike = { title?: string; name?: string; role?: string; summary?: string; highlights?: string[]; achievements?: ExperienceAchievement[]; stack?: string[]; tags?: string[] }
-  const raw = doc.raw as TitleLike
-  if (raw.title || raw.name || raw.role) {
-    const titleStr = (raw.title || raw.name || raw.role || '').toLowerCase()
-    if (tokens.some(t => titleStr.includes(t))) { score += 1; titleHit = true }
-  }
-  if (raw.summary || raw.highlights || raw.achievements) {
-  const narrative = [raw.summary, ...(raw.highlights || []), ...(raw.achievements?.map(a => a.summary) || [])].join(' ').toLowerCase()
-    if (tokens.some(t => narrative.includes(t))) { score += 0.75; narrativeHit = true }
-  }
-  if (raw.stack || raw.tags) {
-    const stack = [...(raw.stack || []), ...(raw.tags || [])].join(' ').toLowerCase()
-    if (tokens.some(t => stack.includes(t))) { score += 0.5; stackHit = true }
-  }
-  score *= doc.boost
-  return { matched: true, score, titleHit, narrativeHit, stackHit }
+  const titleStr = (raw.title || raw.name || raw.role || '').toLowerCase()
+  if (titleStr && containsAny(titleStr)) { base += 1; titleHit = true }
+  const narrativeStr = [raw.summary, ...(raw.highlights || []), ...(raw.achievements?.map(a => a.summary) || [])]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  if (narrativeStr && containsAny(narrativeStr)) { base += 0.75; narrativeHit = true }
+  const stackStr = [...(raw.stack || []), ...(raw.tags || [])].join(' ').toLowerCase()
+  if (stackStr && containsAny(stackStr)) { base += 0.5; stackHit = true }
+  return { matched: true, score: base * doc.boost, titleHit, narrativeHit, stackHit }
 }
 
 export interface SearchOptions { limit?: number; filters?: SearchFilters }
@@ -147,31 +149,17 @@ export function search(index: SearchDoc[], query: string, opts: SearchOptions = 
   const tokens = tokenize(query)
   const limit = opts.limit ?? 20
   const filters = opts.filters || {}
-
   const yearFilter = filters.year
-  const yearRange = typeof yearFilter === 'object' && yearFilter !== null && !('toString' in yearFilter)
-    ? yearFilter as { gte?: number; lte?: number }
-    : undefined
+  const yearRange =
+    typeof yearFilter === 'object' && yearFilter !== null && !('toString' in yearFilter)
+      ? (yearFilter as { gte?: number; lte?: number })
+      : undefined
 
   const results: { doc: SearchDoc; score: number }[] = []
   for (const doc of index) {
-    if (filters.kinds && !filters.kinds.includes(doc.kind)) continue
-    if (filters.category && doc.facets.category !== filters.category) continue
-    if (filters.employmentType && doc.facets.employmentType !== filters.employmentType) continue
-    if (filters.issuer && doc.facets.issuer !== filters.issuer) continue
-    if (filters.institution && doc.facets.institution !== filters.institution) continue
-    if (typeof yearFilter === 'number' && doc.facets.year !== yearFilter) continue
-    if (yearRange) {
-      const y = doc.facets.year as number | undefined
-      if (y !== undefined) {
-        if (yearRange.gte !== undefined && y < yearRange.gte) continue
-        if (yearRange.lte !== undefined && y > yearRange.lte) continue
-      }
-    }
-
+    if (!passesFilters(doc, filters, yearFilter, yearRange)) continue
     const { matched, score } = matchAndScore(doc, tokens)
-    if (!matched) continue
-    results.push({ doc, score })
+    if (matched) results.push({ doc, score })
   }
 
   results.sort((a, b) => {
@@ -191,6 +179,31 @@ export function search(index: SearchDoc[], query: string, opts: SearchOptions = 
     facets: buildFacets(results.map(r => r.doc))
   }
   return response
+}
+
+// Extracted from search() to reduce cognitive complexity (S3776)
+function passesFilters(
+  doc: SearchDoc,
+  f: SearchFilters,
+  yearFilter: SearchFilters['year'],
+  yearRange: { gte?: number; lte?: number } | undefined
+): boolean {
+  const facet = doc.facets
+  const checks: boolean[] = [
+    !f.kinds || f.kinds.includes(doc.kind),
+    !f.category || facet.category === f.category,
+    !f.employmentType || facet.employmentType === f.employmentType,
+    !f.issuer || facet.issuer === f.issuer,
+    !f.institution || facet.institution === f.institution,
+    typeof yearFilter !== 'number' || facet.year === yearFilter
+  ]
+  if (checks.some(ok => !ok)) return false
+  if (!yearRange) return true
+  const y = facet.year as number | undefined
+  if (y === undefined) return true
+  if (yearRange.gte !== undefined && y < yearRange.gte) return false
+  if (yearRange.lte !== undefined && y > yearRange.lte) return false
+  return true
 }
 
 function buildSnippet(doc: SearchDoc): string | undefined {

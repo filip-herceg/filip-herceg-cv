@@ -34,7 +34,8 @@ function stableStringify(obj: unknown): string {
   if (typeof obj !== 'object') return JSON.stringify(obj)
   if (Array.isArray(obj)) return '[' + obj.map(stableStringify).join(',') + ']'
   const rec = obj as Record<string, unknown>
-  return '{' + Object.keys(rec).sort().map(k => JSON.stringify(k)+ ':' + stableStringify(rec[k])).join(',') + '}'
+  const keys = Object.keys(rec).sort((a, b) => a.localeCompare(b))
+  return '{' + keys.map(k => JSON.stringify(k) + ':' + stableStringify(rec[k])).join(',') + '}'
 }
 
 function hashString(str: string): string {
@@ -45,59 +46,66 @@ function hashString(str: string): string {
 
 export async function projectExport(opts: ProjectedOptions = {}): Promise<ProjectionResult> {
   const rawData = CvDataSchema.parse(sampleCvData)
-
-  // Determine selection via cv token or expanded params
-  let selection: { mode?: 'short'; skills?: string[]; projects?: string[] } | undefined
-  if (opts.cvToken) {
-    const decoded = await decodePreset(opts.cvToken)
-    if (decoded.ok) {
-      selection = { mode: decoded.preset.mode, skills: decoded.preset.skills, projects: decoded.preset.projects }
-    }
-  } else if (opts.searchParams) {
-    const fromExpanded = selectionFromExpanded(opts.searchParams)
-    if (Object.keys(fromExpanded).length) selection = { mode: fromExpanded.mode, skills: fromExpanded.skills, projects: fromExpanded.projects }
-  }
-
-  // Apply selection filtering (skills/projects only for now)
-  let filteredSkills = rawData.skills
-  let filteredProjects = rawData.projects
-  if (selection?.skills?.length) {
-    const set = new Set(selection.skills)
-    filteredSkills = filteredSkills.filter(s => set.has(s.id))
-  }
-  if (selection?.projects?.length) {
-    const set = new Set(selection.projects)
-    filteredProjects = filteredProjects.filter(p => set.has(p.id))
-  }
-
-  const redactions: string[] = []
-  const person = { ...rawData.person }
-  if (opts.publicMode) {
-    // remove email & potentially location for public share
-    if ('contact' in person && (person as any).contact?.email) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      redactions.push('person.contact.email')
-      // @ts-expect-error dynamic redaction
-      delete person.contact.email
-    }
-  }
-
-  const exported: CanonicalExport = {
-    version: 1,
-    person,
-    skills: filteredSkills,
-    projects: filteredProjects,
-    experiences: rawData.experiences,
-    education: rawData.education,
-    certifications: rawData.certifications,
-    traits: rawData.traits,
-    hobbies: rawData.hobbies,
-  }
+  const selection = await resolveSelection(opts)
+  const { skills: filteredSkills, projects: filteredProjects } = applySelection(rawData, selection)
+  const { person, redactions } = applyRedactions(rawData.person, opts.publicMode)
+  const exported: CanonicalExport = buildCanonical(rawData, person, filteredSkills, filteredProjects)
   if (selection) exported.selection = selection
   if (redactions.length) exported.redactions = redactions
-
   const stable = stableStringify(exported)
   const etag = 'W/"cv-' + hashString(stable) + '"'
   return { data: exported, etag }
+}
+
+async function resolveSelection(opts: ProjectedOptions) {
+  if (opts.cvToken) {
+    const decoded = await decodePreset(opts.cvToken)
+    if (decoded.ok) return { mode: decoded.preset.mode, skills: decoded.preset.skills, projects: decoded.preset.projects }
+  }
+  if (opts.searchParams) {
+    const fromExpanded = selectionFromExpanded(opts.searchParams)
+    if (Object.keys(fromExpanded).length) return { mode: fromExpanded.mode, skills: fromExpanded.skills, projects: fromExpanded.projects }
+  }
+  return undefined
+}
+
+function applySelection(raw: ReturnType<typeof CvDataSchema.parse>, selection: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+  let skills = raw.skills
+  let projects = raw.projects
+  if (selection?.skills?.length) {
+    const set = new Set(selection.skills)
+    skills = skills.filter(s => set.has(s.id))
+  }
+  if (selection?.projects?.length) {
+    const set = new Set(selection.projects)
+    projects = projects.filter(p => set.has(p.id))
+  }
+  return { skills, projects }
+}
+
+function applyRedactions(personSrc: typeof sampleCvData.person, publicMode?: boolean) {
+  const person = { ...personSrc }
+  const redactions: string[] = []
+  if (publicMode && 'contact' in person && (person as any).contact?.email) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    redactions.push('person.contact.email')
+    // @ts-expect-error dynamic
+    delete person.contact.email
+  }
+  return { person, redactions }
+}
+
+function buildCanonical(raw: ReturnType<typeof CvDataSchema.parse>, person: typeof raw.person, skills: typeof raw.skills, projects: typeof raw.projects): CanonicalExport {
+  return {
+    version: 1,
+    person,
+    skills,
+    projects,
+    experiences: raw.experiences,
+    education: raw.education,
+    certifications: raw.certifications,
+    traits: raw.traits,
+    hobbies: raw.hobbies,
+  }
 }
 
 // CSV serialization (skills)
