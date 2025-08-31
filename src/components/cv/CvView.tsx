@@ -30,12 +30,12 @@ export const CvView: React.FC<CvRenderProps> = ({ data, design = sampleCvDesign,
       {design.shapes.map((shape, idx) => {
         const Comp = shapeComponentMap[shape.kind]
         const base = 'pointer-events-none absolute inset-0'
-        const posClass =
-          shape.position && shape.position !== 'full'
-            ? `inset-auto ${
-                shape.position.includes('top') ? 'top-0' : 'bottom-0'
-              } ${shape.position.includes('left') ? 'left-0' : 'right-0'} w-1/2 h-1/2`
-            : 'inset-0'
+        let posClass = 'inset-0'
+        if (shape.position && shape.position !== 'full') {
+          const vertical = shape.position.includes('top') ? 'top-0' : 'bottom-0'
+          const horizontal = shape.position.includes('left') ? 'left-0' : 'right-0'
+          posClass = `inset-auto ${vertical} ${horizontal} w-1/2 h-1/2`
+        }
         return (
           <Comp
             key={idx}

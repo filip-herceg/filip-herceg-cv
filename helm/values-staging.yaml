@@ -1,0 +1,29 @@
+# Staging environment overrides
+replicaCount: 1
+image:
+  # repository overridden by workflow --set image.repository=...
+  tag: latest
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+ingenress:
+ingress:
+  enabled: true
+  host: staging.yourdomain.tld
+  className: nginx
+  tlsSecretName: ""
+  annotations: {}
+env:
+  NEXT_PUBLIC_ENV: 'staging'
+  SENTRY_TRACES_SAMPLE_RATE: '0.05'
+  SENTRY_REPLAYS_SESSION_SAMPLE_RATE: '0'
+  SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE: '0.2'
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70

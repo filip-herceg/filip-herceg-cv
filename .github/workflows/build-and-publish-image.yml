@@ -1,0 +1,44 @@
+name: Build & Publish Image
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  packages: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install deps
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Docker build & push
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }},ghcr.io/${{ github.repository }}:latest
+          provenance: true
+          sbom: true
+      - name: Capture digest
+        id: digest
+        run: |
+          d=$(docker inspect ghcr.io/${{ github.repository }}:${{ github.sha }} --format='{{index .RepoDigests 0}}' | cut -d'@' -f2)
+          echo "digest=$d" >> $GITHUB_OUTPUT
+          echo "$d" > image-digest.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-digest
+          path: image-digest.txt

@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n'
@@ -20,14 +20,15 @@ export function SiteHeader() {
   const pathname = usePathname()
   const router = useRouter()
   // Extract current locale from leading segment (e.g., /de/about)
-  const segments = pathname.split('/').filter(Boolean)
-  const possibleLocale = segments[0]
-  const supported = ['en','de']
-  const locale = supported.includes(possibleLocale) ? possibleLocale : 'en'
-  function withLocale(href: string) {
-    if (locale === 'en') return href // default locale not prefixed
-    return href === '/' ? `/${locale}` : `/${locale}${href}`
-  }
+  const segments = useMemo(() => pathname.split('/').filter(Boolean), [pathname])
+  const supported = useMemo(() => ['en','de'] as const, [])
+  const possibleLocale = segments[0] as string | undefined
+  const locale: 'en' | 'de' = supported.includes(possibleLocale as typeof supported[number]) ? (possibleLocale as 'en'|'de') : 'en'
+  const withLocale = useCallback((href: string) => {
+    if (locale === 'en') return href
+    if (href === '/') return `/${locale}`
+    return `/${locale}${href}`
+  }, [locale])
   const { t: tHook } = useI18n(locale)
   const links = [
     { href: '/', label: tHook('nav.home') },
@@ -35,13 +36,13 @@ export function SiteHeader() {
     { href: '/projects', label: tHook('nav.projects') },
     { href: '/contact', label: tHook('nav.contact') },
   ]
-  const switchLocale = (next: string) => {
+  const switchLocale = useCallback((next: string) => {
     if (next === locale) return
-    // Remove existing locale segment if present
-    const rest = supported.includes(possibleLocale) ? '/' + segments.slice(1).join('/') : pathname
-    const target = next === 'en' ? (rest === '/' ? '/' : rest) : `/${next}${rest === '/' ? '' : rest}`
+  const rest = supported.includes(possibleLocale as typeof supported[number]) ? '/' + segments.slice(1).join('/') : pathname
+    const base = rest === '/' ? '' : rest
+    const target = next === 'en' ? (base || '/') : `/${next}${base}`
     router.push(target)
-  }
+  }, [locale, pathname, possibleLocale, router, segments, supported])
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur bg-background/70 border-b">
       <div className="container flex h-14 items-center justify-between">

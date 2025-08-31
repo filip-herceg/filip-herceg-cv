@@ -9,6 +9,7 @@ process.env.DATABASE_URL = `file:${dbFile}`
 
 import { PrismaClient } from '@prisma/client'
 import { getAggregate } from '@/lib/cv/service'
+import { CV_PAGE_SIZE } from '@/lib/constants'
 
 const prisma = new PrismaClient()
 
@@ -17,7 +18,7 @@ beforeAll(async () => {
   execSync('npx prisma db push', { stdio: 'ignore' })
   // Seed valid data + design
   await prisma.person.create({ data: { locale: 'en', name: 'Cache Alice', title: 'Engineer', profile: 'Profile', email: 'cache@example.com' } })
-  const page = { size: 'A4', margin: '1cm', columns: 2, gutter: '12pt' }
+  const page = { size: CV_PAGE_SIZE, margin: '1cm', columns: 2, gutter: '12pt' }
   const palette = { mode: 'light', primary: '#111', accent: '#09f', background: '#fff', surface: '#f5f5f5', text: '#111', mutedText: '#555' }
   const typography = { body: 'Inter', heading: 'Inter', scale: 1 }
   const shapes: any[] = []

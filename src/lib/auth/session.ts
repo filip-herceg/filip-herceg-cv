@@ -1,11 +1,12 @@
 import type { AuthContext, CookieOptions } from './types'
 import { authPrisma } from './prisma-subset'
+import { buildSessionCookieOptions } from './cookie-options'
 
 export async function createSession(ctx: AuthContext, userId: string) {
   const expiresAt = new Date(ctx.clock.now() + ctx.config.sessionTtlMs)
   const p = authPrisma(ctx.prisma)
   const session = await p.session.create({ data: { userId, expiresAt } })
-  return { session, cookie: { name: ctx.config.sessionCookieName, value: session.id, options: baseSessionCookieOptions(ctx, expiresAt) } }
+  return { session, cookie: { name: ctx.config.sessionCookieName, value: session.id, options: buildSessionCookieOptions(ctx, expiresAt) } }
 }
 
 export async function destroySession(ctx: AuthContext) {
@@ -36,11 +37,9 @@ export async function currentUser(ctx: AuthContext): Promise<CurrentUserResult> 
   if (remaining < total * ctx.config.slidingRenewalFraction) {
     const newExpiry = new Date(ctx.clock.now() + total)
   await p.session.update({ where: { id: session.id }, data: { expiresAt: newExpiry } })
-    renewalCookie = { name: ctx.config.sessionCookieName, value: session.id, options: baseSessionCookieOptions(ctx, newExpiry) }
+  renewalCookie = { name: ctx.config.sessionCookieName, value: session.id, options: buildSessionCookieOptions(ctx, newExpiry) }
   }
   return { user: { id: session.user.id, username: session.user.username }, renewalCookie }
 }
 
-function baseSessionCookieOptions(ctx: AuthContext, expires: Date): CookieOptions {
-  return { httpOnly: true, sameSite: 'lax', secure: ctx.config.production, path: '/', expires }
-}
+// baseSessionCookieOptions replaced by buildSessionCookieOptions in cookie-options.ts

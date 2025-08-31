@@ -1,0 +1,104 @@
+name: CI Security
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch: {}
+concurrency:
+  group: ci-security-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  dependency_review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: true
+  audit_and_fs_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci --ignore-scripts
+      - name: npm audit (fail on critical)
+        run: |
+          audit_output=$(npm audit --json || true)
+          critical=$(echo $audit_output | jq '.metadata.vulnerabilities.critical')
+          echo "Critical: $critical"
+          echo "$audit_output" > audit.json
+          if [ "$critical" != "0" ]; then echo "Critical vulns present" && exit 1; fi
+      - name: Trivy FS scan
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          scan-type: fs
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-fs.sarif'
+          severity: 'HIGH,CRITICAL'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-audit
+          path: |
+            audit.json
+            trivy-fs.sarif
+      - name: Upload SARIF (Trivy)
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-fs.sarif
+  gitleaks_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --verbose --redact --report-format sarif --report-path gitleaks.sarif
+      - name: Upload SARIF (gitleaks)
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: gitleaks.sarif
+  codeql_analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3
+  summary:
+    if: always()
+    needs: [dependency_review, audit_and_fs_scan, gitleaks_scan, codeql_analysis]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summarize
+        run: |
+          echo "Dependency review: ${{ needs.dependency_review.result }}" > security-summary.txt
+          echo "Audit/FS: ${{ needs.audit_and_fs_scan.result }}" >> security-summary.txt
+          echo "Gitleaks: ${{ needs.gitleaks_scan.result }}" >> security-summary.txt
+          echo "CodeQL: ${{ needs.codeql_analysis.result }}" >> security-summary.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-security-summary
+          path: security-summary.txt

@@ -9,17 +9,17 @@ export type Locale = 'en' | 'de'
 export const defaultLocale: Locale = 'en'
 export const supportedLocales: Locale[] = ['en','de']
 
+const dynamicLoaders: Record<string, () => Promise<Record<string,string>>> = { de: async () => (await import('./messages.de.json')).default }
+
 export async function loadMessages(locale: string): Promise<Record<string,string>> {
   if (catalogCache[locale]) return catalogCache[locale]
-  switch (locale) {
-    case 'de': {
-      const mod = await import('./messages.de.json')
-      catalogCache[locale] = mod.default
-      return catalogCache[locale]
-    }
-    default:
-      return catalogCache.en
+  const loader = dynamicLoaders[locale]
+  if (loader) {
+    const mod = await loader()
+    catalogCache[locale] = mod
+    return mod
   }
+  return catalogCache.en
 }
 
 export function getSyncMessages(locale: string): Record<string,string> {
@@ -74,16 +74,8 @@ export const messages: Record<string, Record<string,string>> = catalogCache
 
 // localizedMeta kept as-is below
 
-function localeToOg(locale: string) {
-  // Map simple locale code to OpenGraph locale format
-  switch (locale) {
-    case 'de':
-      return 'de_DE'
-    case 'en':
-    default:
-      return 'en_US'
-  }
-}
+const OG_LOCALE: Record<string,string> = { de: 'de_DE', en: 'en_US' }
+function localeToOg(locale: string) { return OG_LOCALE[locale] || OG_LOCALE.en }
 
 // Build localized metadata including OpenGraph + language alternates.
 // opts.path should be the route segment ('' for home) without leading slash.

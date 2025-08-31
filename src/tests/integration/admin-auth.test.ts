@@ -140,12 +140,12 @@ describe('admin auth', () => {
     } else {
       login.cookies?.set?.forEach(c => store.set(c.name, c.value, c.options))
     }
-  const beforeValues = (ctx.metrics.activeSessions as unknown as { get(): { values?: Array<{ value: number }> } }).get().values
-  const before = beforeValues && beforeValues.length ? beforeValues[0].value : 1
+  const beforeValues = (ctx.metrics.activeSessions as any)?.get?.().values ?? []
+  const before = beforeValues.length ? beforeValues[0].value : 1
     const out = await handleLogout(ctx)
     expect(out.status).toBe(200)
-  const afterValues = (ctx.metrics.activeSessions as unknown as { get(): { values?: Array<{ value: number }> } }).get().values
-  const after = afterValues && afterValues.length ? afterValues[0].value : 0
+  const afterValues = (ctx.metrics.activeSessions as any)?.get?.().values ?? []
+  const after = afterValues.length ? afterValues[0].value : 0
     expect(after).toBeLessThanOrEqual(before)
   })
 

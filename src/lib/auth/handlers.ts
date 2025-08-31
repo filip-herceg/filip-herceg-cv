@@ -1,4 +1,5 @@
 import { hashPassword, verifyPassword } from '../auth'
+import { buildCsrfCookieOptions } from './cookie-options'
 // Prisma model access casted to any to avoid coupling handler layer to generated types.
 import type { AuthContext, HandlerResult } from './types'
 import { success, failure } from './types'
@@ -85,7 +86,7 @@ export async function handlePasswordChange(input: PasswordChangeInput, ctx: Auth
 
 export async function handleIssueCsrf(ctx: AuthContext): Promise<HandlerResult<{ csrfToken: string }>> {
   const token = ctx.clock.randomBytes(24).toString('base64url')
-  return success(200, { csrfToken: token }, { set: [{ name: ctx.config.csrfCookieName, value: token, options: csrfCookieOptions(ctx) }] })
+  return success(200, { csrfToken: token }, { set: [{ name: ctx.config.csrfCookieName, value: token, options: buildCsrfCookieOptions(ctx) }] })
 }
 
 async function ensureBootstrap(ctx: AuthContext) {
@@ -96,6 +97,4 @@ async function ensureBootstrap(ctx: AuthContext) {
   await authPrisma(ctx.prisma).adminUser.create({ data: { username, passwordHash: hashPassword(password) } })
 }
 
-function csrfCookieOptions(ctx: AuthContext) {
-  return { httpOnly: false, sameSite: 'lax' as const, secure: ctx.config.production, path: '/' }
-}
+// csrfCookieOptions consolidated into buildCsrfCookieOptions

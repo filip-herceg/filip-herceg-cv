@@ -11,8 +11,9 @@ const DEFAULT_OPTS: PdfCacheOptions = {
 }
 
 export class PdfCache {
-  private map = new Map<string, Entry>()
-  constructor(private opts: PdfCacheOptions = DEFAULT_OPTS) {}
+  private readonly map = new Map<string, Entry>()
+  private readonly opts: PdfCacheOptions
+  constructor(opts: PdfCacheOptions = DEFAULT_OPTS) { this.opts = { ...opts } }
 
   static hash(selection: Record<string, unknown>): string {
     return crypto.createHash('sha256').update(JSON.stringify(selection)).digest('hex').slice(0, 32)

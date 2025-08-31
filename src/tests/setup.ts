@@ -3,7 +3,8 @@ import '@testing-library/jest-dom'
 // (Some server components / preserved JSX may reference React at runtime even with ESM import.)
 import React from 'react'
 import { vi } from 'vitest'
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Provide global React reference for legacy JSX in some tested modules.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, no-underscore-dangle
 ;(globalThis as any).React = React
 
 // Polyfill IntersectionObserver for framer-motion viewport features
@@ -11,13 +12,10 @@ if (typeof window !== 'undefined' && !('IntersectionObserver' in window)) {
   // minimal noop polyfill
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(window as any).IntersectionObserver = class {
-    constructor() {}
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-    takeRecords() {
-      return []
-    }
+    observe = () => {}
+    unobserve = () => {}
+    disconnect = () => {}
+    takeRecords = () => []
   }
 }
 
@@ -25,10 +23,9 @@ if (typeof window !== 'undefined' && !('IntersectionObserver' in window)) {
 if (typeof window !== 'undefined' && !('ResizeObserver' in window)) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(window as any).ResizeObserver = class {
-    constructor() {}
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe = () => {}
+    unobserve = () => {}
+    disconnect = () => {}
   }
 }
 

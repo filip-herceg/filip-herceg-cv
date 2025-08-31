@@ -33,38 +33,35 @@ function gzipSizeSync(buffer) {
   })
 }
 
-async function analyzeJs() {
-  // Use build-manifest to gather only client chunks for key pages
-  const targetPages = ['/', '/cv', '/projects', '/contact']
-  let manifest
-  try {
-    manifest = JSON.parse(fs.readFileSync(BUILD_MANIFEST, 'utf-8'))
-  } catch {
-    manifest = null
-  }
-  let fileSet = new Set()
-  if (manifest && manifest.pages) {
-    for (const p of targetPages) {
+const TARGET_PAGES = ['/', '/cv', '/projects', '/contact']
+
+function loadManifest() {
+  try { return JSON.parse(fs.readFileSync(BUILD_MANIFEST, 'utf-8')) } catch { return null }
+}
+
+function collectJsFiles(manifest) {
+  const fileSet = new Set()
+  if (manifest?.pages) {
+    for (const p of TARGET_PAGES) {
       const arr = manifest.pages[p]
-      if (Array.isArray(arr)) {
-        for (const rel of arr) if (rel.endsWith('.js')) fileSet.add(path.join(ROOT, '.next', rel))
-      }
+      if (Array.isArray(arr)) arr.filter(rel => rel.endsWith('.js')).forEach(rel => fileSet.add(path.join(ROOT, '.next', rel)))
     }
-    // Add shared runtime files
-    if (Array.isArray(manifest.pages.__app)) for (const rel of manifest.pages.__app) if (rel.endsWith('.js')) fileSet.add(path.join(ROOT, '.next', rel))
-  } else {
-    // Fallback: scan static chunks dir
-    if (fs.existsSync(NEXT_STATIC)) {
-      for (const f of fs.readdirSync(NEXT_STATIC)) if (f.endsWith('.js')) fileSet.add(path.join(NEXT_STATIC, f))
-    }
+    if (Array.isArray(manifest.pages.__app)) manifest.pages.__app.filter(rel => rel.endsWith('.js')).forEach(rel => fileSet.add(path.join(ROOT, '.next', rel)))
+    return [...fileSet]
   }
-  const files = [...fileSet]
-  let total = 0
-  let largest = 0
+  if (fs.existsSync(NEXT_STATIC)) {
+    fs.readdirSync(NEXT_STATIC).filter(f => f.endsWith('.js')).forEach(f => fileSet.add(path.join(NEXT_STATIC, f)))
+  }
+  return [...fileSet]
+}
+
+async function analyzeJs() {
+  const manifest = loadManifest()
+  const files = collectJsFiles(manifest)
+  let total = 0, largest = 0
   const details = []
   for (const file of files) {
-    const buf = fs.readFileSync(file)
-    const gz = await gzipSizeSync(buf)
+    const gz = await gzipSizeSync(fs.readFileSync(file))
     total += gz
     if (gz > largest) largest = gz
     details.push({ file: path.relative(ROOT, file), gzip: gz })
@@ -102,10 +99,13 @@ function analyzeImages() {
   }
 
   const failures = []
-  if (summary.jsTotalGzip > BUDGETS.jsTotalGzip) failures.push(`JS total gzip ${summary.jsTotalGzip} > ${BUDGETS.jsTotalGzip}`)
-  if (summary.jsLargestChunkGzip > BUDGETS.jsLargestChunkGzip) failures.push(`JS largest chunk gzip ${summary.jsLargestChunkGzip} > ${BUDGETS.jsLargestChunkGzip}`)
-  if (summary.imageCount > BUDGETS.maxImages) failures.push(`Image count ${summary.imageCount} > ${BUDGETS.maxImages}`)
-  if (summary.largestImage > BUDGETS.largestImage) failures.push(`Largest image ${summary.largestImage} > ${BUDGETS.largestImage}`)
+  const checks = [
+    summary.jsTotalGzip > BUDGETS.jsTotalGzip && `JS total gzip ${summary.jsTotalGzip} > ${BUDGETS.jsTotalGzip}`,
+    summary.jsLargestChunkGzip > BUDGETS.jsLargestChunkGzip && `JS largest chunk gzip ${summary.jsLargestChunkGzip} > ${BUDGETS.jsLargestChunkGzip}`,
+    summary.imageCount > BUDGETS.maxImages && `Image count ${summary.imageCount} > ${BUDGETS.maxImages}`,
+    summary.largestImage > BUDGETS.largestImage && `Largest image ${summary.largestImage} > ${BUDGETS.largestImage}`,
+  ].filter(Boolean)
+  failures.push(...checks)
 
   const reportPath = path.join(ROOT, 'budget-report.json')
   fs.writeFileSync(reportPath, JSON.stringify({ summary, jsDetails: js.details, images }, null, 2))

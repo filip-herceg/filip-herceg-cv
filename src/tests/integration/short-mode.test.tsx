@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
@@ -12,6 +13,14 @@ vi.mock('next/navigation', () => {
     usePathname: () => '/cv',
   }
 })
+
+// Mock permalink helpers used by the ShortModeContainer (encodePreset/buildPermalink)
+vi.mock('@/lib/cv/permalink', () => ({
+  encodePreset: async (_p: any) => 'token',
+  buildPermalink: async (base: string) => `${base}?cv=token`,
+  // underscore to satisfy eslint for intentionally unused param
+  decodePreset: async (_t: string) => ({ ok: true, preset: { skills: [] } }),
+}))
 
 describe('ShortModeContainer', () => {
   it('renders all skills initially and toggles one off', async () => {
@@ -39,8 +48,8 @@ describe('ShortModeContainer', () => {
   const targetCheckbox = screen.getByRole('checkbox', { name: firstSkill.name }) as HTMLInputElement
     fireEvent.click(targetCheckbox)
     expect(targetCheckbox.checked).toBe(false)
-    // Flush the requestAnimationFrame debounce
-    await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)))
+  // Allow async RAF/debounce to run (use small timeout for reliability)
+  await new Promise(res => setTimeout(res, 50))
     const calls = (globalThis as any).__replaces as string[]
     expect(calls.length).toBeGreaterThan(0)
     const last = calls[calls.length - 1]
@@ -55,7 +64,7 @@ describe('ShortModeContainer', () => {
     }
 
     // Ensure at least one other skill still checked
-    const remainingChecked = sampleCvData.skills.slice(1).some(s => (screen.getByRole('checkbox', { name: s.name }) as HTMLInputElement).checked)
+  const remainingChecked = sampleCvData.skills.slice(1).some(s => (screen.getByRole('checkbox', { name: s.name }) as HTMLInputElement).checked)
     expect(remainingChecked).toBe(true)
   })
 })

@@ -1,0 +1,153 @@
+name: CI Performance & A11y
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'next.config.mjs'
+      - 'package.json'
+      - 'lighthouserc.json'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'
+concurrency:
+  group: ci-perf-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+          path: .
+        continue-on-error: true
+      - name: Unpack build artifact
+        if: success() && hashFiles('build-artifact.tgz') != ''
+        run: |
+          tar -xzf build-artifact.tgz || true
+      - name: Fallback build (no artifact)
+        if: hashFiles('.next/BUILD_ID') == ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - if: hashFiles('.next/BUILD_ID') == ''
+        name: Install & build
+        run: |
+          npm ci
+          npm run build
+      - name: Upload prepared build (fresh)
+        if: hashFiles('.next/BUILD_ID') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-build
+          path: .next
+          retention-days: 2
+  lighthouse:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: perf-build
+          path: .
+        continue-on-error: true
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install (prod subset)
+        run: npm ci --omit=dev || npm ci
+      - name: Start & run Lighthouse
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000
+          npx @lhci/cli autorun
+        env:
+          PORT: 3000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-results
+          path: .lighthouseci
+  accessibility:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: perf-build
+          path: .
+        continue-on-error: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install deps
+        run: npm ci
+      - name: Run pa11y
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000
+          npx pa11y-ci
+        env:
+          PORT: 3000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pa11y-screens
+          path: pa11y-screenshots
+  e2e:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: perf-build
+          path: .
+        continue-on-error: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install deps
+        run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Run E2E
+        run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-test-results
+          path: test-results
+  summary:
+    if: always()
+    needs: [lighthouse, accessibility, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summarize
+        run: |
+          echo "Lighthouse: ${{ needs.lighthouse.result }}" > perf-summary.txt
+          echo "Accessibility: ${{ needs.accessibility.result }}" >> perf-summary.txt
+          echo "E2E: ${{ needs.e2e.result }}" >> perf-summary.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-performance-summary
+          path: perf-summary.txt

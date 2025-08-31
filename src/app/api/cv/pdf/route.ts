@@ -6,11 +6,12 @@ import { CvSelectionSchema } from '@/lib/cv/schema'
 // such as the unsupported (no Chromium) scenario. This also fixes a test that
 // failed due to an environment-specific Prisma generated package.json resolution issue.
 import { existsSync } from 'fs'
-import type { Browser } from 'puppeteer-core'
+import type { Browser, Page } from 'puppeteer-core'
 import { withRequestContext, logEvent, logError } from '@/lib/logger'
 import { pdfRequestsTotal } from '@/lib/metrics'
 import { pdfCache, PdfCache } from '@/lib/pdf-cache'
 import { startSpan } from '@/lib/tracing'
+import { PDF_DEFAULT_TIMEOUT_MS, PDF_NAVIGATION_GRACE_MS, PDF_POST_RENDER_DELAY_MS, CHROMIUM_CANDIDATE_PATHS, CV_PAGE_SIZE } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -22,7 +23,7 @@ async function getPuppeteer() {
 
 // (pdf-lib lazy via dynamic import later)
 
-const DEFAULT_TIMEOUT_MS = 20000
+const DEFAULT_TIMEOUT_MS = PDF_DEFAULT_TIMEOUT_MS
 
 function buildBaseUrl(req: NextRequest): string {
   const envBase = process.env.BASE_URL?.replace(/\/$/, '')
@@ -49,7 +50,8 @@ export async function GET(req: NextRequest) {
   if (selection.skills?.length) qp.set('skills', selection.skills.join(','))
   if (selection.projects?.length) qp.set('projects', selection.projects.join(','))
   // mode=short doesn't change print rendering; omit to keep canonical print URLs
-  const target = `${base}/cv/print${qp.toString() ? `?${qp.toString()}` : ''}`
+  const qs = qp.toString()
+  const target = base + '/cv/print' + (qs ? '?' + qs : '')
 
   // Cache handling
   const cacheKey = PdfCache.hash(selection as Record<string, unknown>)
@@ -75,32 +77,37 @@ export async function GET(req: NextRequest) {
   let browser: Browser | null = null
   try {
   const puppeteer = await getPuppeteer()
-    const executablePath = process.env.CHROMIUM_PATH ||
-      ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', 'C:/Program Files/Google/Chrome/Application/chrome.exe']
+    // Prefer explicit CHROMIUM_PATH (tests set this). Only perform filesystem probing if not provided.
+    let executablePath = process.env.CHROMIUM_PATH
+    if (!executablePath) {
+  executablePath = CHROMIUM_CANDIDATE_PATHS
         .find((p) => {
           try { return existsSync(p) } catch { return false }
         })
+    }
 
-    if (!executablePath) {
+  if (!executablePath) {
   logEvent(child, 'domain:cv.pdf.unsupported', { reason: 'no_chromium' })
   pdfRequestsTotal.inc({ result: 'unsupported' })
       return NextResponse.json({ error: 'PDF generation not supported (no Chromium binary)', status: 501 }, { status: 501 })
     }
 
   browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--font-render-hinting=none'] })
-    const page = await browser.newPage()
+  const page = await browser.newPage()
     page.setDefaultTimeout(DEFAULT_TIMEOUT_MS)
 
     const navResult = await Promise.race([
       page.goto(target, { waitUntil: 'networkidle0' }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Navigation timeout')), DEFAULT_TIMEOUT_MS + 2000)),
+  new Promise((_, reject) => setTimeout(() => reject(new Error('Navigation timeout')), DEFAULT_TIMEOUT_MS + PDF_NAVIGATION_GRACE_MS)),
     ])
     if (!navResult) throw new Error('Navigation failed')
 
     // Add small delay ensuring fonts/render settled
-  await new Promise((r) => setTimeout(r, 300))
+  await new Promise((r) => setTimeout(r, PDF_POST_RENDER_DELAY_MS))
+  const pageWithPdf = page as Page & { pdf?: unknown }
+  if (typeof pageWithPdf.pdf !== 'function') throw new Error('pdf_fn_missing')
   const pdfUint8 = await page.pdf({
-      format: 'A4',
+      format: CV_PAGE_SIZE,
       printBackground: true,
       preferCSSPageSize: true,
       margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
@@ -116,7 +123,7 @@ export async function GET(req: NextRequest) {
     pdfDoc.setTitle(`${person.name} – CV`)
     pdfDoc.setAuthor(person.name)
     pdfDoc.setSubject('Curriculum Vitae')
-    pdfDoc.setKeywords(['CV','Resume', person.title, 'Short'].filter(Boolean) as string[])
+  pdfDoc.setKeywords(['CV','Resume', person.title, 'Short'].filter(Boolean))
   const final = Buffer.from(await pdfDoc.save())
 
     const duration = Date.now() - started

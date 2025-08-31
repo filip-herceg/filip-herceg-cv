@@ -1,4 +1,5 @@
 import { PrismaClient, type Skill, type Project, type Experience, type Education, type Certification, type Trait, type Hobby } from '@prisma/client'
+import { CV_PAGE_SIZE, CV_PAGE_MARGIN, CV_PAGE_COLUMNS, CV_PAGE_GUTTER } from '@/lib/constants'
 import { CvDataSchema, CvDesignSchema, type CvData, type CvDesign } from './schema'
 import { cvAggregateLoadsTotal } from '@/lib/metrics'
 import pino from 'pino'
@@ -122,7 +123,7 @@ function buildEmptyData(): CvData {
 
 function buildEmptyDesign(): CvDesign {
   return {
-    page: { size: 'A4', margin: '16mm', columns: 2, gutter: '8mm' },
+    page: { size: CV_PAGE_SIZE, margin: CV_PAGE_MARGIN, columns: CV_PAGE_COLUMNS, gutter: CV_PAGE_GUTTER },
     palette: { mode: 'light', primary: '#1e293b', accent: '#0ea5e9', background: '#ffffff', surface: '#f1f5f9', text: '#0f172a', mutedText: '#64748b' },
     typography: { body: 'system-ui, sans-serif', heading: 'system-ui, sans-serif', scale: 1 },
     shapes: [],

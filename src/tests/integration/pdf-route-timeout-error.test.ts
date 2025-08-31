@@ -1,17 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
+import { mockPdfLib, mockPuppeteerTimeout, mockPuppeteerErrorPdf, mockCvAggregate } from '@/tests/helpers/pdf'
 
 // We will dynamically import the route AFTER setting up mocks each time to exercise different branches.
 
-// Shared pdf-lib mock
-vi.mock('pdf-lib', () => ({
-  PDFDocument: {
-    load: async (bytes: Uint8Array) => ({
-      setTitle: () => {}, setAuthor: () => {}, setSubject: () => {}, setKeywords: () => {},
-      save: async () => bytes,
-    }),
-  },
-}))
+mockPdfLib(new Uint8Array([5,5,5]))
+mockCvAggregate('PDF Timeout User')
 
 
 describe('GET /api/cv/pdf timeout & error branches', () => {
@@ -25,16 +19,14 @@ describe('GET /api/cv/pdf timeout & error branches', () => {
   })
 
   it('returns 504 on navigation timeout', async () => {
-    vi.mock('puppeteer-core', () => ({
-      launch: vi.fn(async () => ({
-        newPage: async () => ({
-          setDefaultTimeout: () => {},
-          goto: async () => new Promise(() => {}), // never resolves -> race will timeout
-          pdf: async () => new Uint8Array([1,2,3]),
-        }),
-        close: async () => {},
-      })),
-    }))
+  vi.resetModules()
+  vi.unmock('puppeteer-core')
+  vi.unmock('pdf-lib')
+  vi.unmock('@/lib/cv/service')
+  vi.clearAllMocks()
+    mockPdfLib(new Uint8Array([5,5,5]))
+    mockCvAggregate('PDF Timeout User')
+    mockPuppeteerTimeout()
     const { GET } = await import('@/app/api/cv/pdf/route')
     const req = new NextRequest('http://localhost:3000/api/cv/pdf')
     const res = await GET(req as any)
@@ -47,16 +39,14 @@ describe('GET /api/cv/pdf timeout & error branches', () => {
   }, 2500)
 
   it('returns 500 on generic error during pdf generation', async () => {
-    vi.mock('puppeteer-core', () => ({
-      launch: vi.fn(async () => ({
-        newPage: async () => ({
-          setDefaultTimeout: () => {},
-          goto: async () => true,
-          pdf: async () => { throw new Error('pdf fail') },
-        }),
-        close: async () => {},
-      })),
-    }))
+  vi.resetModules()
+  vi.unmock('puppeteer-core')
+  vi.unmock('pdf-lib')
+  vi.unmock('@/lib/cv/service')
+  vi.clearAllMocks()
+    mockPdfLib(new Uint8Array([5,5,5]))
+    mockCvAggregate('PDF Timeout User')
+    mockPuppeteerErrorPdf(new Error('pdf fail'))
     const { GET } = await import('@/app/api/cv/pdf/route')
     const req = new NextRequest('http://localhost:3000/api/cv/pdf')
     const res = await GET(req as any)
