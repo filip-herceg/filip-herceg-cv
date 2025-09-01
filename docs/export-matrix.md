@@ -1,32 +1,4 @@
-# Export Matrix (Task 5)
-
-Status: Task 5 of 7 (Schema ✅ · Taxonomy ✅ · Search ✅ · Permalink ✅ · Export Matrix ✅ · Perf/A11y Budgets → Logging & Privacy)
-
-## Purpose
-Define supported and planned export formats for the CV data model, mapping: audience / channel → format variant → data projection → rendering / transport layer → quality/perf/accessibility considerations.
-
-## Data Domains
-| Domain | Source Schema | Notes |
-|--------|---------------|-------|
-| Person | `CvData.person` | Always included; PII handling required for public exports (email optional) |
-| Skills | `CvData.skills[]` | Filtered by selection in short mode |
-| Projects | `CvData.projects[]` | May be subset; order canonical by domain importance |
-| Experiences | `CvData.experiences[]` | Planned for future UI section |
-| Education | `CvData.education[]` | Optional trimming in short export |
-| Certifications | `CvData.certifications[]` | Shown in full unless redacted |
-| Traits | `CvData.traits[]` | Soft-skills grouping |
-| Hobbies | `CvData.hobbies[]` | Hidden for corporate minimal profile variant |
-
-## Export Axes
-1. Audience: Recruiter, Tech Lead, Conference CFP, Public Web, Internal HR.
-2. Length Mode: Full, Short (selection-based), Ultra-Short (future), Focused (skill/tag filtered).
-3. Format: HTML (live), PDF, Plain Text, Markdown, JSON, JSON Resume, CSV (skills), OpenGraph Image (existing OG route), Microformats/Schema.org (embedded), LinkedIn-ready snippet.
-4. Delivery: On-demand API, Static Generation (future), Client-side copy, Download asset, Print stylesheet.
-
-## Matrix
-| Audience / Use | Mode | Format | Route / Plan | Included Domains | Redactions / Transform | Notes |
-|----------------|------|--------|--------------|------------------|------------------------|-------|
-| Recruiter Email Attachment | Full | PDF | `/api/cv/pdf` (existing) | Person, Skills, Projects, Experiences, Education, Certifications | Email → optional; Website/GitHub retained | Optimize file size <150KB |
+> Deprecated stub. Use `docs/product/export-matrix.md`.
 | Recruiter Quick Preview | Short | HTML | `/cv?cv=...` | Person, Key Skills subset, 2–3 Projects | Selection based; truncate summaries | Token permalink already done |
 | Tech Lead Deeper Review | Full | HTML Print | `/cv/print` | All | None | Print stylesheet leveraged by PDF route |
 | CFP Submission | Focused | PDF | Future param `topics=performance,observability` | Person, Relevant Projects, Speaking (future), Skills (subset) | Filter to topics | Add future domain: talks |

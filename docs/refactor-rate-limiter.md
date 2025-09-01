@@ -1,6 +1,6 @@
-# Auth Rate Limiter & Context Refactor Plan
+> Moved: canonical file is `docs/engineering/refactoring/refactor-rate-limiter.md`.
 
-Status: COMPLETE
+# Rate Limiter Refactor (Stub)
 Last Updated: Steps 11-14 completed (final review)
 
 ## Objective

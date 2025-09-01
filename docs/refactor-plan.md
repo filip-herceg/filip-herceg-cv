@@ -1,6 +1,8 @@
-# Codebase Remediation & Static Analysis Reduction Plan
+> Moved: canonical file is `docs/engineering/refactoring/refactor-plan.md`.
 
-This document tracks the structured effort to drive remaining static analysis / lint / Sonar-style issues (initial count ~242) toward zero with minimal risk.
+# Refactor Plan (Stub)
+
+Legacy copy retained temporarily; update links.
 
 ## Buckets
 

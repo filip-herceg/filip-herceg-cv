@@ -1,3 +1,5 @@
+> Deprecated stub. Use `docs/product/search-spec.md`.
+
 # Search & Filter Specification (Draft v0)
 
 Status: Task 3 of 7 (Schema ✅ · Taxonomy ✅ · Search Spec ⏳ · Permalink Spec → Export Matrix → Perf/A11y Budgets → Logging & Privacy)

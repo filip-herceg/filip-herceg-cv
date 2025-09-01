@@ -1,3 +1,4 @@
+> Moved: canonical file is `docs/roadmap/phase-2-roadmap.md` (legacy duplicate pending cleanup).
 # Phase 2 Roadmap – Portfolio & CV Evolution
 
 > Scope: Post-MVP enhancements after successful CV integration (full, short mode, print + PDF). Focus on showcasing engineering excellence (internationalization, observability, performance, reliability, personalization, accessibility).
@@ -53,7 +54,7 @@
 | F02 | Translation resource loader (lazy) | i18n | High | M | Perf (bundle) | Only active locale JSON loaded; fallback to en verified; bundle size test | Done |
 | F03 | Structured CV data module (static JSON) | Content | High | M | Agility | Initial static JSON + Zod validation scaffold (now extended by DB service & fallback) | Done |
 | F16 | Persistent CV data layer (DB + schema) | Content | High | M | Agility | Empty default DB; Prisma schema; loader pulls per-locale rows; static fallback removed; onboarding empty state + metric cv_aggregate_loads_total (panel added) | Done |
-| F17 | Admin auth & CRUD UI | Content | High | M | Agility/Security | Secure login, protected /admin, create/update/delete entities, validation | In Progress |
+| F17 | Admin auth & CRUD UI | Content | High | M | Agility/Security | Secure login, protected /admin, create/update/delete entities, validation | Done |
 | F18 | Localization workflow & translation status | i18n | High | M | Global reach | Per-locale row creation, status indicators, missing translation fallback logic | Planned |
 | F04 | prom-client exporter (/metrics) | Observability | High | S | Reliability | Counters: pdf_requests_total, permalink_creates_total; gauge: pdf_cache_entries | Done |
 | F05 | ServiceMonitor verification test | Observability | Medium | S | Ops | helm template includes ServiceMonitor when enabled | Done |
@@ -139,7 +140,13 @@ Each feature must:
 - [ ] Performance budgets respected
 
 ### F17 Progress Log
-- Slice 1 (A–F) started: added auth guard, admin aggregate route, skill create/delete endpoints, cache invalidation, integration test for skill CRUD.
+- Slice 1 (A–F): Auth guard + session middleware; protected `/admin` layout and redirect-on-unauth; admin aggregate CV route.
+- Slice 2: Skill entity create/update/delete handlers with Zod validation + integration tests; cache invalidation hooks wired.
+- Slice 3: Extended CRUD to certification, education, experience, hobby, project, trait entities (route handlers + validation) with unit tests (`admin-*-route.test.ts`).
+- Slice 4: Login/logout routes + session renewal tests; negative auth path tests (`admin-auth-routes.test.ts`).
+- Slice 5: Error logging & structured event fields (pino) for admin operations; privacy classification added.
+- Slice 6 (hardening): Added edge cases (validation failure, DB error) tests; ensured metrics unaffected & cache invalidation triggers.
+- Follow-up (deferred): Overall statement coverage currently ~94% (< Phase 2 target 97%). Add targeted tests (redis/s3 storage branches, pdf-cache edge cases) under new task `F17-COV` to lift global coverage unless target adjusted.
 
 
 ## 14. Open Questions (Initial)

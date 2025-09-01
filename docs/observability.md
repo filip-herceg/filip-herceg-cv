@@ -1,43 +1,8 @@
-# Observability & Metrics
+> This document moved. New canonical path: `docs/architecture/observability.md`.
 
-This project treats observability as a first‑class feature: every new runtime path should emit structured logs and, where meaningful, Prometheus metrics. This document captures the current metrics surface and extension points.
+# Observability & Metrics (Moved)
 
-## 1. Metrics Endpoint
-Path: `/api/metrics`
-
-Format: Prometheus text exposition format (`text/plain; version=0.0.4`), uncached (`Cache-Control: no-store`).
-
-Registry initialization happens once per server process in `src/lib/metrics.ts`.
-
-## 2. Implemented Metrics
-
-| Name | Type | Labels | Description | Incremented In |
-|------|------|--------|-------------|----------------|
-| `pdf_requests_total` | Counter | `result` (`success`\|`timeout`\|`error`\|`unsupported`) | Counts PDF generation attempts and outcomes (including unsupported environment) | `/api/cv/pdf` route handler branches |
-| `permalink_creates_total` | Counter | none | Counts successful permalink creations (short CV tokens) | Permalink creation logic (CV permalink module) |
-| `pdf_cache_entries` | Gauge | none | Size of the in‑memory PDF hash cache | Updated by cache layer |
-| `pdf_cache_hits_total` | Counter | none | Count of cache hits for PDF requests | PDF cache get() |
-| `pdf_cache_misses_total` | Counter | none | Count of cache misses for PDF requests | PDF cache get() |
-| `cv_aggregate_loads_total` | Counter | `source` (`db`\|`empty`) | Counts CV aggregate load operations and whether data came from persisted DB or onboarding empty placeholder | CV service `getAggregate` |
-
-### Planned Additions
-| Roadmap ID | Metric | Rationale |
-|------------|--------|-----------|
-| F08 | `cv_selection_events_total{kind=<skill|project>}` | Foundation for “popular selections” aggregation |
-| F12 | Tracing spans (OpenTelemetry) with duration attributes exported to collector | Correlate timing with counters |
-
-## 3. Usage & Scraping
-
-In Kubernetes, expose `/api/metrics` via Service + optional `ServiceMonitor` (see Helm chart stub). Example Prometheus scrape config snippet (non-operator):
-```
-- job_name: cv
-  metrics_path: /api/metrics
-  static_configs:
-    - targets: ['cv:3000']
-```
-
-Helm settings:
-* Enable metrics port & annotations: `metrics.enabled=true` (adds port + scrape annotations)
+Content consolidated & expanded at new location. This stub will be removed after link audit.
 * Enable ServiceMonitor (Prometheus Operator): `metrics.serviceMonitor.enabled=true` (renders ServiceMonitor CRD if operator installed)
 * Customize interval / timeout: `metrics.serviceMonitor.interval`, `metrics.scrapeTimeout`
 * Enable bundled Grafana dashboard ConfigMap: `metrics.grafanaDashboard.enabled=true` (labeled for sidecar import). Folder annotation via `metrics.grafanaDashboard.folder`.

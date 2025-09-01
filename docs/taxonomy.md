@@ -1,3 +1,5 @@
+> Deprecated stub. Use `docs/product/taxonomy.md`.
+
 # CV Domain Taxonomy (Draft v0)
 
 Status: Draft v0 (Tasks Roadmap: 1 Schema ✅ · 2 Taxonomy (this) ⏳ · 3 Search Spec → 4 Permalink Spec → 5 Export Matrix → 6 Perf/A11y Budgets → 7 Logging & Privacy)

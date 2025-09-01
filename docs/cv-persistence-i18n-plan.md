@@ -1,4 +1,6 @@
-# CV Persistence & Localization Plan (Dynamic Editable CV)
+> Moved: canonical file is `docs/roadmap/history/cv-persistence-i18n-plan.md`.
+
+# CV Persistence & Localization Plan (Stub)
 
 ## Problem Statement
 Current implementation ships CV content as static JSON embedded at build time. Requirement: Each deployment starts with an *empty* CV and the site owner can log in to add / modify / remove content. Changes must persist per-instance and support multiple locales with minimal friction when editing.

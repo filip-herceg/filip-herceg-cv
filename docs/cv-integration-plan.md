@@ -1,4 +1,6 @@
-# CV Integration Plan (CV Full + Short Mode + PDF Export)
+> Moved: canonical file is `docs/roadmap/history/cv-integration-plan.md`.
+
+# CV Integration Plan (Stub)
 
 ## 1. Scope & Objectives
 Add a CV rendering subsystem that delivers:

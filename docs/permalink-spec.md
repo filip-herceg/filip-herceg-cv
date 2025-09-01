@@ -1,3 +1,5 @@
+> Deprecated stub. Use `docs/product/permalink-spec.md`.
+
 # Permalink & Preset Specification (Task 4)
 
 ## Goals
