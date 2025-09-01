@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { startSpan } from '@/lib/tracing'
+import { startSpan, withSpan } from '@/lib/tracing'
 
 const original = process.env.ENABLE_TRACING
 
@@ -25,5 +25,11 @@ describe('tracing scaffold', () => {
     span.setAttribute('x', 42)
     span.end()
     expect(true).toBe(true)
+  })
+
+  it('withSpan helper wraps sync fn', () => {
+    process.env.ENABLE_TRACING = '1'
+    const result = withSpan('calc', () => 2 + 2)
+    expect(result).toBe(4)
   })
 })

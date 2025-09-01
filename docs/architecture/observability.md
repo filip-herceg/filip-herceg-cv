@@ -94,23 +94,31 @@ pdf_generation_duration_seconds_count{result="success"} 42
 
 ---
 ## Tracing (Current State & Roadmap)
-Flag: `ENABLE_TRACING=1` enables a minimal `startSpan(name, initialAttributes)` helper (console debug only). This is intentionally lightweight to avoid vendor lock‑in early.
+Flag: `ENABLE_TRACING=1` enables lightweight spans.
 
-### Present Behavior
-- Emits `console.debug` markers `[trace:start]` & `[trace:end]` with span name.
-- Allows setting ad-hoc attributes (retained in local `attrs` only).
-- No propagation or W3C trace context yet.
+### Phase 2 (Current)
+- `startSpan(name, initial)` now generates a UUID `traceId` and logs structured events via the base logger:
+	- `trace:start` { traceId, span, ...initial }
+	- `trace:end` { traceId, span, durationMs }
+- Console debug markers preserved for continuity.
+- `withSpan(name, fn)` helper added for concise synchronous instrumentation.
+
+### Limitations
+- No child span nesting or context propagation.
+- No W3C `traceparent` header (planned Phase 3).
 
 ### Upgrade Path
 | Phase | Goal | Changes |
 | ----- | ---- | ------- |
-| 1 (now) | Local dev clarity | Minimal console spans |
-| 2 | Structured root spans | Emit spans into logger with `traceId` field; generate W3C `traceparent` header |
-| 3 | Full OTLP | Integrate OpenTelemetry SDK; export to collector (OTLP/gRPC) -> backend (Tempo / Jaeger / Honeycomb) |
-| 4 | Cross‑service | Propagate headers through future external API / worker calls |
+| 1 | Console visibility | Plain console markers (legacy) |
+| 2 (now) | Correlated logs | Structured start/end, durationMs, traceId |
+| 3 | OTEL adoption | Add OpenTelemetry SDK, HTTP + DB auto‑instrumentation, export OTLP |
+| 4 | Propagation | Inject/extract W3C headers across future services & workers |
+| 5 | Sampling | Tail & dynamic sampling for high‑volume spans |
 
 ### Correlation Strategy
-Short term correlation uses `requestId`. Future: add `traceId` (stable UUID v4) and optionally map `requestId == traceId` for entry spans.
+- Combine `traceId` with existing `requestId` (they may differ; future entry spans can align them).
+- Dashboards can group by `traceId` and join to metrics (e.g., high durationMs -> examine histogram buckets).
 
 ---
 ## Correlation & Context Model
