@@ -1,3 +1,7 @@
+
+> filip-herceg-cv@0.1.0 docs:index
+> node scripts/docs-generate-index.mjs
+
 [
   {
     "file": "docs/admin.md",

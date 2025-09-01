@@ -56,5 +56,8 @@ next-env.d.ts
 *.sqlite-journal
 *.db
 
+# Generated docs index (ephemeral, reproducible)
+docs-index.json
+
 # If you ever want to persist a dev DB under version control, override with a negation rule:
 # !prisma/seed-data.db

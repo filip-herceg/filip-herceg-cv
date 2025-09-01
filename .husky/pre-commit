@@ -14,6 +14,6 @@ npm run typecheck || exit 1
 # Fast tests (no coverage to keep hook quick)
 npm test -- --run --passWithNoTests || exit 1
 
-# Regenerate docs index (non-blocking)
-npm run docs:index > docs-index.json || true
+# Generate docs index (smoke check, discard output)
+npm run docs:index > /dev/null 2>&1 || true
 

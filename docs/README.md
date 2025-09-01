@@ -9,7 +9,7 @@ canonical: docs/README.md
 
 > Phase 1 of restructuring: content is being migrated into domain folders. Old flat files will be redirected/cleaned up in Phase 2.
 
-Machine-readable index: run `npm run docs:index` (outputs to stdout). Current snapshot committed as `docs-index.json` for tooling experiments.
+Machine-readable index: run `npm run docs:index` (prints JSON to stdout). To write a local file for tooling, use `npm run docs:index:write` (ignored by git).
 
 ## Product & Vision
 - Vision & Mission (`product/vision-mission.md`)
