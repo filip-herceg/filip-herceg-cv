@@ -5,6 +5,17 @@
 /.pnp
 .pnp.*
 .yarn/*
+.eslintcache
+eslint-report.json
+eslint-debug.log
+full_lint.json
+lint_full.json
+lint_service.json
+single_service_lint.json
+single_storage_lint.json
+single_ambient_lint.json
+eslint-single.json
+verbose/
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases

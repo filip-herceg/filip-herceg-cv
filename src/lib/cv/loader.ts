@@ -1,6 +1,5 @@
-import cvEn from './data/cv.en.json'
-import designEn from './data/design.en.json'
-import { CvDataSchema, CvDesignSchema, type CvData, type CvDesign } from './schema'
+import { type CvData, type CvDesign } from './schema'
+import { createStorage, defaultSeedData, defaultSeedDesign } from './storage'
 
 type Locale = 'en' // future extension
 
@@ -9,20 +8,46 @@ interface Cached {
   design: Record<Locale, CvDesign>
 }
 
-// TODO(F16): Replace static JSON bootstrap with dynamic DB-backed loading.
-// Loading order after persistence feature:
-// 1. Attempt fetch from DB (by locale)
-// 2. If empty and static seed JSON exists, import once then persist
-// 3. Cache result and return
-const cache: Cached = {
-  data: { en: CvDataSchema.parse(cvEn) },
-  design: { en: CvDesignSchema.parse(designEn) }
+// In-memory cache (pure runtime) fed from selected storage backend
+const cache: Cached = { data: {} as Record<Locale, CvData>, design: {} as Record<Locale, CvDesign> }
+
+// Selected storage backend (db or memory) controlled by CV_STORAGE env
+const backend = createStorage()
+
+// Flag: disable automatic DB seeding by setting CV_AUTO_SEED=false
+const AUTO_SEED = process.env.CV_AUTO_SEED !== 'false'
+
+async function ensure(locale: Locale) {
+  if (cache.data[locale]) return
+  const agg = await backend.get(locale)
+  if (agg.source === 'empty') {
+    if (AUTO_SEED) {
+      if (backend.seedIfEmpty) {
+        await backend.seedIfEmpty(locale, defaultSeedData, defaultSeedDesign)
+        const seeded = await backend.get(locale)
+        cache.data[locale] = seeded.data
+        cache.design[locale] = seeded.design
+      } else {
+        cache.data[locale] = defaultSeedData
+        cache.design[locale] = defaultSeedDesign
+      }
+    } else {
+      // Use ephemeral in-memory seed only (tests / dev scenarios)
+      cache.data[locale] = defaultSeedData
+      cache.design[locale] = defaultSeedDesign
+    }
+  } else {
+    cache.data[locale] = agg.data
+    cache.design[locale] = agg.design
+  }
 }
 
-export function getCvData(locale: Locale = 'en'): CvData {
+export async function getCvData(locale: Locale = 'en'): Promise<CvData> {
+  await ensure(locale)
   return cache.data[locale]
 }
 
-export function getCvDesign(locale: Locale = 'en'): CvDesign {
+export async function getCvDesign(locale: Locale = 'en'): Promise<CvDesign> {
+  await ensure(locale)
   return cache.design[locale]
 }

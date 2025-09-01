@@ -15,7 +15,7 @@ const eslintConfig = [
       '.next/**', // root build output
       '**/.next/**', // nested (safety for execution from subdir)
       'coverage/**',
-      'dist/**'
+    'dist/**'
   ,'scripts/**'
     ],
   },

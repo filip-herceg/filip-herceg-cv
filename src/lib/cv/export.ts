@@ -69,7 +69,8 @@ async function resolveSelection(opts: ProjectedOptions) {
   return undefined
 }
 
-function applySelection(raw: ReturnType<typeof CvDataSchema.parse>, selection: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+interface SelectionLike { skills?: string[]; projects?: string[] }
+function applySelection(raw: ReturnType<typeof CvDataSchema.parse>, selection: SelectionLike | undefined) {
   let skills = raw.skills
   let projects = raw.projects
   if (selection?.skills?.length) {
@@ -86,7 +87,7 @@ function applySelection(raw: ReturnType<typeof CvDataSchema.parse>, selection: a
 function applyRedactions(personSrc: typeof sampleCvData.person, publicMode?: boolean) {
   const person = { ...personSrc }
   const redactions: string[] = []
-  if (publicMode && 'contact' in person && (person as any).contact?.email) { // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (publicMode && 'contact' in person && (person as unknown as { contact?: { email?: string } }).contact?.email) {
     redactions.push('person.contact.email')
     // @ts-expect-error dynamic
     delete person.contact.email
@@ -139,7 +140,7 @@ export function toJsonResume(data: CanonicalExport): JsonResumeLike {
     basics: {
       name: data.person.name,
       label: data.person.title,
-  email: (data.person as any).contact?.email, // eslint-disable-line @typescript-eslint/no-explicit-any
+  email: (data.person as unknown as { contact?: { email?: string } }).contact?.email,
       website: data.person.contact.website,
     },
     skills: Object.values(

@@ -26,7 +26,7 @@ test.describe('CV Routes', () => {
     expect([200, 500, 501, 504]).toContain(res.status())
     if (res.status() === 200) {
       const body = await res.body()
-      expect(body.slice(0, 4).toString()).toBe('%PDF')
+      expect(body.subarray(0, 4).toString()).toBe('%PDF')
     }
   })
 })

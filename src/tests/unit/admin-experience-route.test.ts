@@ -8,7 +8,15 @@ const invalidateSpy = vi.fn()
 vi.mock('@/lib/auth/cookies', () => ({ NextCookieStore: class { async init() { return this } } }))
 vi.mock('@/lib/auth/context', () => ({ buildAuthContext: () => ({ user: { id: 'u1' } }) }))
 vi.mock('@/lib/auth/guard', () => ({ requireAdmin }))
-vi.mock('@/lib/metrics', () => ({ cvEntityMutationsTotal: { inc: (...args: any[]) => incSpy(...args) } }))
+vi.mock('@/lib/metrics', () => ({
+  cvEntityMutationsTotal: { inc: (...args: any[]) => incSpy(...args) },
+  // Provide noop exports accessed indirectly by storage/sample data paths
+  cvStorageGetDurationSeconds: { startTimer: () => () => {} },
+  cvCacheHitsTotal: { inc: () => {} },
+  cvCacheMissesTotal: { inc: () => {} },
+  cvAggregateLoadsTotal: { inc: () => {} },
+  cvStorageBackend: { labels: () => ({ set: () => {} }) }
+}))
 vi.mock('@/lib/cv/service', () => ({ invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a) }))
 
 const findUnique = vi.fn()

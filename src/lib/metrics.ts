@@ -1,5 +1,22 @@
 // prom-client is CJS; Next bundler handles interop so namespace import is fine
 import * as client from 'prom-client'
+// Work around TS/ESM interop quirk for Histogram class export without using `any`.
+// Some bundlers re-export Histogram only on the default export; prefer the named one when present.
+// We accept "unknown" then narrow via typeof checks to avoid explicit any.
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+// Minimal shape we rely on for histogram constructor.
+interface HistogramInstance {
+  startTimer?(labels?: Record<string, string>): (additional?: Record<string,string>) => void
+}
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+type HistogramLikeCtor = new (...args: unknown[]) => HistogramInstance
+function resolveHistogram(): HistogramLikeCtor {
+  const mod = client as unknown as { Histogram?: unknown; default?: { Histogram?: unknown } }
+  const cand = mod.Histogram ?? mod.default?.Histogram
+  if (typeof cand === 'function') return cand as HistogramLikeCtor
+  throw new Error('Histogram constructor not found in prom-client module')
+}
+const HistogramCtor = resolveHistogram()
 
 // Single registry for the app. In serverless/edge scenarios this would need adaptation; here node runtime.
 export const registry = new client.Registry()
@@ -37,11 +54,58 @@ export const pdfCacheMissesTotal = new client.Counter({
   registers: [registry],
 })
 
-// CV aggregate load counter (labels by source: db | empty)
+// CV aggregate load counter (labels by source: db | empty | redis)
 export const cvAggregateLoadsTotal = new client.Counter({
   name: 'cv_aggregate_loads_total',
-  help: 'CV aggregate loads by source (db | empty)',
+  help: 'CV aggregate loads by source (db | empty | redis)',
   labelNames: ['source'] as const,
+  registers: [registry],
+})
+
+// CV cache hit/miss counters and active backend gauge
+export const cvCacheHitsTotal = new client.Counter({
+  name: 'cv_cache_hits_total',
+  help: 'Total CV cache hits (backend label)',
+  labelNames: ['backend'] as const,
+  registers: [registry],
+})
+
+export const cvCacheMissesTotal = new client.Counter({
+  name: 'cv_cache_misses_total',
+  help: 'Total CV cache misses (backend label)',
+  labelNames: ['backend'] as const,
+  registers: [registry],
+})
+
+export const cvStorageBackend = new client.Gauge({
+  name: 'cv_storage_backend',
+  help: 'Active CV storage backend (value=1 for label backend)',
+  labelNames: ['backend'] as const,
+  registers: [registry],
+})
+
+// Latency histograms (seconds)
+export const cvStorageGetDurationSeconds = new HistogramCtor({
+  name: 'cv_storage_get_duration_seconds',
+  help: 'Duration of CV aggregate get() calls by backend',
+  labelNames: ['backend'] as const,
+  buckets: [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5],
+  registers: [registry],
+})
+
+export const pdfCacheGetDurationSeconds = new HistogramCtor({
+  name: 'pdf_cache_get_duration_seconds',
+  help: 'Duration of PDF cache get() calls by backend',
+  labelNames: ['backend'] as const,
+  buckets: [0.0005,0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5],
+  registers: [registry],
+})
+
+export const pdfGenerationDurationSeconds = new HistogramCtor({
+  name: 'pdf_generation_duration_seconds',
+  help: 'End-to-end duration of PDF route handling by result',
+  labelNames: ['result'] as const,
+  buckets: [0.05,0.1,0.2,0.5,1,2,5,10,20,30,60],
   registers: [registry],
 })
 

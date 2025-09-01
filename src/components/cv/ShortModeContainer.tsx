@@ -3,8 +3,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { buildPermalink, encodePreset } from '@/lib/cv/permalink'
 import { permalinkCreatesTotal } from '@/lib/metrics'
-import type { CvData, CvSelection } from '@/lib/cv/schema'
-import type { CvDesign } from '@/lib/cv/schema'
+import type { CvData, CvSelection , CvDesign } from '@/lib/cv/schema'
+
 import CvView from './CvView'
 import ShortenerPanel from './ShortenerPanel'
 

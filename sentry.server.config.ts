@@ -1,6 +1,5 @@
 // Optional Sentry server init; only runs if @sentry/nextjs is available.
 import * as Sentry from '@sentry/nextjs'
-import { RewriteFrames } from '@sentry/integrations'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _sentry = Sentry as any
 if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
@@ -13,7 +12,7 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     replaysSessionSampleRate: 0.0,
     replaysOnErrorSampleRate: 1.0,
     integrations: [
-      new RewriteFrames({
+      _sentry.rewriteFramesIntegration({
         root: global.process.cwd(),
       }),
     ],

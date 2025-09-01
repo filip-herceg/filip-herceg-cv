@@ -1,6 +1,6 @@
 // Tracing scaffold (S07): minimal span helper behind ENABLE_TRACING flag.
 interface Span { end(): void; setAttribute(k: string, v: unknown): void }
-class NoopSpan implements Span { end() {}; setAttribute() {} }
+class NoopSpan implements Span { end() { return; }; setAttribute(_k: string, _v: unknown) { /* noop */ } }
 
 export function startSpan(name: string, initial?: Record<string, unknown>): Span {
   // Evaluate flag at call time so tests can toggle env between cases

@@ -13,7 +13,7 @@ const design: CvDesign = sampleCvDesign
 const setupBrowserStubs = () => {
   const writeText = vi.fn().mockResolvedValue(undefined)
   Object.assign(navigator, { clipboard: { writeText } })
-  const win: any = { addEventListener: vi.fn((_, cb) => cb && cb()), removeEventListener: vi.fn(), print: vi.fn() }
+  const win: any = { addEventListener: vi.fn((_, cb) => cb?.()), removeEventListener: vi.fn(), print: vi.fn() }
   const open = vi.fn().mockReturnValue(win)
   const originalOpen = window.open
   ;(window as any).open = open

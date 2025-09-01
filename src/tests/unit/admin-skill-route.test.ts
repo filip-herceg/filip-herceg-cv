@@ -2,6 +2,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Mock heavy modules before importing the route
 vi.mock('@/lib/cv/service', () => ({ invalidateAggregateCache: () => {} }))
+// Provide metrics mocks (avoid accessing real prom-client in unit context)
+vi.mock('@/lib/metrics', () => ({
+  cvEntityMutationsTotal: { inc: () => {} },
+  cvStorageGetDurationSeconds: { startTimer: () => () => {} },
+  cvCacheHitsTotal: { inc: () => {} },
+  cvCacheMissesTotal: { inc: () => {} },
+  cvAggregateLoadsTotal: { inc: () => {} },
+  cvStorageBackend: { labels: () => ({ set: () => {} }) },
+  authLoginAttemptsTotal: { inc: () => {} },
+  authActiveSessions: { inc: () => {}, dec: () => {}, set: () => {} }
+}))
 // Force auth to always succeed so we focus on route logic
 vi.mock('@/lib/auth/guard', () => ({ requireAdmin: async () => ({ ok: true, user: { id: 'u1' } }) }))
 // Mock cookie store used by route to avoid Next.js environment dependency

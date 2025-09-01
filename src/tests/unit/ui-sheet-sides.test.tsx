@@ -15,7 +15,7 @@ describe('Sheet side variants', () => {
         </Sheet>
       )
       // Content rendered in a portal (document.body), not within RTL container
-      const content = document.querySelector('[data-slot="sheet-content"]') as HTMLElement | null
+      const content = document.querySelector('[data-slot="sheet-content"]')
       expect(content).toBeTruthy()
       expect(content!.textContent).toContain('Body')
       // ensure class contains side-specific directive keyword (slide-in-from-right, etc.)

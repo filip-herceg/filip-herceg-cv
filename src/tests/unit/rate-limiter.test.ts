@@ -53,7 +53,7 @@ describe('RateLimiter', () => {
   })
 
   it('falls back to memory when redis errors', async () => {
-  class ThrowRedis extends FakeRedis { async incr(_key: string) { throw new Error('boom'); /* unreachable */ return 0 } }
+  class ThrowRedis extends FakeRedis { async incr(_key: string): Promise<number> { throw new Error('boom'); /* unreachable */ } }
     const redis = new ThrowRedis()
     const primary = new RedisRateLimiter(redis as any, { baseMs: 100, maxMs: 400, jitterFraction: 0, ttlSeconds: 60 })
     const fallback = new MemoryRateLimiter({ baseMs: 100, maxMs: 400, jitterFraction: 0, ttlSeconds: 60 })

@@ -3,10 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { ErrorBoundary } from '@/components/layout/error-boundary'
 
-function Boom() {
+function Boom(): JSX.Element {
   throw new Error('Boom')
-  // unreachable, but satisfies JSX return type
-  return null
 }
 
 describe('ErrorBoundary', () => {

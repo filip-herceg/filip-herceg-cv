@@ -7,6 +7,27 @@ import { vi } from 'vitest'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-underscore-dangle
 ;(globalThis as any).React = React
 
+// Default env tweaks for tests (can be overridden inside individual test files):
+//  - Force memory storage to avoid incidental Prisma initialization when not explicitly under test
+//  - Disable auto seed to keep deterministic sample data usage (tests that need DB seed handle it)
+process.env.CV_STORAGE = process.env.CV_STORAGE || 'memory'
+process.env.CV_AUTO_SEED = process.env.CV_AUTO_SEED || 'false'
+
+// Preload sample CV data/design BEFORE any test accesses the proxy exports (avoids race throwing
+// 'sampleCvData not loaded yet'). We intentionally await inside a queued microtask so that Vitest's
+// environment is fully ready while still resolving prior to first test execution.
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+;(async () => {
+  try {
+    const mod = await import('@/lib/cv/sample-data')
+    await Promise.all([mod.sampleCvDataPromise, mod.sampleCvDesignPromise])
+  } catch (e) {
+    // Log at debug level; tests referencing sample data will fail loudly if this truly breaks.
+    // eslint-disable-next-line no-console
+    console.debug('sample data preload failed (non-fatal for tests):', (e as Error)?.message)
+  }
+})()
+
 // Polyfill IntersectionObserver for framer-motion viewport features
 if (typeof window !== 'undefined' && !('IntersectionObserver' in window)) {
   // minimal noop polyfill

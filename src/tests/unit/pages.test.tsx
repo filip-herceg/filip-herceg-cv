@@ -43,10 +43,10 @@ describe('CV page', () => {
       await renderCv('short')
     })
     const panel = await screen.findByTestId('short-builder')
-    const firstCheckbox = panel.querySelector('input[type="checkbox"]') as HTMLInputElement | null
+    const firstCheckbox = panel.querySelector('input[type="checkbox"]')
     if (firstCheckbox) {
       await act(async () => {
-        firstCheckbox.click()
+        (firstCheckbox as HTMLElement).click()
         await new Promise(requestAnimationFrame)
       })
     }

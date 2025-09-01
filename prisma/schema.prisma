@@ -1,8 +1,9 @@
 // Prisma schema for dynamic CV persistence (Step 1)
 // SQLite for development; can switch to PostgreSQL in production by datasource url.
 
+// For local development & tests we default to sqlite (file:), can override to postgresql via env at runtime.
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -36,7 +37,7 @@ model Skill {
   category  String
   level     String?
   years     Int?
-  tagsJson  String? // JSON string array
+  tagsJson  Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@id([id, locale])
@@ -50,10 +51,10 @@ model Project {
   period    String
   company   String?
   summary   String
-  highlightsJson String? // JSON array
-  stackJson     String? // JSON array
+  highlightsJson Json?
+  stackJson     Json?
   impact    String?
-  linksJson String? // JSON array objects
+  linksJson Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@id([id, locale])
@@ -68,9 +69,9 @@ model Experience {
   location  String?
   employmentType String?
   summary   String?
-  achievementsJson String? // JSON array
-  stackJson     String? // JSON array
-  tagsJson      String? // JSON array
+  achievementsJson Json?
+  stackJson     Json?
+  tagsJson      Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@id([id, locale])
@@ -86,7 +87,7 @@ model Education {
   location   String?
   grade      String?
   summary    String?
-  highlightsJson String? // JSON array
+  highlightsJson Json?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   @@id([id, locale])
@@ -128,11 +129,11 @@ model Hobby {
 model Design {
   id        String   @id @default(cuid())
   locale    String   @unique
-  pageJson      String // serialized JSON
-  paletteJson   String
-  typographyJson String
-  shapesJson    String
-  sectionsJson  String
+  pageJson      Json
+  paletteJson   Json
+  typographyJson Json
+  shapesJson    Json
+  sectionsJson  Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

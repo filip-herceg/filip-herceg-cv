@@ -70,12 +70,12 @@ export function buildIndex(data: CvData): SearchDoc[] {
     docs.push({ ...doc, terms })
   }
 
-  const skills = data.skills
+  const skills = data.skills || []
   for (const s of skills) {
     push({ kind: 'skill', id: s.id, title: s.name, boost: KIND_BOOST.skill, raw: s, facets: { category: s.category }, text: [s.name, s.tags?.join(' ') || ''] })
   }
 
-  const projects = data.projects
+  const projects = data.projects || []
   for (const p of projects) {
     push({ kind: 'project', id: p.id, title: p.title, boost: KIND_BOOST.project, raw: p, facets: {}, text: [p.title, p.summary, p.highlights.join(' '), p.stack.join(' '), p.impact || ''] })
   }

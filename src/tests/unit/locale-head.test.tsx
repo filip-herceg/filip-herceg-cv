@@ -16,7 +16,7 @@ describe('<LocaleHead />', () => {
     })
     expect(document.documentElement.lang).toBe('de')
     const links = Array.from(document.querySelectorAll('link[rel="alternate"][data-locale-alt="true"]'))
-    const hrefLangs = links.map(l => l.getAttribute('hreflang')).sort()
+    const hrefLangs = links.map(l => l.getAttribute('hreflang')).sort((a, b) => a!.localeCompare(b!))
     expect(hrefLangs).toEqual(['de','en','x-default'])
   })
 })

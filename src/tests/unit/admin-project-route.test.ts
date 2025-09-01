@@ -12,7 +12,16 @@ vi.mock('@/lib/auth/cookies', () => ({
 }))
 vi.mock('@/lib/auth/context', () => ({ buildAuthContext: () => ({ user: { id: 'u1' } }) }))
 vi.mock('@/lib/auth/guard', () => ({ requireAdmin }))
-vi.mock('@/lib/metrics', () => ({ cvEntityMutationsTotal: { inc: (...args: any[]) => incSpy(...args) } }))
+vi.mock('@/lib/metrics', () => ({
+  cvEntityMutationsTotal: { inc: (...args: any[]) => incSpy(...args) },
+  cvStorageGetDurationSeconds: { startTimer: () => () => {} },
+  cvCacheHitsTotal: { inc: () => {} },
+  cvCacheMissesTotal: { inc: () => {} },
+  cvAggregateLoadsTotal: { inc: () => {} },
+  cvStorageBackend: { labels: () => ({ set: () => {} }) },
+  authLoginAttemptsTotal: { inc: () => {} },
+  authActiveSessions: { set: () => {}, inc: () => {}, dec: () => {} }
+}))
 vi.mock('@/lib/cv/service', () => ({ invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a) }))
 
 // Prisma mock with programmable behaviors per test

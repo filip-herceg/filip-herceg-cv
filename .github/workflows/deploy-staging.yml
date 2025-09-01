@@ -29,6 +29,19 @@ jobs:
       image_tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Node (for migrations)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install deps (prisma only)
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then echo "DATABASE_URL not set - skipping install+migrate"; exit 0; fi
+          npm ci --include=dev --ignore-scripts
+      - name: Apply migrations
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then echo "DATABASE_URL not set - skipping migrations"; exit 0; fi
+          npx prisma migrate deploy
       - name: Determine image tag
         id: tag
         run: |

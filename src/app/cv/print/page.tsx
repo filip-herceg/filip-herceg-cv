@@ -9,7 +9,7 @@ export const metadata = { title: 'CV Print' }
 export default async function CvPrintPage({
   searchParams = {},
 }: {
-  searchParams?: Record<string, string | string[] | undefined>
+  readonly searchParams?: Record<string, string | string[] | undefined>
 }) {
   const { data, design } = await getAggregate('en')
   const validated = CvDataSchema.parse(data)

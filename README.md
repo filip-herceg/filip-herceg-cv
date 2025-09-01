@@ -193,7 +193,7 @@ Notes:
 
 ### Dynamic CV Persistence (In Progress)
 
-Phase 2 introduces a database-backed, per-instance editable CV. Current state:
+Phase 2 introduces a database-backed, per-instance editable CV. Current state (now PostgreSQL-ready):
 
 - Prisma + SQLite dev datasource (`DATABASE_URL=file:./dev.db`)
 - Seed script to import existing static JSON once: `npm run prisma:migrate:dev && npm run db:seed:cv`
@@ -207,10 +207,72 @@ DATABASE_URL=file:./dev.db
 ADMIN_PASSWORD_HASH= # bcrypt hash for bootstrap
 ```
 
-To switch to Postgres later:
+#### Storage & Caching Environment Variables
+
+Optional knobs for the new pluggable CV storage layer and distributed caching:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `CV_STORAGE` | Storage backend: `db` (Prisma), `memory` (ephemeral), `redis` (cache over DB), `s3` (object-store cache over DB) | `db` |
+| `CV_AUTO_SEED` | If `false`, prevents persistent DB seeding; serves in-memory seed only | `true` |
+| `REDIS_URL` | Redis connection URL when using `CV_STORAGE=redis` | `redis://localhost:6379` |
+| `S3_BUCKET` | Bucket name for `CV_STORAGE=s3` (read/write JSON aggregates) | _(unset)_ |
+| `S3_PREFIX` | Key prefix inside bucket for S3 backend | `cv` |
+| `AWS_REGION` | Region for S3 client (falls back to AWS_DEFAULT_REGION) | `us-east-1` |
+| `CV_REDIS_TTL` | Seconds to keep aggregate in Redis | `300` |
+| `REAL_REDIS_URL` | (Tests) Provide to enable integration test against a real Redis instance | _(unset)_ |
+
+Metrics: `cv_aggregate_loads_total{source="db|empty|redis|s3"}`, `cv_cache_hits_total{backend}`, `cv_cache_misses_total{backend}`, `cv_storage_backend{backend}` (gauge=1 for active backend).
+
+#### PDF Cache Backends
+
+Server-side PDF generation (`/api/cv/pdf`) now supports a pluggable cache to avoid regenerating identical selections. Backends:
+
+| Backend | Activate | Characteristics | Notes |
+|---------|----------|-----------------|-------|
+| Memory  | (default) | LRU (size + TTL), process-local only | Fastest; resets on deploy. |
+| Redis   | `PDF_CACHE_BACKEND=redis` + `REDIS_URL` | Distributed, TTL via Redis EX | Use for multi-pod horizontal scale. |
+| S3      | `PDF_CACHE_BACKEND=s3` + `S3_BUCKET` (+ optional `S3_ENDPOINT`) | Durable object store; base64 payload blobs | Good for cold-start retention; eventual consistency fine. |
+
+Additional environment variables:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `PDF_CACHE_BACKEND` | `memory` | Select backend (`memory|redis|s3`) | `memory` |
+| `PDF_CACHE_MAX_ENTRIES` | Max in-memory entries (memory backend) | `50` |
+| `PDF_CACHE_TTL_MS` | TTL milliseconds (memory & redis TTL base) | `300000` |
+| `S3_PDF_PREFIX` | Key prefix for S3 PDF cache objects | `pdf-cache` |
+| `S3_ENDPOINT` | Optional custom/Localstack endpoint (forces path-style) | _(unset)_ |
+
+Metrics exposed:
+
+| Metric | Meaning |
+|--------|---------|
+| `pdf_requests_total{result}` | PDF request outcomes (success, error, timeout, unsupported) |
+| `pdf_cache_hits_total` | Cache hits (any backend) |
+| `pdf_cache_misses_total` | Cache misses |
+| `pdf_cache_entries` | Current in-memory entry count (memory backend only) |
+
+Invalidation (manual):
+ - Redis: `redis-cli --raw KEYS 'pdf:*:v1' | xargs -r redis-cli DEL`
+ - S3: remove objects under `${S3_PDF_PREFIX}/` or set lifecycle expiration.
+ - Memory: restart pod or use a future admin endpoint (TODO) calling `pdfCache.invalidate('*')`.
+
+Future enhancements planned: latency histograms per backend, compression toggle (S3), conditional ETag revalidation, admin flush endpoint.
+
+
+PostgreSQL switch:
+1. Set env: `DATABASE_URL=postgresql://user:pass@host:5432/filipcv?schema=public` (optionally `DATABASE_SHADOW_URL=` for migrate dev)
+2. Update `prisma/schema.prisma` provider to `postgresql` (already done if you see Json columns).
+3. Run migrations: `npx prisma migrate deploy` (prod) or `migrate dev` (local).
+4. (If migrating existing SQLite data) run one-off script:
 ```
-DATABASE_URL=postgresql://user:pass@host:5432/dbname?schema=public
+LEGACY_SQLITE_URL="file:./dev.db" DATABASE_URL="postgresql://user:pass@host:5432/filipcv?schema=public" \\
+	node scripts/migrate-sqlite-to-postgres.mjs
 ```
+5. Remove / ignore old SQLite file once verified.
+
+JSON columns now use native Postgres JSONB (via Prisma Json) for: skills.tagsJson, project highlights/stack/links, experience achievements/stack/tags, education highlights, design JSON blobs, etc.
 
 NOTE: Until the CV pages & API routes are migrated to the service layer they still reference static exports (migration underway).
 

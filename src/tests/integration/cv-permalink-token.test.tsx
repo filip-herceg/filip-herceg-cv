@@ -37,12 +37,14 @@ describe('ShortModeContainer permalink token integration', () => {
       />
     )
 
-    const cb = screen.getByRole('checkbox', { name: firstSkill.name }) as HTMLInputElement
+    const cb = screen.getByRole('checkbox', { name: firstSkill.name })
     fireEvent.click(cb)
-    await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)))
-
+    // Wait for router.replace to be recorded
+    await waitFor(() => {
+      const calls: string[] = (globalThis as any).__replaces
+      expect(calls.length).toBeGreaterThan(0)
+    })
     const calls: string[] = (globalThis as any).__replaces
-    expect(calls.length).toBeGreaterThan(0)
     const last = calls[calls.length - 1]
     expect(last).toMatch(/cv=/)
 

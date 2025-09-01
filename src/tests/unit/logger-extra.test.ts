@@ -7,7 +7,7 @@ function makePartialReq() {
 
 describe('logger extra branches', () => {
   it('handles malformed request object safely', () => {
-    const child: any = withRequestContext(undefined) // eslint-disable-line @typescript-eslint/no-explicit-any
+    const child: any = withRequestContext() // eslint-disable-line @typescript-eslint/no-explicit-any
     const bindings = child.bindings?.() || child._bindings || {}
     expect(bindings.requestId).toBeDefined()
   })

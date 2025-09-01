@@ -3,7 +3,16 @@ import { authPrisma } from './auth/prisma-subset'
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
 
 let prisma: PrismaClient | undefined
-function db() { return prisma ??= new PrismaClient() }
+function db() { 
+  prisma ??= new PrismaClient();
+  return prisma
+}
+
+// Test-only hook: allows unit tests to inject a mock Prisma-like object without
+// instantiating a real client (which would require DATABASE_URL). Not exported
+// in README/docs – intentionally prefixed to discourage prod usage.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function __setPrismaForTests(p: any) { prisma = p }
 
 // Password hashing (scrypt). Format: scrypt$N$r$p$salt$hash
 export function hashPassword(password: string): string {

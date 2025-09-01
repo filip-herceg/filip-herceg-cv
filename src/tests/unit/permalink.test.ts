@@ -76,7 +76,11 @@ describe('permalink encode/decode', () => {
     const json = JSON.stringify({ skills: ['x'] })
     const token = b64url(new TextEncoder().encode(json))
     const original = (globalThis as any).DecompressionStream
-    ;(globalThis as any).DecompressionStream = class { constructor() { throw new Error('boom') } }
+    ;(globalThis as any).DecompressionStream = class {
+      constructor() { throw new Error('boom') }
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      close() {}
+    }
     const r = await decodePreset(token)
     ;(globalThis as any).DecompressionStream = original
     expect(r.ok).toBe(true)

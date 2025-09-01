@@ -12,7 +12,8 @@ const withSlot = <P extends { children?: React.ReactNode }>(Comp: React.Componen
 const Sheet = withSlot(SheetPrimitive.Root, 'sheet')
 const SheetTrigger = withSlot(SheetPrimitive.Trigger, 'sheet-trigger')
 const SheetClose = withSlot(SheetPrimitive.Close, 'sheet-close')
-const SheetPortal = withSlot(SheetPrimitive.Portal as any, 'sheet-portal') // eslint-disable-line @typescript-eslint/no-explicit-any
+// Radix Portal generic component; typing preserved without `any`.
+const SheetPortal = withSlot(SheetPrimitive.Portal, 'sheet-portal')
 
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,

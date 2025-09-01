@@ -38,7 +38,7 @@ export const CvView: React.FC<CvRenderProps> = ({ data, design = sampleCvDesign,
         }
         return (
           <Comp
-            key={idx}
+            key={`${shape.kind}-${shape.position || 'full'}-${shape.seed || idx}`}
             className={`${base} ${posClass}`}
             accent={shape.accent ?? design.palette.accent}
             opacity={shape.opacity ?? 0.08}
@@ -90,7 +90,7 @@ export const CvView: React.FC<CvRenderProps> = ({ data, design = sampleCvDesign,
                 {p.highlights.length > 0 && (
                   <ul className="mt-1 list-disc pl-4 text-[11px] text-slate-600 dark:text-slate-400 space-y-0.5">
                     {p.highlights.map((h, i) => (
-                      <li key={i}>{h}</li>
+                      <li key={`${p.id}-highlight-${i}-${h.slice(0, 20)}`}>{h}</li>
                     ))}
                   </ul>
                 )}

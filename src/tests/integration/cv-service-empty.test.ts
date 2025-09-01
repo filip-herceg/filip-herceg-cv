@@ -12,8 +12,9 @@ import { getAggregate } from '@/lib/cv/service'
   // prisma client intentionally not referenced directly; service handles its own access
 
 beforeAll(async () => {
+  if (!process.env.DATABASE_URL) return
   if (fs.existsSync(dbFile)) fs.unlinkSync(dbFile)
-  execSync('npx prisma db push', { stdio: 'ignore' })
+  try { execSync('npx prisma db push', { stdio: 'ignore' }) } catch { /* ignore */ }
   // Intentionally DO NOT seed any person or design rows -> expect empty onboarding state
 })
 

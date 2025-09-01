@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['src/tests/setup.ts'],
+  setupFiles: ['src/tests/setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'lcov'],
@@ -24,6 +24,8 @@ export default defineConfig({
   'src/tests/**', // exclude test files themselves from coverage matrix
   '**/*.d.ts', // ignore declaration files
         '.next/**',
+  'coverage/**', // exclude generated coverage artifacts from previous runs
+  'verbose/coverage/**', // exclude verbose report helper assets
       ],
       thresholds: {
   // Set meaningful project-wide minimums aligned slightly below current baseline (~95%)

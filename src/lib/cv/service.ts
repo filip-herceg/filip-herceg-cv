@@ -1,10 +1,12 @@
+// NOTE: Broad JSON.parse + Zod validation for Prisma rows. Previously had
+// global eslint-disable; refined now to rely on rule-specific allowances.
 import { PrismaClient, type Skill, type Project, type Experience, type Education, type Certification, type Trait, type Hobby } from '@prisma/client'
 import { CV_PAGE_SIZE, CV_PAGE_MARGIN, CV_PAGE_COLUMNS, CV_PAGE_GUTTER } from '@/lib/constants'
 import { CvDataSchema, CvDesignSchema, type CvData, type CvDesign } from './schema'
 import { cvAggregateLoadsTotal } from '@/lib/metrics'
 import pino from 'pino'
 
-// Narrow JSON.parse results to unknown so Zod validates and we avoid implicit any
+// Narrow JSON.parse outputs to unknown; Zod handles validation to keep types strict
 function safeJson<T>(raw: string | null | undefined, fallback: T): T {
   if (!raw) return fallback
   try {
@@ -25,6 +27,8 @@ const log = pino({ name: 'cv-service' })
 interface AggregateCacheEntry { data: CvData; design: CvDesign; loadedAt: number }
 const aggregateCache = new Map<string, AggregateCacheEntry>()
 const CACHE_TTL_MS = 60_000
+// Track seeding in-flight to avoid duplicate concurrent seed operations per locale
+const seedingInFlight = new Map<string, Promise<boolean>>()
 
 // Returns aggregate CV data+design. Possible sources:
 // - db: loaded fully from persistence (validated)
@@ -41,6 +45,88 @@ export async function getAggregate(locale: string = 'en'): Promise<{ data: CvDat
   const emptyDesign = buildEmptyDesign()
   try { cvAggregateLoadsTotal.inc({ source: 'empty' }) } catch {}
   return { data: empty, design: emptyDesign, source: 'empty' }
+}
+
+// Seed database with initial static content if empty. Returns true if seeding performed.
+export async function seedIfEmpty(locale: string, data: CvData, design: CvDesign): Promise<boolean> {
+  if (seedingInFlight.has(locale)) {
+  return seedingInFlight.get(locale)!
+  }
+  const task: Promise<boolean> = (async (): Promise<boolean> => {
+    try {
+      const client = getPrisma()
+      const existing = await client.person.findUnique({ where: { locale } })
+      if (existing) return false
+      // Person
+      await client.person.create({
+        data: {
+          locale,
+          name: data.person.name,
+          title: data.person.title,
+          profile: data.person.profile,
+          email: data.person.contact.email,
+          location: data.person.contact.location ?? null,
+          phone: data.person.contact.phone ?? null,
+          website: data.person.contact.website ?? null,
+          github: data.person.contact.github ?? null,
+          linkedin: data.person.contact.linkedin ?? null,
+          twitter: data.person.contact.twitter ?? null,
+          linksJson: JSON.stringify(data.person.links ?? [])
+        }
+      })
+      // Skills
+      if (data.skills?.length) {
+        type SeedSkill = CvData['skills'][number]
+        await client.skill.createMany({
+          data: data.skills.map((s: SeedSkill) => ({
+            id: s.id,
+            locale,
+            name: s.name,
+            category: s.category ?? null,
+            level: s.level ?? null,
+            years: hasYears(s) ? (s.years ?? null) : null,
+            tagsJson: s.tags ? JSON.stringify(s.tags) : null
+          }))
+        })
+      }
+      // Projects
+      if (data.projects?.length) {
+        // createMany lacks relations beyond simple columns
+        type SeedProject = CvData['projects'][number]
+        await client.project.createMany({
+          data: data.projects.map((p: SeedProject) => ({ id: p.id, locale, title: p.title, role: p.role, period: p.period, company: p.company ?? null, summary: p.summary, highlightsJson: JSON.stringify(p.highlights ?? []), stackJson: JSON.stringify(p.stack ?? []), impact: p.impact ?? null, linksJson: p.links ? JSON.stringify(p.links) : null }))
+        })
+      }
+      // Design
+      await client.design.upsert({
+        where: { locale },
+        update: {
+          pageJson: JSON.stringify(design.page),
+          paletteJson: JSON.stringify(design.palette),
+          typographyJson: JSON.stringify(design.typography),
+          shapesJson: JSON.stringify(design.shapes),
+          sectionsJson: JSON.stringify(design.sections)
+        },
+        create: {
+          locale,
+          pageJson: JSON.stringify(design.page),
+          paletteJson: JSON.stringify(design.palette),
+          typographyJson: JSON.stringify(design.typography),
+          shapesJson: JSON.stringify(design.shapes),
+          sectionsJson: JSON.stringify(design.sections)
+        }
+      })
+      invalidateAggregateCache(locale)
+      return true
+    } catch (e) {
+      log.warn({ err: e }, 'seedIfEmpty failed')
+      return false
+    } finally {
+      seedingInFlight.delete(locale)
+    }
+  })()
+  seedingInFlight.set(locale, task)
+  return task
 }
 
 async function loadFromDb(locale: string) {
@@ -80,7 +166,10 @@ async function loadFromDb(locale: string) {
   return null
 }
 
-function mapRowsToData(rows: { person: any; skills: Skill[]; projects: Project[]; experiences: Experience[]; education: Education[]; certifications: Certification[]; traits: Trait[]; hobbies: Hobby[] }) { // eslint-disable-line @typescript-eslint/no-explicit-any
+// Narrow person to only needed fields; arrays already use Prisma model types with JSON column fields present.
+interface PersonRow { name: string; title: string; profile: string; email: string; location: string | null; phone: string | null; website: string | null; github: string | null; linkedin: string | null; twitter: string | null; linksJson: string | null }
+
+function mapRowsToData(rows: { person: PersonRow; skills: Skill[]; projects: Project[]; experiences: Experience[]; education: Education[]; certifications: Certification[]; traits: Trait[]; hobbies: Hobby[] }) {
   return CvDataSchema.safeParse({
     person: {
       name: rows.person.name,
@@ -97,14 +186,73 @@ function mapRowsToData(rows: { person: any; skills: Skill[]; projects: Project[]
       },
       links: safeJson(rows.person.linksJson, undefined)
     },
-    skills: rows.skills.map((s: Skill & { tagsJson?: string | null }) => ({ id: s.id, name: s.name, category: s.category, level: s.level ?? undefined, years: (s as Skill & { years?: number }).years ?? undefined, tags: safeJson<Record<string,string>[] | string[] | undefined>(s.tagsJson, undefined) })),
-    projects: rows.projects.map((p: Project & { highlightsJson?: string | null; stackJson?: string | null; impact?: string | null; linksJson?: string | null; company?: string | null }) => ({ id: p.id, title: p.title, role: p.role, period: p.period, company: p.company ?? undefined, summary: p.summary, highlights: safeJson<string[]>(p.highlightsJson, []), stack: safeJson<string[]>(p.stackJson, []), impact: p.impact ?? undefined, links: safeJson<Record<string,string>[] | undefined>(p.linksJson, undefined) })),
-    experiences: rows.experiences.map((e: Experience & { location?: string | null; employmentType?: string | null; summary?: string | null; achievementsJson?: string | null; stackJson?: string | null; tagsJson?: string | null }) => ({ id: e.id, company: e.company, role: e.role, period: e.period, location: e.location ?? undefined, employmentType: e.employmentType ?? undefined, summary: e.summary ?? undefined, achievements: safeJson<string[]>(e.achievementsJson, []), stack: safeJson<string[]>(e.stackJson, []), tags: safeJson<string[]>(e.tagsJson, [] ) })),
-    education: rows.education.map((ed: Education & { field?: string | null; location?: string | null; grade?: string | null; summary?: string | null; highlightsJson?: string | null }) => ({ id: ed.id, institution: ed.institution, degree: ed.degree, field: ed.field ?? undefined, period: ed.period, location: ed.location ?? undefined, grade: ed.grade ?? undefined, summary: ed.summary ?? undefined, highlights: safeJson<string[]>(ed.highlightsJson, []) })),
-    certifications: rows.certifications.map((c: Certification & { year?: number | null; url?: string | null }) => ({ id: c.id, name: c.name, issuer: c.issuer, year: c.year ?? undefined, url: c.url ?? undefined })),
-    traits: rows.traits.map((t: Trait & { description?: string | null; category?: string | null }) => ({ id: t.id, name: t.name, description: t.description ?? undefined, category: t.category ?? undefined })),
-    hobbies: rows.hobbies.map((h: Hobby & { description?: string | null }) => ({ id: h.id, name: h.name, description: h.description ?? undefined }))
+    skills: rows.skills.map(s => ({
+      id: s.id,
+      name: s.name,
+      category: s.category,
+      level: s.level ?? undefined,
+      years: s.years ?? undefined,
+      tags: safeJson<Record<string, string>[] | string[] | undefined>(s.tagsJson, undefined)
+    })),
+    projects: rows.projects.map(p => ({
+      id: p.id,
+      title: p.title,
+      role: p.role,
+      period: p.period,
+      company: p.company ?? undefined,
+      summary: p.summary,
+      highlights: safeJson<string[]>(p.highlightsJson, []),
+      stack: safeJson<string[]>(p.stackJson, []),
+      impact: p.impact ?? undefined,
+      links: safeJson<Record<string, string>[] | undefined>(p.linksJson, undefined)
+    })),
+    experiences: rows.experiences.map(e => ({
+      id: e.id,
+      company: e.company,
+      role: e.role,
+      period: e.period,
+      location: e.location ?? undefined,
+      employmentType: e.employmentType ?? undefined,
+      summary: e.summary ?? undefined,
+      achievements: safeJson<string[]>(e.achievementsJson, []),
+      stack: safeJson<string[]>(e.stackJson, []),
+      tags: safeJson<string[]>(e.tagsJson, [])
+    })),
+    education: rows.education.map(ed => ({
+      id: ed.id,
+      institution: ed.institution,
+      degree: ed.degree,
+      field: ed.field ?? undefined,
+      period: ed.period,
+      location: ed.location ?? undefined,
+      grade: ed.grade ?? undefined,
+      summary: ed.summary ?? undefined,
+      highlights: safeJson<string[]>(ed.highlightsJson, [])
+    })),
+    certifications: rows.certifications.map(c => ({
+      id: c.id,
+      name: c.name,
+      issuer: c.issuer,
+      year: c.year ?? undefined,
+      url: c.url ?? undefined
+    })),
+    traits: rows.traits.map(t => ({
+      id: t.id,
+      name: t.name,
+      description: t.description ?? undefined,
+      category: t.category ?? undefined
+    })),
+    hobbies: rows.hobbies.map(h => ({
+      id: h.id,
+      name: h.name,
+      description: h.description ?? undefined
+    }))
   })
+}
+
+// Type guard for optional years property on incoming seed skills (schema may not declare it explicitly)
+function hasYears(value: unknown): value is { years?: number | null } {
+  return typeof value === 'object' && value !== null && 'years' in value && (value as { years?: unknown }).years !== undefined
 }
 
 function buildEmptyData(): CvData {

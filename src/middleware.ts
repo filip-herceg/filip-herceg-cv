@@ -13,7 +13,7 @@ export function middleware(req: Request) {
     return NextResponse.next()
   }
   // Correlation id (reuse if client supplies x-request-id; otherwise generate)
-  const incomingId = (req.headers as Headers).get('x-request-id') || crypto.randomUUID()
+  const incomingId = (req.headers).get('x-request-id') || crypto.randomUUID()
   const nonce = generateNonce()
   const res = NextResponse.next({
     headers: {

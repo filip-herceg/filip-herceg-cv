@@ -7,60 +7,86 @@ import { sampleCvData } from '@/lib/cv/sample-data'
 describe('ShortenerPanel', () => {
   const data = sampleCvData
 
-  it('removes and re-adds a skill (branch coverage)', () => {
-    const initialSel = { skills: data.skills.slice(0, 2).map(s => s.id), projects: data.projects.map(p => p.id) }
-    function Harness() {
-      const [sel, setSel] = useState(initialSel)
+  interface Sel {
+    skills?: string[]
+    projects?: string[]
+  }
+
+  function createHarness(initialSelection: Sel, withReset = false) {
+    return function Harness() {
+      const [sel, setSel] = useState<Sel>(initialSelection)
+      const fullSel: Sel = { skills: data.skills.map(s => s.id), projects: data.projects.map(p => p.id) }
       return (
         <ShortenerPanel
           data={data}
-          selection={sel as any}
-          onChange={setSel as any}
-          onCopyPermalink={async () => {}}
-          onOpenPrint={() => {}}
-          onReset={() => {}}
+            selection={sel as any}
+            onChange={setSel as any}
+            onCopyPermalink={async () => {}}
+            onOpenPrint={() => {}}
+            onReset={withReset ? (() => setSel(fullSel)) : (() => {})}
         />
       )
     }
+  }
+
+  it('toggles a skill off and back on', () => {
+    const initialSel = { skills: data.skills.slice(0, 2).map(s => s.id), projects: data.projects.map(p => p.id) }
+    const Harness = createHarness(initialSel)
     render(<Harness />)
-    const skillToToggle = data.skills[0]
-    const getBox = () => screen.getByRole('checkbox', { name: skillToToggle.name }) as HTMLInputElement
-    expect(getBox().checked).toBe(true)
-    fireEvent.click(getBox()) // remove
-    expect(getBox().checked).toBe(false)
-    fireEvent.click(getBox()) // re-add
-    expect(getBox().checked).toBe(true)
+    const skill = data.skills[0]
+    const box = () => screen.getByRole<HTMLInputElement>('checkbox', { name: skill.name })
+    expect(box().checked).toBe(true)
+    fireEvent.click(box())
+    expect(box().checked).toBe(false)
+    fireEvent.click(box())
+    expect(box().checked).toBe(true)
+  })
+
+  it('toggles a project off and back on', () => {
+    const initialSel = { skills: data.skills.map(s => s.id), projects: data.projects.slice(0, 2).map(p => p.id) }
+    const Harness = createHarness(initialSel)
+    render(<Harness />)
+    const project = data.projects[0]
+    const box = () => screen.getByRole<HTMLInputElement>('checkbox', { name: project.title })
+    expect(box().checked).toBe(true)
+    fireEvent.click(box())
+    expect(box().checked).toBe(false)
+    fireEvent.click(box())
+    expect(box().checked).toBe(true)
   })
 
   it('reset button disabled when all selected', () => {
-    const sel = { skills: data.skills.map(s=>s.id), projects: data.projects.map(p=>p.id) }
-    render(<ShortenerPanel data={data} selection={sel as any} onChange={()=>{}} onCopyPermalink={async ()=>{}} onOpenPrint={()=>{}} onReset={()=>{}} />)
-    const resetBtn = screen.getByRole('button', { name: /reset/i })
-    expect(resetBtn).toBeDisabled()
+    const full = { skills: data.skills.map(s => s.id), projects: data.projects.map(p => p.id) }
+    const Harness = createHarness(full)
+    render(<Harness />)
+    const resetBtn = screen.getByRole<HTMLButtonElement>('button', { name: /reset/i })
+    expect(resetBtn.disabled).toBe(true)
   })
 
-  it('removes and re-adds a project (branch coverage)', () => {
-    const initialSel = { skills: data.skills.map(s => s.id), projects: data.projects.slice(0, 2).map(p => p.id) }
-    function Harness() {
-      const [sel, setSel] = useState(initialSel)
-      return (
-        <ShortenerPanel
-          data={data}
-          selection={sel as any}
-          onChange={setSel as any}
-          onCopyPermalink={async () => {}}
-          onOpenPrint={() => {}}
-          onReset={() => {}}
-        />
-      )
-    }
+  it('reset re-selects everything after manual deselect', () => {
+    const full = { skills: data.skills.map(s => s.id), projects: data.projects.map(p => p.id) }
+    const Harness = createHarness(full, true)
     render(<Harness />)
-    const projectToToggle = data.projects[0]
-    const getBox = () => screen.getByRole('checkbox', { name: projectToToggle.title }) as HTMLInputElement
-    expect(getBox().checked).toBe(true)
-    fireEvent.click(getBox()) // remove
-    expect(getBox().checked).toBe(false)
-    fireEvent.click(getBox()) // add back
-    expect(getBox().checked).toBe(true)
+    // Deselect one skill
+    const someSkill = data.skills[0]
+    const skillBox = () => screen.getByRole<HTMLInputElement>('checkbox', { name: someSkill.name })
+    fireEvent.click(skillBox())
+    expect(skillBox().checked).toBe(false)
+    // Reset
+    const resetBtn = screen.getByRole<HTMLButtonElement>('button', { name: /reset/i })
+    expect(resetBtn.disabled).toBe(false)
+    fireEvent.click(resetBtn)
+    expect(skillBox().checked).toBe(true)
+  })
+
+  it('cannot remove last remaining skill', () => {
+    const single = { skills: [data.skills[0].id], projects: data.projects.map(p => p.id) }
+    const Harness = createHarness(single)
+    render(<Harness />)
+    const box = screen.getByRole<HTMLInputElement>('checkbox', { name: data.skills[0].name })
+    expect(box.checked).toBe(true)
+    fireEvent.click(box)
+    // Still checked because component prevents removing final item
+    expect(box.checked).toBe(true)
   })
 })
