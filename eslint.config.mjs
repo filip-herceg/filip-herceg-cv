@@ -31,10 +31,10 @@ const eslintConfig = [
   {
     rules: {
       'react/jsx-key': 'warn',
-  '@typescript-eslint/no-explicit-any': 'warn',
+  '@typescript-eslint/no-explicit-any': 'error',
   // Enforce no unused vars except leading underscore
   '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-	'no-console': 'off',
+  'no-console': 'off',
     },
   },
   {

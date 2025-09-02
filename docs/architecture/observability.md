@@ -112,7 +112,7 @@ Flag: `ENABLE_TRACING=1` enables lightweight spans.
 | ----- | ---- | ------- |
 | 1 | Console visibility | Plain console markers (legacy) |
 | 2 (now) | Correlated logs | Structured start/end, durationMs, traceId |
-| 3 | OTEL adoption | Add OpenTelemetry SDK, HTTP + DB auto‑instrumentation, export OTLP |
+| 3 (scaffold) | OTEL bootstrap | Conditional OTLP exporter init (`src/lib/otel-init.ts`), lazy `ensureTelemetry()` call |
 | 4 | Propagation | Inject/extract W3C headers across future services & workers |
 | 5 | Sampling | Tail & dynamic sampling for high‑volume spans |
 
@@ -185,6 +185,14 @@ sequenceDiagram
 ---
 ## Change Log (Doc)
 - 2025-09-02: Initial full enrichment (logging, metrics catalog, tracing roadmap, diagrams, privacy, roadmap).
+
+### Tooling Note: Phantom ESLint Warnings
+During OTEL scaffold work, the editor task view showed persistent `@typescript-eslint/no-explicit-any` warnings in a deleted file (`src/lib/otel.ts`) and arbitrary lines in `tracing.ts` even though direct lint runs were clean. Resolution steps:
+1. Renamed bootstrap file to `src/lib/otel-init.ts` and updated imports.
+2. Deleted incremental build artifact `tsconfig.tsbuildinfo` to purge stale file references.
+3. Added `npm run lint:diag` script executing targeted JSON lint and `--print-config` to verify true rule enforcement.
+4. Confirmed CI (`lint:ci`) authoritative output reports zero warnings.
+This guards against false-positive gating while retaining strict lint rules.
 
 ---
 ## Quick Reference
