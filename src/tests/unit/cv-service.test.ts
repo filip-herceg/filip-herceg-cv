@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { CvData, CvDesign } from '@/lib/cv/schema'
 
 // We mock metrics early so when service module loads it sees these stubs
 const loadIncs: Array<Record<string,string>> = []
@@ -18,36 +19,42 @@ interface DesignRow { locale: string; pageJson: string; paletteJson: string; typ
 
 let people: PersonRow[] = []
 let designs: DesignRow[] = []
-let skills: any[] = [] // eslint-disable-line @typescript-eslint/no-explicit-any
-let projects: any[] = []
-let experiences: any[] = []
-let education: any[] = []
-let certifications: any[] = []
-let traits: any[] = []
-let hobbies: any[] = []
+interface SkillRow { id: string; locale: string; name: string; category: string | null; level: string | null; years: number | null; tagsJson: string | null }
+interface ProjectRow { id: string; locale: string; title: string; role: string; period: string; company: string | null; summary: string; highlightsJson: string; stackJson: string; impact: string | null; linksJson: string | null }
+let skills: SkillRow[] = []
+let projects: ProjectRow[] = []
+// The following relational categories are not seeded in these unit tests; they always resolve empty.
+// We simplify by not maintaining mutable in-memory arrays for them.
 
 // Prisma client mock with minimal surface used by service.ts
 vi.mock('@prisma/client', () => {
+  type WhereLocale = { where: { locale: string } }
   class PrismaClient {
     person = {
-      findUnique: async ({ where: { locale } }: any) => people.find(p => p.locale === locale) || null,
-      create: async ({ data }: { data: PersonRow }) => { people.push(data); return data },
+      findUnique: async ({ where: { locale } }: WhereLocale) => people.find(p => p.locale === locale) || null,
+      create: async ({ data }: { data: PersonRow }) => { people.push(data); return data }
     }
-    skill = { findMany: async ({ where: { locale } }: any) => skills.filter(s => s.locale === locale), createMany: async ({ data }: any) => { skills.push(...data); return { count: data.length } } }
-    project = { findMany: async ({ where: { locale } }: any) => projects.filter(s => s.locale === locale), createMany: async ({ data }: any) => { projects.push(...data); return { count: data.length } } }
-  // The following findMany methods reference arrays defined above; explicit inline references to silence unused warnings.
-  experience = { findMany: async ({ where: { locale } }: any) => experiences.filter(s => s.locale === locale) } // eslint-disable-line @typescript-eslint/no-explicit-any
-  education = { findMany: async ({ where: { locale } }: any) => education.filter(s => s.locale === locale) } // eslint-disable-line @typescript-eslint/no-explicit-any
-  certification = { findMany: async ({ where: { locale } }: any) => certifications.filter(s => s.locale === locale) } // eslint-disable-line @typescript-eslint/no-explicit-any
-  trait = { findMany: async ({ where: { locale } }: any) => traits.filter(s => s.locale === locale) } // eslint-disable-line @typescript-eslint/no-explicit-any
-  hobby = { findMany: async ({ where: { locale } }: any) => hobbies.filter(s => s.locale === locale) } // eslint-disable-line @typescript-eslint/no-explicit-any
+    skill = {
+      findMany: async ({ where: { locale } }: WhereLocale) => skills.filter(s => s.locale === locale),
+      createMany: async ({ data }: { data: SkillRow[] }) => { skills.push(...data); return { count: data.length } }
+    }
+    project = {
+      findMany: async ({ where: { locale } }: WhereLocale) => projects.filter(p => p.locale === locale),
+      createMany: async ({ data }: { data: ProjectRow[] }) => { projects.push(...data); return { count: data.length } }
+    }
+    // Unused relational lookups return empty arrays.
+    experience = { findMany: async (_args?: WhereLocale) => [] as unknown[] }
+    education = { findMany: async (_args?: WhereLocale) => [] as unknown[] }
+    certification = { findMany: async (_args?: WhereLocale) => [] as unknown[] }
+    trait = { findMany: async (_args?: WhereLocale) => [] as unknown[] }
+    hobby = { findMany: async (_args?: WhereLocale) => [] as unknown[] }
     design = {
-      findUnique: async ({ where: { locale } }: any) => designs.find(d => d.locale === locale) || null,
-      upsert: async ({ where: { locale }, create, update }: any) => {
+      findUnique: async ({ where: { locale } }: WhereLocale) => designs.find(d => d.locale === locale) || null,
+      upsert: async ({ where: { locale }, create, update }: { where: { locale: string }; create: DesignRow; update: Partial<DesignRow> }) => {
         const existing = designs.find(d => d.locale === locale)
         if (existing) { Object.assign(existing, update); return existing }
         designs.push(create); return create
-      },
+      }
     }
   }
   return { PrismaClient }
@@ -59,11 +66,7 @@ function resetDb() {
   designs = []
   skills = []
   projects = []
-  experiences = []
-  education = []
-  certifications = []
-  traits = []
-  hobbies = []
+  // removed unused arrays for experience/education/certification/trait/hobby categories
   loadIncs.length = 0
 }
 
@@ -112,20 +115,19 @@ describe('cv-service getAggregate & seedIfEmpty', () => {
 
   it('seedIfEmpty inserts data only once and invalidates cache', async () => {
     const { seedIfEmpty, getAggregate, invalidateAggregateCache } = await import('@/lib/cv/service')
-    const data = {
+    const data: CvData = {
       person: { name: 'A', title: 'B', profile: 'P', contact: { email: 'a@example.com' }, links: [] },
-  // Provide required category per SkillSchema (must be one of enumerated categories)
-  skills: [{ id: 's1', name: 'Skill 1', category: 'Language', level: 'mid', years: 3, tags: ['t'] }],
-      projects: [{ id: 'p1', title: 'Proj', role: 'Dev', period: '2020', summary: 'Sum', highlights: [], stack: [] }],
+      skills: [{ id: 's1', name: 'Skill 1', category: 'Language', level: 'mid', years: 3, tags: ['t'] }],
+      projects: [{ id: 'p1', title: 'Proj', role: 'Dev', period: '2020', summary: 'Sum', highlights: [], stack: [] }]
     }
-    const design = {
+    const design: CvDesign = {
       page: { size: 'A4', margin: '12mm', columns: 2, gutter: '4mm' },
       palette: { mode: 'light', primary: '#000', accent: '#111', background: '#fff', surface: '#eee', text: '#000', mutedText: '#444' },
       typography: { body: 'x', heading: 'y', scale: 1 },
       shapes: [],
-      sections: [],
+      sections: []
     }
-    const seeded = await seedIfEmpty('en', data as any, design as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    const seeded = await seedIfEmpty('en', data, design)
     expect(seeded).toBe(true)
     const again = await seedIfEmpty('en', data as any, design as any)
     expect(again).toBe(false)

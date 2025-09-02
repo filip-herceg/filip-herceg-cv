@@ -4,7 +4,12 @@
 
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api'
 import { Resource } from '@opentelemetry/resources'
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
+// SemanticResourceAttributes enum is deprecated; use generated SEMRESATTRS_* constants instead.
+import {
+  SEMRESATTRS_SERVICE_NAME,
+  SEMRESATTRS_SERVICE_VERSION,
+  SEMRESATTRS_DEPLOYMENT_ENVIRONMENT,
+} from '@opentelemetry/semantic-conventions'
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
@@ -19,9 +24,10 @@ export async function initOpenTelemetry(): Promise<void> {
 
   diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR)
   const resource = new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'filip-herceg-cv',
-    [SemanticResourceAttributes.SERVICE_VERSION]: process.env.npm_package_version,
-    environment: process.env.NODE_ENV || 'development',
+    [SEMRESATTRS_SERVICE_NAME]: 'filip-herceg-cv',
+    [SEMRESATTRS_SERVICE_VERSION]: process.env.npm_package_version,
+    // Standard semantic key for deployment environment
+    [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
   })
   const provider = new NodeTracerProvider({ resource })
   try {
