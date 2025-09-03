@@ -75,7 +75,7 @@
 | S01 | Rollback Node16/ESM big-bang attempt | Tooling | Critical | S | Typecheck <5 errors restored (pre-migration baseline) | Done |
 | S02 | prom-client type resolution fix | Observability | High | XS | No TS2307; metrics module typed | Done |
 | S03 | Metrics endpoint test coverage | Observability | High | S | Test asserts counters & gauge names in /api/metrics output | Done |
-| S04 | Observability docs page | Docs | Medium | S | docs/observability.md created referencing metrics, ServiceMonitor & dashboard notes | Done |
+| S04 | Observability docs page | Docs | Medium | S | Observability content migrated to architecture/observability.md | Done |
 | S05 | PDF cache gauge integration | Performance | Medium | M | pdf_cache_entries reflects cache size; hit/miss counters present | Done |
 | S06 | Phased ESM migration plan (incremental) | Tooling | Low | S | Plan documented; no code breakage (see section 15) | Done |
 | S07 | Optional OTel tracing scaffold | Observability | Low | M | Tracing behind feature flag; no prod impact | Done |
