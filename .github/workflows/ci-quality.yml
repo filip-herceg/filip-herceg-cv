@@ -27,6 +27,10 @@ jobs:
           cache: 'npm'
       - name: Install deps (ci)
         run: npm ci
+      - name: Docs legacy guard
+        run: npm run docs:guard
+      - name: Docs links check
+        run: npm run docs:links
       - name: Format check
         run: npm run format:check
       - name: Lint
