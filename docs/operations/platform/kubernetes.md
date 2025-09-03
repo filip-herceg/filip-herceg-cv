@@ -1,11 +1,12 @@
 ---
-title: Kubernetes & Platform
-domain: operations
-category: platform
+title: Kubernetes & Helm Deployment
+category: operations
 status: active
-lastUpdated: 2025-09-03
-canonical: docs/operations/platform/kubernetes.md
+lastUpdated: 2025-09-02
+canonical: docs/operations/kubernetes.md
 ---
-# Kubernetes & Platform
+<!-- Source: formerly docs/kubernetes.md -->
 
-Moved from `operations/kubernetes.md`.
+> TODO: Add helm values table & security hardening checklist (PSP replacement / NetworkPolicy rationale / resource limits examples).
+
+Placeholder ΓÇô detailed deployment guide forthcoming.
