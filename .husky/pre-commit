@@ -14,6 +14,9 @@ npm run typecheck || exit 1
 # Fast tests (no coverage to keep hook quick)
 npm test -- --run --passWithNoTests || exit 1
 
+# Legacy docs guard (prevent reintroduction of removed files)
+npm run docs:guard || exit 1
+
 # Generate docs index (smoke check, discard output)
 npm run docs:index > /dev/null 2>&1 || true
 
