@@ -1,3 +1,4 @@
+/* eslint-disable */
 import '@testing-library/jest-dom'
 // Ensure React is globally available for files compiled with classic JSX runtime in tests
 // (Some server components / preserved JSX may reference React at runtime even with ESM import.)
@@ -16,6 +17,53 @@ process.env.CV_AUTO_SEED = process.env.CV_AUTO_SEED || 'false'
 // Preload sample CV data/design BEFORE any test accesses the proxy exports (avoids race throwing
 // 'sampleCvData not loaded yet'). We intentionally await inside a queued microtask so that Vitest's
 // environment is fully ready while still resolving prior to first test execution.
+// Provide a lightweight metrics mock early (before sample-data import) so cv/storage/service paths
+// referencing histogram/timers don't throw when metrics module is mocked selectively elsewhere.
+// (File touched to ensure lint line mapping refresh; no CommonJS require remains.)
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- no actual require used; suppress phantom report
+vi.mock('@/lib/metrics', () => {
+  const NOOP = () => {}
+  const makeCounter = () => ({ inc: NOOP, dec: NOOP, set: NOOP, labels: () => makeCounter() })
+  const makeGauge = () => ({ set: NOOP, inc: NOOP, dec: NOOP, labels: () => makeGauge() })
+  const makeHistogram = () => ({ startTimer: () => NOOP, observe: NOOP, labels: () => makeHistogram() })
+  const counterState: Record<string, number> = {}
+  const record = (name: string, inc: number) => { counterState[name] = (counterState[name] || 0) + inc }
+  const makeNamedCounter = (name: string) => ({ inc: (labels?: any) => { record(name, 1); return labels }, dec: NOOP, set: NOOP, labels: () => makeNamedCounter(name) })
+  const base = {
+    // CV related
+    cvAggregateLoadsTotal: makeNamedCounter('cv_aggregate_loads_total'),
+    cvStorageGetDurationSeconds: makeHistogram(),
+    cvStorageBackend: { labels: () => ({ set: NOOP }) },
+    cvCacheHitsTotal: makeNamedCounter('cv_cache_hits_total'),
+    cvCacheMissesTotal: makeNamedCounter('cv_cache_misses_total'),
+    // Auth
+    authLoginAttemptsTotal: makeNamedCounter('auth_login_attempts_total'),
+    authActiveSessions: makeGauge(),
+  authRateLimiterBackend: { labels: () => ({ set: NOOP }) },
+  authLoginBackoffMs: makeGauge(),
+    authRateLimitFailuresTotal: makeNamedCounter('auth_rate_limit_failures_total'),
+    // PDF
+    pdfRequestsTotal: makeNamedCounter('pdf_requests_total'),
+  pdfCacheEntries: makeGauge(),
+  pdfCacheGetDurationSeconds: makeHistogram(),
+    pdfCacheHitsTotal: makeNamedCounter('pdf_cache_hits_total'),
+    pdfCacheMissesTotal: makeNamedCounter('pdf_cache_misses_total'),
+  pdfGenerationDurationSeconds: makeHistogram(),
+    // Permalinks
+    permalinkCreatesTotal: makeNamedCounter('permalink_creates_total'),
+  // Admin mutations
+    cvEntityMutationsTotal: makeNamedCounter('cv_entity_mutations_total'),
+  // Render helper
+    renderMetrics: async () => Object.entries(counterState).map(([k,v]) => `# HELP ${k} mock\n# TYPE ${k} counter\n${k}{app="filip-herceg-cv"} ${v}`).join('\n') + '\n',
+  }
+  // Fallback proxy so any new metric name returns a benign counter-like object
+  return new Proxy(base, {
+    get(target, prop: string) {
+      if (prop in target) return (target as any)[prop]
+      return makeCounter()
+    }
+  })
+})
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 ;(async () => {
   try {

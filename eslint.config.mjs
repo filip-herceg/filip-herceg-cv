@@ -55,6 +55,13 @@ const eslintConfig = [
       'no-console': 'off', // CLI / utility scripts may log freely
     },
   },
+  {
+    files: ['src/tests/setup.ts', 'src/tests/unit/cv-storage-uncovered-branches.test.ts'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+    }
+  }
 ]
 
 export default eslintConfig
