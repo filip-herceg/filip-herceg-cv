@@ -20,11 +20,13 @@ export async function POST(req: Request) {
   try {
     const key = { id: parsed.data.id, locale: parsed.data.locale }
     const existing = await prisma.education.findUnique({ where: { id_locale: key } })
-    const highlightsJson = parsed.data.highlights?.length ? JSON.stringify(parsed.data.highlights) : null
+  const baseUpdate: Record<string, unknown> = { institution: parsed.data.institution, degree: parsed.data.degree, field: parsed.data.field, period: parsed.data.period, location: parsed.data.location, grade: parsed.data.grade, summary: parsed.data.summary }
+    if (parsed.data.highlights?.length) baseUpdate.highlightsJson = JSON.stringify(parsed.data.highlights)
+  const baseCreate = { id: parsed.data.id, locale: parsed.data.locale, institution: parsed.data.institution, degree: parsed.data.degree, field: parsed.data.field, period: parsed.data.period, location: parsed.data.location, grade: parsed.data.grade, summary: parsed.data.summary, ...(parsed.data.highlights?.length ? { highlightsJson: JSON.stringify(parsed.data.highlights) } : {}) }
     await prisma.education.upsert({
       where: { id_locale: key },
-      update: { institution: parsed.data.institution, degree: parsed.data.degree, field: parsed.data.field, period: parsed.data.period, location: parsed.data.location, grade: parsed.data.grade, summary: parsed.data.summary, highlightsJson },
-      create: { id: parsed.data.id, locale: parsed.data.locale, institution: parsed.data.institution, degree: parsed.data.degree, field: parsed.data.field, period: parsed.data.period, location: parsed.data.location, grade: parsed.data.grade, summary: parsed.data.summary, highlightsJson },
+      update: baseUpdate,
+      create: baseCreate,
     })
     cvEntityMutationsTotal.inc({ entity: 'education', action: existing ? 'update' : 'create', result: 'success' })
     invalidateAggregateCache(parsed.data.locale)

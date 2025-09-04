@@ -24,33 +24,12 @@ export async function POST(req: Request) {
   const prisma = new PrismaClient()
   try {
     const existing = await prisma.project.findUnique({ where: { id_locale: { id: parsed.data.id, locale: parsed.data.locale } } })
-    await prisma.project.upsert({
-      where: { id_locale: { id: parsed.data.id, locale: parsed.data.locale } },
-      update: {
-        title: parsed.data.title,
-        role: parsed.data.role,
-        period: parsed.data.period,
-        company: parsed.data.company,
-        summary: parsed.data.summary,
-        highlightsJson: parsed.data.highlights?.length ? JSON.stringify(parsed.data.highlights) : null,
-        stackJson: parsed.data.stack?.length ? JSON.stringify(parsed.data.stack) : null,
-        impact: parsed.data.impact,
-        linksJson: parsed.data.links?.length ? JSON.stringify(parsed.data.links) : null,
-      },
-      create: {
-        id: parsed.data.id,
-        locale: parsed.data.locale,
-        title: parsed.data.title,
-        role: parsed.data.role,
-        period: parsed.data.period,
-        company: parsed.data.company,
-        summary: parsed.data.summary,
-        highlightsJson: parsed.data.highlights?.length ? JSON.stringify(parsed.data.highlights) : null,
-        stackJson: parsed.data.stack?.length ? JSON.stringify(parsed.data.stack) : null,
-        impact: parsed.data.impact,
-        linksJson: parsed.data.links?.length ? JSON.stringify(parsed.data.links) : null,
-      },
-    })
+  const upd: Record<string, unknown> = { title: parsed.data.title, role: parsed.data.role, period: parsed.data.period, company: parsed.data.company, summary: parsed.data.summary, impact: parsed.data.impact }
+    if (parsed.data.highlights?.length) upd.highlightsJson = JSON.stringify(parsed.data.highlights)
+    if (parsed.data.stack?.length) upd.stackJson = JSON.stringify(parsed.data.stack)
+    if (parsed.data.links?.length) upd.linksJson = JSON.stringify(parsed.data.links)
+  const crt = { id: parsed.data.id, locale: parsed.data.locale, title: parsed.data.title, role: parsed.data.role, period: parsed.data.period, company: parsed.data.company, summary: parsed.data.summary, impact: parsed.data.impact, ...(parsed.data.highlights?.length ? { highlightsJson: JSON.stringify(parsed.data.highlights) } : {}), ...(parsed.data.stack?.length ? { stackJson: JSON.stringify(parsed.data.stack) } : {}), ...(parsed.data.links?.length ? { linksJson: JSON.stringify(parsed.data.links) } : {}) }
+    await prisma.project.upsert({ where: { id_locale: { id: parsed.data.id, locale: parsed.data.locale } }, update: upd, create: crt })
     cvEntityMutationsTotal.inc({ entity: 'project', action: existing ? 'update' : 'create', result: 'success' })
     invalidateAggregateCache(parsed.data.locale)
     return NextResponse.json({ result: 'ok' })

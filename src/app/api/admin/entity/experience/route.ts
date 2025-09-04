@@ -24,36 +24,12 @@ export async function POST(req: Request) {
   try {
     const key = { id: parsed.data.id, locale: parsed.data.locale }
     const existing = await prisma.experience.findUnique({ where: { id_locale: key } })
-    const achievementsJson = parsed.data.achievements?.length ? JSON.stringify(parsed.data.achievements) : null
-    const stackJson = parsed.data.stack?.length ? JSON.stringify(parsed.data.stack) : null
-    const tagsJson = parsed.data.tags?.length ? JSON.stringify(parsed.data.tags) : null
-    await prisma.experience.upsert({
-      where: { id_locale: key },
-      update: {
-        company: parsed.data.company,
-        role: parsed.data.role,
-        period: parsed.data.period,
-        location: parsed.data.location,
-        employmentType: parsed.data.employmentType,
-        summary: parsed.data.summary,
-        achievementsJson,
-        stackJson,
-        tagsJson,
-      },
-      create: {
-        id: parsed.data.id,
-        locale: parsed.data.locale,
-        company: parsed.data.company,
-        role: parsed.data.role,
-        period: parsed.data.period,
-        location: parsed.data.location,
-        employmentType: parsed.data.employmentType,
-        summary: parsed.data.summary,
-        achievementsJson,
-        stackJson,
-        tagsJson,
-      },
-    })
+  const upd: Record<string, unknown> = { company: parsed.data.company, role: parsed.data.role, period: parsed.data.period, location: parsed.data.location, employmentType: parsed.data.employmentType, summary: parsed.data.summary }
+    if (parsed.data.achievements?.length) upd.achievementsJson = JSON.stringify(parsed.data.achievements)
+    if (parsed.data.stack?.length) upd.stackJson = JSON.stringify(parsed.data.stack)
+    if (parsed.data.tags?.length) upd.tagsJson = JSON.stringify(parsed.data.tags)
+  const crt = { id: parsed.data.id, locale: parsed.data.locale, company: parsed.data.company, role: parsed.data.role, period: parsed.data.period, location: parsed.data.location, employmentType: parsed.data.employmentType, summary: parsed.data.summary, ...(parsed.data.achievements?.length ? { achievementsJson: JSON.stringify(parsed.data.achievements) } : {}), ...(parsed.data.stack?.length ? { stackJson: JSON.stringify(parsed.data.stack) } : {}), ...(parsed.data.tags?.length ? { tagsJson: JSON.stringify(parsed.data.tags) } : {}) }
+    await prisma.experience.upsert({ where: { id_locale: key }, update: upd, create: crt })
     cvEntityMutationsTotal.inc({ entity: 'experience', action: existing ? 'update' : 'create', result: 'success' })
     invalidateAggregateCache(parsed.data.locale)
     return NextResponse.json({ result: 'ok' })

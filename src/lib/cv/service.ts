@@ -1,16 +1,20 @@
 // NOTE: Broad JSON.parse + Zod validation for Prisma rows. Previously had
 // global eslint-disable; refined now to rely on rule-specific allowances.
-import { PrismaClient, type Skill, type Project, type Experience, type Education, type Certification, type Trait, type Hobby } from '@prisma/client'
+import { PrismaClient, Prisma, type Skill, type Project, type Experience, type Education, type Certification, type Trait, type Hobby } from '@prisma/client'
 import { CV_PAGE_SIZE, CV_PAGE_MARGIN, CV_PAGE_COLUMNS, CV_PAGE_GUTTER } from '@/lib/constants'
 import { CvDataSchema, CvDesignSchema, type CvData, type CvDesign } from './schema'
 import { cvAggregateLoadsTotal } from '@/lib/metrics'
 import pino from 'pino'
 
 // Narrow JSON.parse outputs to unknown; Zod handles validation to keep types strict
-function safeJson<T>(raw: string | null | undefined, fallback: T): T {
+function safeJson<T>(raw: string | Prisma.JsonValue | null | undefined, fallback: T): T {
   if (!raw) return fallback
   try {
-    return JSON.parse(raw) as unknown as T
+    if (typeof raw === 'string') {
+      return JSON.parse(raw) as unknown as T
+    }
+    // If it's already a JsonValue (object/array/primitive), trust it as-is.
+    return raw as unknown as T
   } catch {
     return fallback
   }
@@ -85,7 +89,7 @@ export async function seedIfEmpty(locale: string, data: CvData, design: CvDesign
             category: s.category ?? null,
             level: s.level ?? null,
             years: hasYears(s) ? (s.years ?? null) : null,
-            tagsJson: s.tags ? JSON.stringify(s.tags) : null
+            tagsJson: s.tags ? JSON.stringify(s.tags) : undefined
           }))
         })
       }
@@ -94,7 +98,19 @@ export async function seedIfEmpty(locale: string, data: CvData, design: CvDesign
         // createMany lacks relations beyond simple columns
         type SeedProject = CvData['projects'][number]
         await client.project.createMany({
-          data: data.projects.map((p: SeedProject) => ({ id: p.id, locale, title: p.title, role: p.role, period: p.period, company: p.company ?? null, summary: p.summary, highlightsJson: JSON.stringify(p.highlights ?? []), stackJson: JSON.stringify(p.stack ?? []), impact: p.impact ?? null, linksJson: p.links ? JSON.stringify(p.links) : null }))
+          data: data.projects.map((p: SeedProject) => ({
+            id: p.id,
+            locale,
+            title: p.title,
+            role: p.role,
+            period: p.period,
+            company: p.company ?? null,
+            summary: p.summary,
+            highlightsJson: JSON.stringify(p.highlights ?? []),
+            stackJson: JSON.stringify(p.stack ?? []),
+            impact: p.impact ?? null,
+            linksJson: p.links ? JSON.stringify(p.links) : undefined
+          }))
         })
       }
       // Design
