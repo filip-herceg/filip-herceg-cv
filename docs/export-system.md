@@ -1,0 +1,121 @@
+# Export System
+
+This document describes the Export Configs feature (Section Selection MVP slice).
+
+## Overview
+
+Export Configs allow the admin to define named presets controlling which CV sections are included in a generated PDF, along with layout & rendering options:
+
+- Sections list + ordering
+- Optional per-section limits (e.g. cap projects count)
+- Filters (projectSinceYear, experienceSinceYear)
+- Density (normal|compact)
+- Color mode (auto|monochrome)
+- Paper size (A4|Letter)
+- Optional presetType classification (e.g. COMPREHENSIVE / CONCISE)
+
+## Data Model
+
+Stored rows (Prisma model not shown here) include:
+
+| Field | Purpose |
+|-------|---------|
+| id | Unique identifier (string UUID) |
+| name | Human readable label |
+| presetType | Optional category tag |
+| sections | Ordered array of `{ key, limit? }` objects |
+| filters | Optional `{ projectSinceYear?, experienceSinceYear? }` |
+| density | 'normal' | 'compact' |
+| colorMode | 'auto' | 'monochrome' |
+| paperSize | 'A4' | 'Letter' |
+| version | Incrementing integer for optimistic concurrency |
+| createdAt / updatedAt | Timestamps |
+
+## API
+
+`/api/export/configs` supports CRUD with JSON bodies:
+
+- GET: `{ configs: ExportConfig[] }`
+- POST: body = draft (without id/version) -> returns `{ config }`
+- PUT: body = `{ id, version, config: { ...updatedDraft } }` (server increments version)
+- DELETE: `{ id }`
+
+Validation errors return status 400 + `{ error: 'VALIDATION', issues: [...] }`.
+
+Optimistic concurrency: A stale PUT (version mismatch) returns `409` + `{ error: 'CONFLICT' }`.
+
+`/api/export/generate` accepts either a `config` inline specification or a stored `{ configId }`. When `configId` is passed the server loads, validates, derives selection and renders the PDF using the persisted config.
+
+## Derive Selection
+
+Selection logic (in `src/lib/export/selector.ts`) applies:
+
+1. Filter CV entities by `projectSinceYear` / `experienceSinceYear` if present.
+2. Apply per-section `limit` trimming arrays deterministically (original ordering preserved except truncated).
+3. Produce a canonical selection object consumed by PDF generation.
+
+Tag filtering is deferred (schema reserves space but UI does not expose it yet).
+
+## Admin UI
+
+Path: `/admin/exports`.
+
+Modes:
+- List: table of existing configs with essential metadata.
+- Create / Edit form: full draft editor.
+
+Sections Builder:
+- Add the next unused section quickly.
+- Change section key via select (disallows duplicates).
+- Limit field optional numeric.
+- Reorder via Up / Down buttons (each has descriptive `aria-label`).
+- Remove removes the row.
+
+Status messaging appears inline beneath the list/form (simple text feedback sufficing for MVP). A 409 on save sets status to `Version conflict – refetching` and triggers a refetch + resets back to list view with updated version numbers.
+
+## Optimistic Concurrency
+
+The UI passes `id` + `version` on update. Backend compares stored version; mismatch -> 409. On success server increments and returns updated row. UI refresh strategy: refetch all configs after create/update/delete or conflict.
+
+## Accessibility
+
+- All interactive controls are standard buttons/selects/inputs with labels or `aria-label`s.
+- Reorder buttons expose `aria-label="Move up"` / `"Move down"`.
+- Form fields are wrapped in `<label>` with visible text.
+
+Further audits (keyboard ordering hints, focus management) can be added later.
+
+## Logging & Metrics
+
+Logged domain events (see `src/app/api/export/configs/route.ts`):
+- `domain:export.configs.list_success|list_error`
+- `domain:export.configs.create_success|create_error`
+- `domain:export.configs.update_success|update_error|update.invalid`
+- `domain:export.configs.delete_success|delete_error|delete.invalid`
+- Validation: `domain:export.configs.validation_failed|update.validation_failed`
+
+Generation route logs its own events (success/error/validation) and records metrics (PDF metrics are shared).
+
+Future (deferred): explicit UI action logging (client side) & histogram of deriveSelection time.
+
+## Quick Export (Deferred)
+
+Optional enhancement: remember last-used config id in a cookie (e.g. `export_last_id=<uuid>`), preselecting it on visiting `/admin/exports` to streamline repetitive generation tasks. Not required for MVP.
+
+## Edge Cases
+
+- Empty sections array is rejected by schema (must contain at least one section).
+- Duplicate section keys disallowed via UI & validated server-side.
+- Large limits simply act as no-op if exceeding available entities.
+- Stale version conflict handled gracefully (no destructive overwrite).
+
+## Future Enhancements
+
+- Tag-based filtering (multi-select input + schema application in deriveSelection)
+- Named presets registry & shareable links
+- Bulk reorder via drag & drop
+- Export preview (HTML snapshot) before PDF generation
+- Metrics: per-config render counts, selection coverage histogram
+
+---
+Last updated: Phase 2 Slice 2 completion.

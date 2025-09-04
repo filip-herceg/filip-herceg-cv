@@ -76,6 +76,22 @@ PDF Download (curl):
 curl -L "http://localhost:3000/api/cv/pdf?skills=ts,react&projects=obs-platform" -o cv.pdf
 ```
 
+### Export Configs (Admin)
+
+An admin UI at `/admin/exports` provides CRUD for named PDF export presets (sections ordering, filters, density, color mode, paper size).
+
+Workflow:
+1. Create a config (name + sections builder) and save.
+2. Generate PDF via API using stored config id:
+	 ```bash
+	 curl -X POST -H 'Content-Type: application/json' \
+		 -d '{"configId":"<id-from-list>"}' \
+		 http://localhost:3000/api/export/generate > cv.pdf
+	 ```
+3. On concurrent edits the server returns 409; UI refetches to resolve.
+
+Docs: see `docs/export-system.md` for full details.
+
 Environment Variablen (siehe `.env.example`):
 - `BASE_URL` – Basis-URL für absolute PDF-Render-Links (Fallback: Host Header)
 - `CHROMIUM_PATH` – Expliziter Pfad zur Chromium/Chrome Binary. Wenn nicht gefunden: Response 501.
