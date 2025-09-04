@@ -96,7 +96,8 @@ class RedisPdfCache implements PdfCacheBackend {
 
 class S3PdfCache implements PdfCacheBackend {
   readonly kind = 's3'
-  private s3: { send(cmd: unknown): Promise<any> } | undefined // eslint-disable-line @typescript-eslint/no-explicit-any
+  // Narrow structural type: we only rely on `send` returning objects that may have Body or NextContinuationToken
+  private s3: { send(cmd: unknown): Promise<unknown> } | undefined
   private disabled = false
   private readonly bucket = process.env.S3_BUCKET
   private readonly prefix = (process.env.S3_PDF_PREFIX || 'pdf-cache').replace(/\/$/, '')
@@ -117,7 +118,8 @@ class S3PdfCache implements PdfCacheBackend {
     const c = await this.ensure(); if (!c) { pdfCacheMissesTotal.inc({}); return undefined }
     try {
   const mod = await import('@aws-sdk/client-s3') as unknown as { GetObjectCommand: new (cfg: Record<string,string>) => unknown }
-  const res: { Body?: { transformToString?: () => Promise<string> } } = await c.send(new mod.GetObjectCommand({ Bucket: this.bucket!, Key: this.key(key) }))
+  const raw = await c.send(new mod.GetObjectCommand({ Bucket: this.bucket!, Key: this.key(key) })) as { Body?: { transformToString?: () => Promise<string> } }
+  const res: { Body?: { transformToString?: () => Promise<string> } } = raw
   const bodyStream = res.Body
   const b64: string | undefined = typeof bodyStream?.transformToString === 'function' ? await bodyStream.transformToString() : undefined
       if (!b64) { pdfCacheMissesTotal.inc({}); return undefined }

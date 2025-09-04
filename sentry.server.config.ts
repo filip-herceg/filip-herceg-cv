@@ -1,9 +1,7 @@
 // Optional Sentry server init; only runs if @sentry/nextjs is available.
 import * as Sentry from '@sentry/nextjs'
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const _sentry = Sentry as any
 if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
-  _sentry.init?.({
+  Sentry.init({
     dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
     enabled: true,
     environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
@@ -12,9 +10,7 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     replaysSessionSampleRate: 0.0,
     replaysOnErrorSampleRate: 1.0,
     integrations: [
-      _sentry.rewriteFramesIntegration({
-        root: global.process.cwd(),
-      }),
+      Sentry.rewriteFramesIntegration({ root: process.cwd() }),
     ],
   })
 }

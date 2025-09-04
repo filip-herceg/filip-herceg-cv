@@ -11,8 +11,8 @@ function db() {
 // Test-only hook: allows unit tests to inject a mock Prisma-like object without
 // instantiating a real client (which would require DATABASE_URL). Not exported
 // in README/docs – intentionally prefixed to discourage prod usage.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function __setPrismaForTests(p: any) { prisma = p }
+// Accept unknown and cast locally to keep public surface free of `any`.
+export function __setPrismaForTests(p: unknown) { prisma = p as PrismaClient }
 
 // Password hashing (scrypt). Format: scrypt$N$r$p$salt$hash
 export function hashPassword(password: string): string {

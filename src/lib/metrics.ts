@@ -109,6 +109,54 @@ export const pdfGenerationDurationSeconds = new HistogramCtor({
   registers: [registry],
 })
 
+// Export (selective PDF) metrics
+export const exportRequestsTotal = new client.Counter({
+  name: 'export_requests_total',
+  help: 'Total export (selective PDF) generation requests',
+  labelNames: ['result'] as const,
+  registers: [registry],
+})
+
+export const exportSuccessTotal = new client.Counter({
+  name: 'export_success_total',
+  help: 'Successful exports',
+  registers: [registry],
+})
+
+export const exportFailureTotal = new client.Counter({
+  name: 'export_failure_total',
+  help: 'Failed exports by error class',
+  labelNames: ['reason'] as const,
+  registers: [registry],
+})
+
+export const exportCacheHitTotal = new client.Counter({
+  name: 'export_cache_hit_total',
+  help: 'Export cache hits',
+  registers: [registry],
+})
+
+export const exportCacheMissTotal = new client.Counter({
+  name: 'export_cache_miss_total',
+  help: 'Export cache misses',
+  registers: [registry],
+})
+
+export const exportDurationSeconds = new HistogramCtor({
+  name: 'export_duration_seconds',
+  help: 'End-to-end export generation duration by result',
+  labelNames: ['result'] as const,
+  buckets: [0.05,0.1,0.2,0.5,1,2,5,10,20,30,60],
+  registers: [registry],
+})
+
+export const exportPdfSizeBytes = new HistogramCtor({
+  name: 'export_pdf_size_bytes',
+  help: 'Distribution of generated export PDF sizes (bytes)',
+  buckets: [5_000,10_000,20_000,40_000,80_000,120_000,200_000,400_000,800_000],
+  registers: [registry],
+})
+
 // Auth metrics
 export const authLoginAttemptsTotal = new client.Counter({
   name: 'auth_login_attempts_total',

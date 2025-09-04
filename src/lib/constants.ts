@@ -19,4 +19,7 @@ export const CV_PAGE_MARGIN = '16mm'
 export const CV_PAGE_GUTTER = '8mm'
 export const CV_PAGE_COLUMNS = 2
 
+// Feature flags
+export const FEATURE_EXPORT_ENABLED = (process.env.EXPORT_ENABLED || 'false').toLowerCase() === 'true'
+
 // Rate limiter / session (if later needed) could be added here.

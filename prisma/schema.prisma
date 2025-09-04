@@ -126,6 +126,19 @@ model Hobby {
   @@id([id, locale])
 }
 
+// Export configuration (selective PDF presets)
+model ExportConfig {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  presetType String?  @db.Text
+  json       Json
+  version    Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([presetType])
+}
+
 model Design {
   id        String   @id @default(cuid())
   locale    String   @unique
