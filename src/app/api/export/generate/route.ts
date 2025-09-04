@@ -18,8 +18,10 @@ import type { Logger } from 'pino'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+// Narrow internal histogram contract to avoid casting to any
 interface HistogramLike { observe: (v: number) => void }
-const histogram: HistogramLike | undefined = ((): HistogramLike | undefined => {
+// prom-client Histogram has observe method; we defensively check while preserving type safety
+const histogram: HistogramLike | undefined = (() => {
   const candidate = exportPdfSizeBytes as unknown as Partial<HistogramLike>
   return typeof candidate.observe === 'function' ? { observe: candidate.observe.bind(candidate) } : undefined
 })()
@@ -31,35 +33,43 @@ interface LoadedConfigValidationError { error: 'VALIDATION'; issues: unknown }
 interface LoadedConfigNotFound { error: 'CONFIG_NOT_FOUND' }
 type LoadedConfigResult = LoadedConfig | LoadedConfigValidationError | LoadedConfigNotFound
 
+type RequestBodyShape = { configId?: string | number; config?: unknown } | undefined | null
+
 async function loadConfig(prisma: PrismaClient, body: unknown, logger: Logger): Promise<LoadedConfigResult> {
   const repo = new ExportConfigRepository(prisma)
-  let source: unknown
-  let name = 'inline'
-  if (typeof body === 'object' && body) {
-    const recordBody = body as { configId?: unknown; config?: unknown }
-    if (recordBody.configId) {
-      if (typeof recordBody.configId !== 'string' && typeof recordBody.configId !== 'number') {
-        return { error: 'VALIDATION', issues: [{ message: 'configId must be string or number' }] }
-      }
-      const configId = String(recordBody.configId)
-      const record = await repo.get(configId)
-      if (!record) return { error: 'CONFIG_NOT_FOUND' }
-      source = record.json
-      name = record.name
-    } else if (recordBody.config) {
-      source = recordBody.config
-    } else {
-      source = body
+  // Fast path: non-object body treated as inline config
+  if (body === null || typeof body !== 'object') {
+    const parsed = ExportConfigInputSchema.safeParse(body)
+    if (!parsed.success) {
+      logEvent(logger, 'domain:export.generate.validation_failed', { issues: parsed.error.issues.length })
+      return { error: 'VALIDATION', issues: parsed.error.issues }
     }
-  } else {
-    source = body
+    return { cfg: parsed.data, name: 'inline' }
   }
-  const parsed = ExportConfigInputSchema.safeParse(source)
+
+  const recordBody = body as RequestBodyShape
+  const configIdRaw = recordBody?.configId
+  if (configIdRaw != null) {
+    if (typeof configIdRaw !== 'string' && typeof configIdRaw !== 'number') {
+      return { error: 'VALIDATION', issues: [{ message: 'configId must be string or number' }] }
+    }
+    const record = await repo.get(String(configIdRaw))
+    if (!record) return { error: 'CONFIG_NOT_FOUND' }
+    const parsed = ExportConfigInputSchema.safeParse(record.json)
+    if (!parsed.success) {
+      logEvent(logger, 'domain:export.generate.validation_failed', { issues: parsed.error.issues.length })
+      return { error: 'VALIDATION', issues: parsed.error.issues }
+    }
+    return { cfg: parsed.data, name: record.name }
+  }
+
+  const inlineSource = recordBody?.config !== undefined ? recordBody.config : body
+  const parsed = ExportConfigInputSchema.safeParse(inlineSource)
   if (!parsed.success) {
     logEvent(logger, 'domain:export.generate.validation_failed', { issues: parsed.error.issues.length })
     return { error: 'VALIDATION', issues: parsed.error.issues }
   }
-  return { cfg: parsed.data, name }
+  return { cfg: parsed.data, name: 'inline' }
 }
 
 async function buildTargetUrl(cfg: ExportConfigInput, selectionParams: Record<string,string>): Promise<string> {
@@ -68,7 +78,7 @@ async function buildTargetUrl(cfg: ExportConfigInput, selectionParams: Record<st
   return base + '/cv/print' + (qs ? `?${qs}` : '')
 }
 
-async function attemptCacheHit(cacheKey: string, cfg: ExportConfigInput, logger: Logger) {
+async function attemptCacheHit(cacheKey: string, cfg: ExportConfigInput, logger: Logger): Promise<NextResponse | undefined> {
   try {
     const cached = await pdfCache.get(cacheKey)
     if (cached) {
@@ -85,7 +95,7 @@ async function attemptCacheHit(cacheKey: string, cfg: ExportConfigInput, logger:
   return undefined
 }
 
-async function generateAndRespond(target: string, cacheKey: string, cfg: ExportConfigInput, configName: string, logger: Logger) {
+async function generateAndRespond(target: string, cacheKey: string, cfg: ExportConfigInput, configName: string, logger: Logger): Promise<NextResponse> {
   const { final, person } = await generateCvPdf(target)
   try { await pdfCache.set(cacheKey, final) } catch (e) { logError(logger, 'domain:export.generate.cache_set_error', e instanceof Error ? e : new Error('cache_set')) }
   exportRequestsTotal.inc({ result: 'success' })
@@ -95,7 +105,7 @@ async function generateAndRespond(target: string, cacheKey: string, cfg: ExportC
   return new NextResponse(new Uint8Array(final), { status: 200, headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${person.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-export.pdf"`, 'X-Cache': 'MISS' } })
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   const logger = withRequestContext(req)
   if (!FEATURE_EXPORT_ENABLED) {
     logEvent(logger, 'domain:export.generate.disabled')
@@ -146,7 +156,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-  return await generateAndRespond(target, cacheKey, cfg, configName, logger)
+    return await generateAndRespond(target, cacheKey, cfg, configName, logger)
   } catch (e) {
     const err = e instanceof Error ? e : new Error('export_failed')
     exportRequestsTotal.inc({ result: 'error' })
