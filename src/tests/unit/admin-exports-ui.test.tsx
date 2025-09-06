@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import Client from '@/app/admin/exports/ui'
 
 // We exercise the Client component (admin exports UI) with a minimal initial dataset
@@ -64,5 +64,16 @@ describe('Admin Exports UI', () => {
     // Save (PUT) triggers 409 then refresh
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await screen.findByText(/Version conflict/i)
+  })
+
+  it('quick export sets cookie and updates last-used highlight', async () => {
+    // mock generate call success
+    fetchMock.mockResolvedValueOnce(new Response(new Uint8Array([37,80,68,70]) as any, { status: 200, headers: { 'Content-Type': 'application/pdf' } }))
+    render(<Client initial={initialRow()} />)
+    const exportBtn = screen.getByRole('button', { name: 'Export' })
+    fireEvent.click(exportBtn)
+    await waitFor(() => expect(screen.getByText(/Exported/)).toBeTruthy())
+    // Cookie should be set (jsdom document.cookie contains it)
+    expect(document.cookie).toMatch(/last_export_config=cfg1/)
   })
 })

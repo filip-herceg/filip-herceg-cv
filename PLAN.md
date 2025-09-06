@@ -21,20 +21,21 @@ Scope: Provide CRUD + inline editing UI for Export Configs, enable selection-dri
 - [ ] Selection logic
 	- [x] Basic deriveSelection implemented (filters + limits)
 	- [ ] Apply tags (future slice; not in schema usage yet) – DEFER
-	- [ ] Quick Export last-used config (store id in cookie or meta) – MVP optional
+	- [x] Quick Export last-used config (cookie) – IMPLEMENTED
 - [x] Tests
 	- [x] Repository CRUD unit tests
 	- [x] /api/export/configs integration tests (create/update conflict/delete)
 	- [x] /api/export/generate using configId path
 	- [x] Admin UI component test (sections reorder + submit + conflict)
 - [ ] Metrics/Logging
+	- [x] Derive selection & total export duration histograms
 	- [ ] Log UI actions (optional) – DEFER
 	- [x] Confirm existing domain:export.configs.* coverage adequate
 - [x] Accessibility
 	- [x] Section reorder buttons have aria-labels
 	- [x] Form inputs labeled
 - [ ] Documentation
-	- [ ] Update docs/export-system.md with UI notes & version conflict handling
+	- [x] Update docs/export-system.md with UI notes, metrics & quick export
 	- [ ] Add README snippet for admin exports usage
 
 Assumptions:

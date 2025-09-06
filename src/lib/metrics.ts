@@ -150,6 +150,15 @@ export const exportDurationSeconds = new HistogramCtor({
   registers: [registry],
 })
 
+// Derive selection latency (very small buckets – internal performance insight)
+export const exportSelectionDeriveDurationSeconds = new HistogramCtor({
+  name: 'export_selection_derive_duration_seconds',
+  help: 'Duration of deriveSelection() execution (seconds)',
+  labelNames: ['result'] as const, // result mirrors outer export result for correlation
+  buckets: [0.00025,0.0005,0.001,0.002,0.005,0.01,0.02,0.05,0.1],
+  registers: [registry],
+})
+
 export const exportPdfSizeBytes = new HistogramCtor({
   name: 'export_pdf_size_bytes',
   help: 'Distribution of generated export PDF sizes (bytes)',

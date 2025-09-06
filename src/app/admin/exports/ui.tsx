@@ -65,12 +65,13 @@ function SectionEditor({ draft, setDraft }: SectionEditorProps) {
   )
 }
 
-type ClientProps = Readonly<{ initial: RecordRow[] }>
-function Client({ initial }: ClientProps) {
+type ClientProps = Readonly<{ initial: RecordRow[]; lastUsedId?: string }>
+function Client({ initial, lastUsedId }: ClientProps) {
   const [rows, setRows] = React.useState<RecordRow[]>(initial)
   const [draft, setDraft] = React.useState<ExportConfigDraft>(defaultDraft())
   const [mode, setMode] = React.useState<'list' | 'create' | 'edit'>('list')
   const [status, setStatus] = React.useState<string>('')
+  const [lastUsed, setLastUsed] = React.useState<string | undefined>(lastUsedId)
 
   async function refresh() {
     try {
@@ -105,23 +106,57 @@ function Client({ initial }: ClientProps) {
     } catch { setStatus('Network error') }
   }
 
+  async function quickExport(r: RecordRow) {
+    setStatus(`Exporting ${r.name}...`)
+    try {
+      const res = await fetch('/api/export/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configId: r.id }) })
+      if (!res.ok) { setStatus('Export failed'); return }
+      const buf = await res.arrayBuffer()
+      // Trigger download (best-effort; fine if skipped in tests / unsupported env)
+      try {
+        const blob = new Blob([buf], { type: 'application/pdf' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${r.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-export.pdf`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      } catch { /* noop */ }
+      // Persist last-used cookie (30d)
+      document.cookie = `last_export_config=${r.id}; Path=/; Max-Age=${60*60*24*30}`
+      setLastUsed(r.id)
+      setStatus(`Exported (${Math.round(buf.byteLength/1024)} KB)`) 
+    } catch { setStatus('Network error') }
+  }
+
   const listView = () => (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">Export Configs</h1>
-        <button onClick={startCreate} className="border rounded px-3 py-1 text-sm hover:bg-accent">New</button>
+        <div className="flex gap-2 items-center">
+          {lastUsed && rows.some(r=>r.id===lastUsed) && (
+            <button type="button" onClick={()=>{ const r = rows.find(r=>r.id===lastUsed)!; quickExport(r) }} className="border rounded px-3 py-1 text-sm hover:bg-accent" aria-label="Quick Export Last Used">Quick Export Last</button>
+          )}
+          <button onClick={startCreate} className="border rounded px-3 py-1 text-sm hover:bg-accent">New</button>
+        </div>
       </div>
       <table className="w-full text-sm border">
         <thead className="bg-accent/40"><tr><th className="text-left p-2">Name</th><th className="text-left p-2">Preset</th><th className="text-left p-2">Sections</th><th className="text-left p-2">Version</th><th className="text-left p-2">Updated</th><th className="p-2">Actions</th></tr></thead>
         <tbody>
           {rows.map(r => (
-            <tr key={r.id} className="border-t">
+            <tr key={r.id} className={`border-t ${lastUsed===r.id ? 'bg-accent/20' : ''}`}>
               <td className="p-2 font-medium">{r.name}</td>
               <td className="p-2">{r.presetType || '-'}</td>
               <td className="p-2 text-xs">{r.sections?.map((s: SectionInput)=>s.key).join(', ')}</td>
               <td className="p-2">{r.version}</td>
               <td className="p-2 text-xs">{new Date(r.updatedAt).toLocaleDateString()}</td>
-              <td className="p-2 flex gap-2"><button onClick={()=>startEdit(r)} className="text-xs underline">Edit</button><button onClick={()=>remove(r)} className="text-xs text-destructive underline">Delete</button></td>
+              <td className="p-2 flex flex-wrap gap-2">
+                <button onClick={()=>quickExport(r)} className="text-xs underline" aria-label="Export">Export</button>
+                <button onClick={()=>startEdit(r)} className="text-xs underline">Edit</button>
+                <button onClick={()=>remove(r)} className="text-xs text-destructive underline">Delete</button>
+              </td>
             </tr>
           ))}
         </tbody>

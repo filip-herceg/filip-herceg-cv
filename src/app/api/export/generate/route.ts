@@ -5,7 +5,7 @@ import { NextCookieStore } from '@/lib/auth/cookies'
 import { requireAdmin } from '@/lib/auth/guard'
 import { ExportConfigInputSchema, type ExportConfigInput } from '@/lib/export/schema'
 import { generateCvPdf } from '@/lib/pdf/generate'
-import { exportRequestsTotal, exportCacheHitTotal, exportCacheMissTotal, exportPdfSizeBytes, exportSuccessTotal, exportFailureTotal } from '@/lib/metrics'
+import { exportRequestsTotal, exportCacheHitTotal, exportCacheMissTotal, exportPdfSizeBytes, exportSuccessTotal, exportFailureTotal, exportDurationSeconds, exportSelectionDeriveDurationSeconds } from '@/lib/metrics'
 import { pdfCache } from '@/lib/pdf-cache'
 import { withRequestContext, logEvent, logError } from '@/lib/logger'
 import crypto from 'crypto'
@@ -78,6 +78,29 @@ async function buildTargetUrl(cfg: ExportConfigInput, selectionParams: Record<st
   return base + '/cv/print' + (qs ? `?${qs}` : '')
 }
 
+function bufferToStream(buf: Uint8Array): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(buf)
+      controller.close()
+    }
+  })
+}
+
+function pdfResponseStream(buf: Uint8Array, filename: string, cache: 'HIT' | 'MISS'): NextResponse {
+  const stream = bufferToStream(buf)
+  return new NextResponse(stream, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${filename}"`,
+      'X-Cache': cache,
+      // Provide length for clients that can still consume streamed body with known length
+      'Content-Length': String(buf.byteLength)
+    }
+  })
+}
+
 async function attemptCacheHit(cacheKey: string, cfg: ExportConfigInput, logger: Logger): Promise<NextResponse | undefined> {
   try {
     const cached = await pdfCache.get(cacheKey)
@@ -86,7 +109,8 @@ async function attemptCacheHit(cacheKey: string, cfg: ExportConfigInput, logger:
       exportRequestsTotal.inc({ result: 'cache_hit' })
       observeExportSize(cached.byteLength || (Array.isArray(cached) ? cached.length : 0))
       logEvent(logger, 'domain:export.generate.cache_hit', { key: cacheKey })
-      return new NextResponse(new Uint8Array(cached), { status: 200, headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${cfg.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-export.pdf"`, 'X-Cache': 'HIT' } })
+  const bytes = new Uint8Array(cached)
+  return pdfResponseStream(bytes, `${cfg.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-export.pdf`, 'HIT')
     }
     exportCacheMissTotal.inc()
   } catch (e) {
@@ -102,65 +126,85 @@ async function generateAndRespond(target: string, cacheKey: string, cfg: ExportC
   exportSuccessTotal.inc()
   observeExportSize(final.byteLength)
   logEvent(logger, 'domain:export.generate.success', { bytes: final.byteLength, key: cacheKey, config: configName })
-  return new NextResponse(new Uint8Array(final), { status: 200, headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${person.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-export.pdf"`, 'X-Cache': 'MISS' } })
+  return pdfResponseStream(new Uint8Array(final), `${person.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-export.pdf`, 'MISS')
 }
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  const logger = withRequestContext(req)
-  if (!FEATURE_EXPORT_ENABLED) {
-    logEvent(logger, 'domain:export.generate.disabled')
-    exportRequestsTotal.inc({ result: 'disabled' })
-    return NextResponse.json({ error: 'EXPORT_DISABLED' }, { status: 501 })
-  }
+function disabledResponse(logger: Logger): NextResponse {
+  logEvent(logger, 'domain:export.generate.disabled')
+  exportRequestsTotal.inc({ result: 'disabled' })
+  return NextResponse.json({ error: 'EXPORT_DISABLED' }, { status: 501 })
+}
+
+// Auth context requires cookie store; request param unused (prefix underscore)
+// (param kept for potential future per-request context needs)
+async function authContext(__unused: NextRequest): Promise<ReturnType<typeof requireAdmin>> {
   const store = await new (NextCookieStore)().init()
   const ctx = buildAuthContext({ store })
-  const auth = await requireAdmin(ctx)
+  return requireAdmin(ctx)
+}
+
+async function parseBody(_req: NextRequest): Promise<unknown> {
+  try { return await _req.json() } catch { return {} }
+}
+
+async function resolveConfig(prisma: PrismaClient, body: unknown, logger: Logger) {
+  const loaded = await loadConfig(prisma, body, logger)
+  if ('error' in loaded) {
+    exportRequestsTotal.inc({ result: loaded.error === 'CONFIG_NOT_FOUND' ? 'config_not_found' : 'invalid' })
+  }
+  return loaded
+}
+
+function buildCacheKey(cfg: ExportConfigInput, selectionHash: string[]): string {
+  const hash = crypto.createHash('sha256')
+    .update(JSON.stringify(cfg))
+    .update('|')
+    .update(selectionHash.join('|'))
+    .digest('hex')
+    .slice(0, 16)
+  return `export:${hash}`
+}
+
+export async function POST(_req: NextRequest): Promise<NextResponse> {
+  const logger = withRequestContext(_req)
+  if (!FEATURE_EXPORT_ENABLED) return disabledResponse(logger)
+
+  const auth = await authContext(_req)
   if (!auth.ok) {
     logEvent(logger, 'domain:export.generate.auth_failed')
     exportRequestsTotal.inc({ result: 'unauthorized' })
     return NextResponse.json(auth.body, { status: auth.status })
   }
 
-  let body: unknown = {}
-  try { body = await req.json() } catch { /* ignore malformed */ }
-
+  const body = await parseBody(_req)
   const prisma = new PrismaClient()
-  const loaded = await loadConfig(prisma, body, logger)
-  if ('error' in loaded) {
-    exportRequestsTotal.inc({ result: loaded.error === 'CONFIG_NOT_FOUND' ? 'config_not_found' : 'invalid' })
-    const status = loaded.error === 'CONFIG_NOT_FOUND' ? 404 : 400
-    return NextResponse.json(loaded, { status })
-  }
+  const loaded = await resolveConfig(prisma, body, logger)
+  if ('error' in loaded) { return NextResponse.json(loaded, { status: loaded.error === 'CONFIG_NOT_FOUND' ? 404 : 400 }) }
   const cfg = loaded.cfg
   const configName = loaded.name
 
-  // Derive dynamic selection (IDs) from aggregate + config (first slice: apply global filters + per-section limit)
+  // Selection derive timing
+  const selectionTimerEnd = exportSelectionDeriveDurationSeconds.startTimer ? exportSelectionDeriveDurationSeconds.startTimer({ result: 'pending' }) : undefined
   const { data: agg } = await getAggregate('en')
   const selection = deriveSelection(cfg, agg)
-  const selectionParams = selectionToQueryParams(cfg, selection)
-  const target = await buildTargetUrl(cfg, selectionParams)
+  selectionTimerEnd?.({ result: 'ok' })
+  const target = await buildTargetUrl(cfg, selectionToQueryParams(cfg, selection))
   logEvent(logger, 'domain:export.generate.selection_computed', { targetQuery: target.split('?')[1] || '', skills: selection.skills.length, projects: selection.projects.length, experiences: selection.experiences.length })
 
-  // Deterministic cache key based on config contents
-  const hash = crypto.createHash('sha256')
-    .update(JSON.stringify(cfg))
-    .update('|')
-    .update(selectionHashParts(selection).join('|'))
-    .digest('hex')
-    .slice(0, 16)
-  const cacheKey = `export:${hash}`
+  const cacheKey = buildCacheKey(cfg, selectionHashParts(selection))
   const cachedResponse = await attemptCacheHit(cacheKey, cfg, logger)
-  if (cachedResponse) {
-    await prisma.$disconnect().catch(() => {})
-    return cachedResponse
-  }
+  if (cachedResponse) { await prisma.$disconnect().catch(() => {}); return cachedResponse }
 
+  const endTotal = exportDurationSeconds.startTimer ? exportDurationSeconds.startTimer({ result: 'pending' }) : undefined
   try {
-    return await generateAndRespond(target, cacheKey, cfg, configName, logger)
+    const resp = await generateAndRespond(target, cacheKey, cfg, configName, logger)
+    endTotal?.({ result: 'success' })
+    return resp
   } catch (e) {
     const err = e instanceof Error ? e : new Error('export_failed')
     exportRequestsTotal.inc({ result: 'error' })
     exportFailureTotal.inc({ reason: err.name || 'Error' })
+    endTotal?.({ result: 'error' })
     logError(logger, 'domain:export.generate.error', err)
     return NextResponse.json({ error: 'EXPORT_FAILED' }, { status: err.message === 'no_chromium' ? 501 : 500 })
   } finally {

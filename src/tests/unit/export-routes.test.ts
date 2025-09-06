@@ -120,6 +120,8 @@ vi.mock('@/lib/metrics', () => {
     exportSuccessTotal: counter(),
     exportFailureTotal: { inc: () => {} },
     exportPdfSizeBytes: histogram(),
+  exportDurationSeconds: histogram(),
+  exportSelectionDeriveDurationSeconds: histogram(),
     // Additional symbols referenced indirectly through other imports during dynamic module load
     cvStorageGetDurationSeconds: histogram(),
     pdfCacheGetDurationSeconds: histogram(),

@@ -94,13 +94,21 @@ Logged domain events (see `src/app/api/export/configs/route.ts`):
 - `domain:export.configs.delete_success|delete_error|delete.invalid`
 - Validation: `domain:export.configs.validation_failed|update.validation_failed`
 
-Generation route logs its own events (success/error/validation) and records metrics (PDF metrics are shared).
+Generation route logs its own events (success/error/validation) and records metrics:
 
-Future (deferred): explicit UI action logging (client side) & histogram of deriveSelection time.
+Implemented metrics (see `src/lib/metrics.ts`):
+- `export_requests_total` (counter)
+- `export_success_total` / `export_failure_total` (counters)
+- `export_cache_hit_total` / `export_cache_miss_total` (counters)
+- `export_pdf_size_bytes` (histogram)
+- `export_duration_seconds` (histogram of end‑to‑end export latency per attempt)
+- `export_selection_derive_duration_seconds` (histogram measuring just the `deriveSelection` computation time)
 
-## Quick Export (Deferred)
+Deferred: explicit UI action logging (client side capturing button clicks / form intents).
 
-Optional enhancement: remember last-used config id in a cookie (e.g. `export_last_id=<uuid>`), preselecting it on visiting `/admin/exports` to streamline repetitive generation tasks. Not required for MVP.
+## Quick Export (Implemented)
+
+The UI remembers the last-used config id in a cookie `last_export_config=<uuid>` (30d). When visiting `/admin/exports`, if that config still exists it’s highlighted and a "Quick Export Last" button is shown. Triggering any export updates the cookie.
 
 ## Edge Cases
 
@@ -116,6 +124,7 @@ Optional enhancement: remember last-used config id in a cookie (e.g. `export_las
 - Bulk reorder via drag & drop
 - Export preview (HTML snapshot) before PDF generation
 - Metrics: per-config render counts, selection coverage histogram
+- Client-side UI action logging (instrumenting button press events)
 
 ---
-Last updated: Phase 2 Slice 2 completion.
+Last updated: Phase 2 Slice 2 – instrumentation + quick export implementation.

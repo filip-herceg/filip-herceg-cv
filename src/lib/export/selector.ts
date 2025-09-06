@@ -21,6 +21,13 @@ export function deriveSelection(cfg: ExportConfigInput, data: CvData): ExportSel
 
   // Projects
   let projects = data.projects
+  const projectCfg = sectionMap.get('PROJECTS')
+  if (projectCfg?.tags?.length) {
+    const tagSet = new Set(projectCfg.tags.map(t=>t.toLowerCase()))
+    projects = projects.filter(p => Array.isArray(p.stack)
+      ? p.stack.some((s: unknown) => typeof s === 'string' && tagSet.has(s.toLowerCase()))
+      : true)
+  }
   if (filters.projectSinceYear) {
     projects = projects.filter(p => {
       const match = /^(\d{4})/.exec(p.period)
@@ -28,11 +35,18 @@ export function deriveSelection(cfg: ExportConfigInput, data: CvData): ExportSel
       return !yr || yr >= filters.projectSinceYear!
     })
   }
-  projects = applyLimit(projects, sectionMap.get('PROJECTS')?.limit) || []
+  projects = applyLimit(projects, projectCfg?.limit) || []
 
   // Experience
   const baseExperiences: NonNullable<CvData['experiences']> = Array.isArray(data.experiences) ? [...data.experiences] as NonNullable<CvData['experiences']> : []
   let experiences = baseExperiences
+  const expCfg = sectionMap.get('EXPERIENCE')
+  if (expCfg?.tags?.length) {
+    const tagSet = new Set(expCfg.tags.map(t=>t.toLowerCase()))
+    experiences = experiences.filter(e => Array.isArray(e.stack)
+      ? e.stack.some((s: unknown) => typeof s === 'string' && tagSet.has(s.toLowerCase()))
+      : true)
+  }
   if (filters.experienceSinceYear) {
     experiences = experiences.filter(e => {
       const match = /^(\d{4})/.exec(e.period)
@@ -40,13 +54,35 @@ export function deriveSelection(cfg: ExportConfigInput, data: CvData): ExportSel
       return !yr || yr >= filters.experienceSinceYear!
     })
   }
-  experiences = applyLimit(experiences, sectionMap.get('EXPERIENCE')?.limit) || []
+  experiences = applyLimit(experiences, expCfg?.limit) || []
 
   // Skills
-  const skills = applyLimit(data.skills, sectionMap.get('SKILLS')?.limit) || []
+  let skillsRaw = data.skills
+  const skillCfg = sectionMap.get('SKILLS')
+  if (skillCfg?.tags?.length) {
+    const tagSet = new Set(skillCfg.tags.map(t=>t.toLowerCase()))
+    skillsRaw = skillsRaw.filter(s => {
+      const tagsVal = (s as { tags?: unknown }).tags
+      return Array.isArray(tagsVal)
+        ? tagsVal.some((t: unknown) => typeof t === 'string' && tagSet.has(t.toLowerCase()))
+        : true
+    })
+  }
+  const skills = applyLimit(skillsRaw, skillCfg?.limit) || []
 
   // Education
-  const education = applyLimit(data.education, sectionMap.get('EDUCATION')?.limit) || data.education
+  let educationRaw = data.education
+  const eduCfg = sectionMap.get('EDUCATION')
+  if (educationRaw && eduCfg?.tags?.length) {
+    const tagSet = new Set(eduCfg.tags.map(t=>t.toLowerCase()))
+    educationRaw = educationRaw.filter(ed => {
+      const tagsVal = (ed as { tags?: unknown }).tags
+      return Array.isArray(tagsVal)
+        ? tagsVal.some((t: unknown) => typeof t === 'string' && tagSet.has(t.toLowerCase()))
+        : true
+    })
+  }
+  const education = applyLimit(educationRaw, eduCfg?.limit) || educationRaw
 
   return { skills, projects, experiences, education }
 }
