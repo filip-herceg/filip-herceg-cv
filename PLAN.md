@@ -20,7 +20,7 @@ Scope: Provide CRUD + inline editing UI for Export Configs, enable selection-dri
 	- [x] Concurrency conflict toast (status message on 409 & refetch)
 - [ ] Selection logic
 	- [x] Basic deriveSelection implemented (filters + limits)
-	- [ ] Apply tags (future slice; not in schema usage yet) – DEFER
+	- [x] Apply tags (projects/experiences by stack; skills/education by tags)
 	- [x] Quick Export last-used config (cookie) – IMPLEMENTED
 - [x] Tests
 	- [x] Repository CRUD unit tests
@@ -36,7 +36,7 @@ Scope: Provide CRUD + inline editing UI for Export Configs, enable selection-dri
 	- [x] Form inputs labeled
 - [ ] Documentation
 	- [x] Update docs/export-system.md with UI notes, metrics & quick export
-	- [ ] Add README snippet for admin exports usage
+	- [x] Add README snippet for admin exports usage
 
 Assumptions:
 - Minimal styling; reuse existing button/input components.

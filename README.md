@@ -95,8 +95,11 @@ Docs: see `docs/export-system.md` for full details.
 Quick Export:
 - The UI stores the last exported config id in `last_export_config` cookie (30d) and surfaces a "Quick Export Last" button for rapid regeneration.
 
-Tag Filtering (Upcoming):
-- Each section entry reserves a `tags` array (up to 8) enabling future fine-grained inclusion (e.g. limit projects to specific tech tags). UI exposure planned in a later slice.
+Tag Filtering:
+- Each section entry supports a `tags` array (up to 8) enabling fine-grained inclusion. Filtering applies as:
+	- Projects/Experiences: match by `stack` items (case-insensitive)
+	- Skills/Education: match by `tags` arrays (case-insensitive)
+	- Behavior: if any tags are set for a section, only matching items are included before `limit` is applied.
 
 Environment Variablen (siehe `.env.example`):
 - `BASE_URL` – Basis-URL für absolute PDF-Render-Links (Fallback: Host Header)
