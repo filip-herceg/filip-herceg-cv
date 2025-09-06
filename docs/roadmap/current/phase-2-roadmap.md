@@ -1,7 +1,7 @@
 # Phase 2 Roadmap – Export Fidelity & Selective Application Packets
 
 Status: draft
-LastUpdated: 2025-09-03
+LastUpdated: 2025-09-06
 Owner: product/engineering
 
 ## Goal
@@ -13,6 +13,21 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 - Export completes < 4s median cold; < 2.5s warm (server cached assets / chromium reuse).
 - Metrics & logs show < 1% failed exports and trace spans for 100% of export requests.
 - Basic presets available (Comprehensive, Concise, Leadership, Technical) with overridable heuristics.
+
+## Progress Snapshot (as of 2025-09-06)
+- Completed
+	- Headless PDF export route with direct streaming responses and cache integration in place (GET /api/cv/pdf; admin export generate route available).
+	- Section selection and tag/stack filters implemented with per-section limits; query/hash helpers wired for URL/token flows.
+	- Quick Export UX via cookie for last-used config; admin exports API and UI scaffolding present.
+	- Metrics and tracing around selection/export (histograms, counters); structured logs with privacy considerations.
+	- Solid test coverage across export pipeline components (unit + integration), including error branches.
+- In Progress
+	- Print polish and fidelity (media print tokens exist; further tuning + diff harness TBD).
+	- Preset generation utilities (functions) and telemetry event wiring to be added next.
+- Upcoming
+	- Visual diff harness and thresholds for print fidelity.
+	- Chromium context warm pool for consistent warm performance.
+	- Tokenized share link for latest preset export and footer QR.
 
 ## Phase Slices
 | Slice | Objective | Key User Value | Exit Criteria |
@@ -28,6 +43,7 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 
 ## Detailed Work Breakdown
 ### 1. Export Core Infrastructure
+- Status: foundational routes and streaming cache are in place; deterministic SSR snapshot variant is partially covered via export pages.
 - Select rendering engine: Puppeteer (Chromium) vs. Playwright. (Assume Playwright already in dev deps.)
 - Server route: POST /api/export (auth: admin) returning job id → poll OR direct streaming (decide after size test)
 - Deterministic HTML snapshot: SSR page variant /export?config=ID (no animations, stable timestamps)
@@ -35,6 +51,7 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 - Store produced PDF (stream to client + ephemeral cache (memory or disk LRU))
 
 ### 2. Section Selection MVP
+- Status: selection + filters + limits implemented; admin exports page exists; drag & drop ordering is planned.
 - Data model: ExportConfig { id, name, sections: SectionRef[], createdAt, updatedAt, filters? }
 - UI: Admin panel page /admin/exports
 - Drag & drop ordering (keyboard accessible)
@@ -42,36 +59,42 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 - Versioning: simple updatedAt check (future diff history deferred)
 
 ### 3. Layout Fidelity & Styles
+- Status: print stylesheet exists; fidelity tuning and diff harness not yet implemented.
 - Print stylesheet pass (media print + forced color adjustments)
 - Density modes: normal | compact (line-height, margins)
 - Diff harness: render canonical screen HTML & print HTML, compare serialized DOM & bounding boxes (tolerance config)
 - Image / icon fallback (SVG inline) for consistent output
 
 ### 4. Presets & Heuristics
+- Status: Quick Export UX wired; next up — preset generator functions and analytics events.
 - Preset generator functions (e.g. buildLeadershipPreset(profile): ExportConfig)
 - Heuristics: limit Projects to last 5 yrs or top impact score; limit Experience bullet points (future scoring placeholder)
 - Quick Export button chooses last used preset
 - Telemetry events: export_config_applied, export_section_filtered
 
 ### 5. Performance & Caching
+- Status: export caching is implemented; warm Chromium pool not yet.
 - Warm pool of Chromium contexts (reuse between requests)
 - Asset hashing & CDN headers (if hosting env supports) else server cache
 - Parallel section pre-render (promise all) then assemble in export template (HTML concatenation not re-querying DB)
 - Measure: instrumentation (start, domReady, pdfDone)
 
 ### 6. Observability & Reliability
+- Status: metrics (histograms/counters) and tracing spans present; error branches covered in tests; health endpoint TBD.
 - Traces: root span export.request with child spans (fetch.profile, render.html, chromium.launch, pdf.generate, store.cache)
 - Metrics: histogram pdf_duration_ms, counter pdf_fail_total, gauge chromium_context_pool_size
 - Structured error classes (ExportConfigNotFound, RenderTimeout, ChromiumCrashed)
 - Health endpoint /api/export/health (pool status)
 
 ### 7. Security & Link Bridge
+- Status: selection tokens in JSON/skills routes exist; dedicated signed one‑click export token and footer QR are pending.
 - Generate signed short-lived token for one-click latest preset export (shareable link)
 - PDF footer: unobtrusive site URL + QR (SVG) + small note “Full interactive profile: <domain>”
 - Robots: ensure export route not indexed
 - Log redaction: remove PII / email from trace attributes
 
 ### 8. UX Polish & Accessibility
+- Status: baseline admin UI is usable; wizard preview and a11y polish are pending.
 - Wizard improvements: live preview panel (server pre-renders HTML snapshot without PDF step)
 - Keyboard ordering (roving tabindex + aria-grabbed)
 - Announce export progress (aria-live region)
@@ -91,6 +114,19 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 - Export success metric increments only after flush stream completes
 - Daily aggregation script for export volumes & failure reasons
 - Alert: pdf_fail_total > 5 in 10m OR pdf_duration_ms p95 > 8000
+
+## Next Step Plan (to start now)
+Focus: Slice 4 – Presets & Heuristics
+
+Deliverables (small, incremental):
+- Add preset generator utilities that produce typed ExportConfigInput for: Comprehensive, Concise, Leadership, Technical.
+- Seed presets in dev/test and expose “Create from preset” actions in Admin Exports page (behind a small button group).
+- Emit telemetry events when a preset is applied (export_config_applied) and when filters prune sections (export_section_filtered).
+- Unit tests for each preset ensuring expected filters/limits and stable ordering.
+
+Exit criteria for this step:
+- All four presets selectable in UI and persisted.
+- Tests green with coverage ≥ existing thresholds; events visible in logs during tests.
 
 ## Definition of Done (Phase 2)
 All slices 1–6 complete; 7 & 8 at least partially landed (footer link + a11y baseline). Metrics hitting targets for two consecutive weeks. No P1 reliability issues open. Documentation updated (operations runbook + product spec for export config format).

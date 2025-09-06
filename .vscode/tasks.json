@@ -1,158 +1,234 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Dev: next dev",
-      "type": "shell",
-      "command": "npm run dev",
-      "isBackground": true,
-      "problemMatcher": {
-        "owner": "custom",
-        "pattern": [{ "regexp": "." }],
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": "ready -",
-          "endsPattern": "ready -"
-        }
-      },
-      "group": { "kind": "build", "isDefault": true },
-      "presentation": { "reveal": "always", "panel": "shared" }
-    },
-    {
-      "label": "Build: next build",
-      "type": "shell",
-      "command": "npm run build",
-      "group": "build",
-      "presentation": { "reveal": "always", "panel": "dedicated" }
-    },
-    {
-      "label": "Start: next start",
-      "type": "shell",
-      "command": "node .next/standalone/server.js",
-      "options": {
-        "env": {
-          "PORT": "3000"
-        }
-      },
-      "dependsOn": ["Build: next build"],
-      "dependsOrder": "sequence",
-      "isBackground": true,
-      "problemMatcher": {
-        "owner": "custom",
-        "pattern": [{ "regexp": "." }],
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": "ready -|Listening on|started server",
-          "endsPattern": "ready -|Listening on|started server"
-        }
-      },
-      "presentation": { "reveal": "always", "panel": "shared" }
-    },
-    {
-      "label": "Lint",
-      "type": "shell",
-      "command": "npm run lint",
-      "group": "test",
-      "presentation": { "reveal": "always" }
-    },
-    {
-      "label": "Lint: strict (CI)",
-      "type": "shell",
-      "command": "npm run lint:ci",
-      "group": "test",
-      "presentation": { "reveal": "never" },
-      "problemMatcher": "$eslint-stylish"
-    },
-    {
-      "label": "Typecheck",
-      "type": "shell",
-      "command": "npm run typecheck",
-      "group": "test",
-      "presentation": { "reveal": "always" }
-    },
-    {
-      "label": "Unit+Integration tests",
-      "type": "shell",
-      "command": "npm test",
-      "group": { "kind": "test", "isDefault": true },
-      "presentation": { "reveal": "always", "panel": "dedicated" }
-    },
-    {
-      "label": "Tests: watch",
-      "type": "shell",
-      "command": "npm run test:watch",
-      "presentation": { "reveal": "always", "panel": "shared" }
-    },
-    {
-      "label": "E2E tests (Playwright)",
-      "type": "shell",
-      "command": "npm run e2e",
-      "presentation": { "reveal": "always", "panel": "shared" }
-    },
-    {
-      "label": "E2E headed (Playwright)",
-      "type": "shell",
-      "command": "npm run e2e:headed",
-      "presentation": { "reveal": "always", "panel": "shared" }
-    },
-    {
-      "label": "A11y (pa11y-ci)",
-      "type": "shell",
-      "command": "npx pa11y-ci",
-      "dependsOn": ["Start: next start"],
-      "dependsOrder": "sequence",
-      "presentation": { "reveal": "always", "panel": "shared" }
-    },
-    {
-      "label": "Lighthouse (LHCI)",
-      "type": "shell",
-      "command": "npm run lhci",
-      "dependsOn": ["Start: next start"],
-      "dependsOrder": "sequence",
-      "presentation": { "reveal": "always", "panel": "shared" }
-    },
-    {
-      "label": "CI: lint+typecheck+build+test",
-      "type": "shell",
-      "command": "echo CI checks complete",
-      "dependsOn": [
-        "Lint: strict (CI)",
-        "Typecheck",
-        "Build: next build",
-        "Unit+Integration tests"
-      ],
-      "dependsOrder": "sequence",
-      "presentation": { "reveal": "always", "panel": "dedicated" }
-    },
-    {
-      "label": "Docker: build local image",
-      "type": "shell",
-      "command": "docker build -t filip-herceg-cv:local .",
-      "presentation": { "reveal": "always", "panel": "shared" }
-    },
-    {
-      "label": "Docker: run local image",
-      "type": "shell",
-      "command": "docker run --rm -p 3000:3000 filip-herceg-cv:local",
-      "presentation": { "reveal": "always", "panel": "shared" }
-    },
-    {
-      "label": "Helm: template",
-      "type": "shell",
-      "command": "helm template cv ./helm --values ./helm/values.yaml",
-      "presentation": { "reveal": "always", "panel": "shared" }
-    },
-    {
-      "label": "Helm: template (Dockerized)",
-      "type": "shell",
-      "command": "docker run --rm -v \"${workspaceFolder}:/work\" -w /work alpine/helm:3.15.3 template cv ./helm --values ./helm/values.yaml",
-      "presentation": { "reveal": "always", "panel": "shared" }
-    },
-    {
-      "label": "Helm: template (auto)",
-      "type": "shell",
-      "command": "if (Get-Command helm -ErrorAction SilentlyContinue) { helm template cv ./helm --values ./helm/values.yaml } else { Write-Host 'helm not found; using dockerized helm...'; docker run --rm -v \"${workspaceFolder}:/work\" -w /work alpine/helm:3.15.3 template cv ./helm --values ./helm/values.yaml }",
-      "presentation": { "reveal": "always", "panel": "shared" }
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Dev: next dev",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": {
+				"owner": "custom",
+				"pattern": [
+					{
+						"regexp": "."
+					}
+				],
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": "ready -",
+					"endsPattern": "ready -"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Build: next build",
+			"type": "shell",
+			"command": "npm run build",
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			}
+		},
+		{
+			"label": "Start: next start",
+			"type": "shell",
+			"command": "node .next/standalone/server.js",
+			"options": {
+				"env": {
+					"PORT": "3000"
+				}
+			},
+			"dependsOn": [
+				"Build: next build"
+			],
+			"dependsOrder": "sequence",
+			"isBackground": true,
+			"problemMatcher": {
+				"owner": "custom",
+				"pattern": [
+					{
+						"regexp": "."
+					}
+				],
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": "ready -|Listening on|started server",
+					"endsPattern": "ready -|Listening on|started server"
+				}
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Lint",
+			"type": "shell",
+			"command": "npm run lint",
+			"group": "test",
+			"presentation": {
+				"reveal": "always"
+			}
+		},
+		{
+			"label": "Lint: strict (CI)",
+			"type": "shell",
+			"command": "npm run lint:ci",
+			"group": "test",
+			"presentation": {
+				"reveal": "never"
+			},
+			"problemMatcher": "$eslint-stylish"
+		},
+		{
+			"label": "Typecheck",
+			"type": "shell",
+			"command": "npm run typecheck",
+			"group": "test",
+			"presentation": {
+				"reveal": "always"
+			}
+		},
+		{
+			"label": "Unit+Integration tests",
+			"type": "shell",
+			"command": "npm test",
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			}
+		},
+		{
+			"label": "Tests: watch",
+			"type": "shell",
+			"command": "npm run test:watch",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "E2E tests (Playwright)",
+			"type": "shell",
+			"command": "npm run e2e",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "E2E headed (Playwright)",
+			"type": "shell",
+			"command": "npm run e2e:headed",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "A11y (pa11y-ci)",
+			"type": "shell",
+			"command": "npx pa11y-ci",
+			"dependsOn": [
+				"Start: next start"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Lighthouse (LHCI)",
+			"type": "shell",
+			"command": "npm run lhci",
+			"dependsOn": [
+				"Start: next start"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "CI: lint+typecheck+build+test",
+			"type": "shell",
+			"command": "echo CI checks complete",
+			"dependsOn": [
+				"Lint: strict (CI)",
+				"Typecheck",
+				"Build: next build",
+				"Unit+Integration tests"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			}
+		},
+		{
+			"label": "Docker: build local image",
+			"type": "shell",
+			"command": "docker build -t filip-herceg-cv:local .",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Docker: run local image",
+			"type": "shell",
+			"command": "docker run --rm -p 3000:3000 filip-herceg-cv:local",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Helm: template",
+			"type": "shell",
+			"command": "helm template cv ./helm --values ./helm/values.yaml",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Helm: template (Dockerized)",
+			"type": "shell",
+			"command": "docker run --rm -v \"${workspaceFolder}:/work\" -w /work alpine/helm:3.15.3 template cv ./helm --values ./helm/values.yaml",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Helm: template (auto)",
+			"type": "shell",
+			"command": "if (Get-Command helm -ErrorAction SilentlyContinue) { helm template cv ./helm --values ./helm/values.yaml } else { Write-Host 'helm not found; using dockerized helm...'; docker run --rm -v \"${workspaceFolder}:/work\" -w /work alpine/helm:3.15.3 template cv ./helm --values ./helm/values.yaml }",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Unit tests: export-selector",
+			"type": "shell",
+			"command": "npm test -- -t export selection deriveSelection --run"
+		}
+	]
 }

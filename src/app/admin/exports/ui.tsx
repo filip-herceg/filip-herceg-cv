@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import { PRESET_BUILDERS } from '@/lib/export/presets'
 
 interface SectionInput { key: string; limit?: number }
 interface ExportConfigDraft {
@@ -81,6 +82,21 @@ function Client({ initial, lastUsedId }: ClientProps) {
   }
   function startCreate() { setDraft(defaultDraft()); setMode('create'); setStatus('') }
   function startEdit(r: RecordRow) { setDraft({ ...r }); setMode('edit'); setStatus('') }
+  function createFromPreset(type: keyof typeof PRESET_BUILDERS) {
+    const builder = PRESET_BUILDERS[type]
+    const cfg = builder()
+    setDraft({
+      name: cfg.name,
+      presetType: cfg.presetType,
+      sections: cfg.sections,
+      filters: cfg.filters,
+      density: cfg.density,
+      colorMode: cfg.colorMode,
+      paperSize: cfg.paperSize,
+    })
+    setMode('create')
+    setStatus(`Preset applied: ${type}`)
+  }
   async function submitCreate(e: React.FormEvent) {
     e.preventDefault(); setStatus('Saving...')
     try {
@@ -139,6 +155,13 @@ function Client({ initial, lastUsedId }: ClientProps) {
           {lastUsed && rows.some(r=>r.id===lastUsed) && (
             <button type="button" onClick={()=>{ const r = rows.find(r=>r.id===lastUsed)!; quickExport(r) }} className="border rounded px-3 py-1 text-sm hover:bg-accent" aria-label="Quick Export Last Used">Quick Export Last</button>
           )}
+          <div className="flex gap-1 items-center">
+            <span className="text-xs text-muted-foreground">New from preset:</span>
+            <button type="button" onClick={()=>createFromPreset('COMPREHENSIVE')} className="border rounded px-2 py-1 text-xs hover:bg-accent">Comprehensive</button>
+            <button type="button" onClick={()=>createFromPreset('CONCISE')} className="border rounded px-2 py-1 text-xs hover:bg-accent">Concise</button>
+            <button type="button" onClick={()=>createFromPreset('LEADERSHIP')} className="border rounded px-2 py-1 text-xs hover:bg-accent">Leadership</button>
+            <button type="button" onClick={()=>createFromPreset('TECHNICAL')} className="border rounded px-2 py-1 text-xs hover:bg-accent">Technical</button>
+          </div>
           <button onClick={startCreate} className="border rounded px-3 py-1 text-sm hover:bg-accent">New</button>
         </div>
       </div>
