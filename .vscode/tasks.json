@@ -287,6 +287,23 @@
 			"label": "Clean migrated root artifacts",
 			"type": "shell",
 			"command": "node scripts/clean-root-artifacts.mjs --delete"
+		},
+		{
+			"label": "Typecheck (agent)",
+			"type": "shell",
+			"command": "npm run typecheck",
+			"group": "test"
+		},
+		{
+			"label": "Tests (agent quick)",
+			"type": "shell",
+			"command": "npm test -- -t admin auth --run",
+			"group": "test"
+		},
+		{
+			"label": "Move root sqlite to fixtures",
+			"type": "shell",
+			"command": "node scripts/move-root-sqlite-to-fixtures.mjs"
 		}
 	]
 }

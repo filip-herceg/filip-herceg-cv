@@ -1,0 +1,11 @@
+# Test DB fixtures
+
+Ephemeral SQLite databases for tests live here:
+
+- tmp/: created during test runs (ignored by Git)
+- Optional committed fixtures: only add if strictly necessary; prefer migrations/seeds
+
+Conventions
+- Tests must compose file URLs like `file:${absPath}`
+- Never create DB files in repo root
+- Clean up your tmp DB file before/after tests if needed

@@ -161,6 +161,12 @@ Generated outputs are centralized under `reports/` (override base with `REPORTS_
 - `npm run test:a11y:report` → Pa11y results in `reports/a11y/pa11y-report.json` (requires the app running)
 - `npm run docs:index:reports` → Docs index at `reports/docs/docs-index.json`
 
+### Test DB fixtures (SQLite)
+
+- Ephemeral test databases live under `src/tests/fixtures/db/tmp/` (ignored by Git)
+- Tests must not create `*.sqlite` in the repository root
+- See runbook: `docs/operations/runbooks/test-db-fixtures.md`
+
 ### Metrics & Observability
 
 Helm values:

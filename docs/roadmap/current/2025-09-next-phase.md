@@ -1,12 +1,12 @@
 ---
 title: Phase 4 – Types consolidation, DB policy, infra workflow
-status: planned
+status: in-progress
 category: engineering
 ---
 
-Scope:
+Scope (updated):
 - Types: consolidate app types under `src/types/` and keep root `types/` only for ambient `.d.ts` (review two files in `types/`). Update `tsconfig.json` if needed.
-- SQLite policy: either fully ignore ephemeral DBs (generate during tests) or move required fixtures to `tests/fixtures/db/` and document referencing.
+- SQLite policy: ephemeral DBs under `src/tests/fixtures/db/tmp/` and documented.
 - Infra: document Helm-first workflow and (optionally) add a `helm template` task that regenerates `k8s/base/` and tags those files as generated.
 
 Quality gates:
@@ -14,6 +14,7 @@ Quality gates:
 - Lint/Typecheck/Test green.
 
 Deliverables:
-- Updated `tsconfig.json` and moved types.
+- Updated `tsconfig.json` and moved types. (Done)
+- Legacy `types/` marked deprecated; de-duped files replaced with no-op and notes. (Done)
 - Docs: short note under `docs/operations/platform/deploy.md` clarifying Helm → k8s generation.
-- If fixtures needed: `tests/fixtures/db/` with README.
+- Test DB fixtures README and runbook added. (Done)

@@ -4,7 +4,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 // Use a unique sqlite file so it doesn't interfere with other tests
-const dbFile = path.join(process.cwd(), 'test-cv-empty.sqlite')
+const dbDir = path.join(process.cwd(), 'src', 'tests', 'fixtures', 'db', 'tmp')
+fs.mkdirSync(dbDir, { recursive: true })
+const dbFile = path.join(dbDir, 'cv-empty.sqlite')
 process.env.DATABASE_URL = `file:${dbFile}`
 
 import { getAggregate } from '@/lib/cv/service'

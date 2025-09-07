@@ -1,4 +1,5 @@
-// Allow dynamic test-time imports of Next app router modules without TS complaining under Node16 module.
-declare module '@/app/*';
-declare module '@/lib/*';
-declare module '@/components/*';
+/**
+ * Deprecated: moved to src/types/next-dynamic-tests.d.ts
+ * This file is intentionally left blank to avoid duplicate ambient declarations.
+ */
+export {};

@@ -94,10 +94,10 @@ Issues:
 - Mixes binaries with source; increases repo noise and risk of accidental edits/commits.
 - Hard to understand which DBs are fixtures vs transient.
 
-Fix options (pick one):
-- Preferred: generate test DBs during test setup. Keep only seeds/migrations in Git. Ignore `*.sqlite` in `.gitignore`.
-- If committing sample DBs is necessary, move them into `tests/fixtures/db/` (or `prisma/fixtures/`) and document their purpose and how tests reference them.
-- Consider using the existing migration script `scripts/migrate-sqlite-to-postgres.mjs` to move off SQLite for CI consistency.
+Fix (implemented - Option B):
+- Generate or store ephemeral test DBs under `src/tests/fixtures/db/tmp/` (ignored by Git).
+- If a committed sample DB is ever needed, place it under `src/tests/fixtures/db/` with a short README.
+- Reference: see `docs/operations/runbooks/test-db-fixtures.md`.
 
 
 ### 4) Types spread across `types/` and `src/types/`
@@ -108,10 +108,9 @@ Observed:
 Issues:
 - Unclear ownership; risk of duplicate or conflicting types.
 
-Fix:
-- Consolidate to one of the following patterns:
-  - Keep everything in `src/types/` for app-internal types; reserve root `types/` only for global ambient declarations (e.g., `*.d.ts` that augment Node/JSX). Update `tsconfig.json` `typeRoots`/`paths` accordingly.
-  - Or move all custom types to `src/types/` and remove root `types/` entirely if not needed for ambient types.
+Fix (implemented):
+- Consolidated to `src/types/` as the canonical location.
+- Root `types/` is deprecated; remaining files are no-op placeholders with deprecation notes and will be removed after a short transition.
 
 
 ### 5) Infrastructure duplication: `helm/` and `k8s/`

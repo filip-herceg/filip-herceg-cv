@@ -20,7 +20,9 @@ describe('admin auth', () => {
     it.skip('skipped (no DATABASE_URL configured for integration DB tests)', () => {})
     return
   }
-  const dbFile = path.join(process.cwd(), 'test-admin-auth.sqlite')
+  const dbDir = path.join(process.cwd(), 'src', 'tests', 'fixtures', 'db', 'tmp')
+  fs.mkdirSync(dbDir, { recursive: true })
+  const dbFile = path.join(dbDir, 'admin-auth.sqlite')
   beforeAll(async () => {
     // Always set a sqlite database URL for these integration tests (isolated file per suite)
     process.env.DATABASE_URL = `file:${dbFile}`

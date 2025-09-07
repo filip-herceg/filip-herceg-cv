@@ -46,6 +46,8 @@ next-env.d.ts
 *.sqlite
 *.sqlite-journal
 *.db
+*.db-shm
+*.db-wal
 
 # Generated docs index (ephemeral, reproducible)
 docs-index.json
@@ -62,3 +64,6 @@ playwright-report/
 coverage-badge.json
 .eslint_tmp.json
 build-artifact.tgz
+
+# Legacy types folder is deprecated; all declarations live under src/types
+types/
