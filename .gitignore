@@ -6,15 +6,6 @@
 .pnp.*
 .yarn/*
 .eslintcache
-eslint-report.json
-eslint-debug.log
-full_lint.json
-lint_full.json
-lint_service.json
-single_service_lint.json
-single_storage_lint.json
-single_ambient_lint.json
-eslint-single.json
 verbose/
 !.yarn/patches
 !.yarn/plugins
@@ -67,3 +58,7 @@ reports/
 test-results/
 pa11y-screenshots/
 .lighthouseci/
+playwright-report/
+coverage-badge.json
+.eslint_tmp.json
+build-artifact.tgz
