@@ -2,7 +2,7 @@
 title: Documentation Index
 category: index
 status: active
-lastUpdated: 2025-09-03
+lastUpdated: 2025-09-07
 canonical: docs/README.md
 ---
 # Documentation Index

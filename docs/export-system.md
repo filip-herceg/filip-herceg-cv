@@ -1,6 +1,6 @@
 # Export System
 
-This document describes the Export Configs feature (Section Selection MVP slice).
+This document describes the Export Configs feature (Section Selection MVP slice) and current enhancements.
 
 ## Overview
 
@@ -51,10 +51,12 @@ Optimistic concurrency: A stale PUT (version mismatch) returns `409` + `{ error:
 Selection logic (in `src/lib/export/selector.ts`) applies:
 
 1. Filter CV entities by `projectSinceYear` / `experienceSinceYear` if present.
-2. Apply per-section `limit` trimming arrays deterministically (original ordering preserved except truncated).
-3. Produce a canonical selection object consumed by PDF generation.
-
-Tag filtering is deferred (schema reserves space but UI does not expose it yet).
+2. Optional tag filtering per section (implemented):
+	- Projects/Experience: match by `stack` items (case-insensitive).
+	- Skills/Education: match by each entity's `tags` array (case-insensitive).
+	- When tags are present for a section, only matching items are retained before limits.
+3. Apply per-section `limit` trimming arrays deterministically (original ordering preserved except truncated).
+4. Produce a canonical selection object consumed by PDF generation.
 
 ## Admin UI
 
@@ -68,6 +70,7 @@ Sections Builder:
 - Add the next unused section quickly.
 - Change section key via select (disallows duplicates).
 - Limit field optional numeric.
+- Optional tags (comma-separated, case-insensitive) per section to narrow selection.
 - Reorder via Up / Down buttons (each has descriptive `aria-label`).
 - Remove removes the row.
 
@@ -119,7 +122,7 @@ The UI remembers the last-used config id in a cookie `last_export_config=<uuid>`
 
 ## Future Enhancements
 
-- Tag-based filtering (multi-select input + schema application in deriveSelection)
+- Drag & drop reordering in the builder
 - Named presets registry & shareable links
 - Bulk reorder via drag & drop
 - Export preview (HTML snapshot) before PDF generation
@@ -127,4 +130,4 @@ The UI remembers the last-used config id in a cookie `last_export_config=<uuid>`
 - Client-side UI action logging (instrumenting button press events)
 
 ---
-Last updated: Phase 2 Slice 2 – instrumentation + quick export implementation.
+Last updated: Phase 2 Slice 4 – presets, telemetry, and tag filtering implemented.

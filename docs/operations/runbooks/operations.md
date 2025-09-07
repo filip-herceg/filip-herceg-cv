@@ -2,7 +2,7 @@
 title: Operations Runbook
 category: operations
 status: active
-lastUpdated: 2025-09-02
+lastUpdated: 2025-09-07
 canonical: docs/operations/operations.md
 ---
 <!-- Source: formerly docs/operations.md -->
@@ -28,22 +28,32 @@ Additional soft health indicators (log-derived):
 
 ## Metrics
 
-Current exposed via `/api/metrics` (Prometheus exposition format):
+Currently exposed via `/api/metrics` (Prometheus exposition format). Helm Service maps this to `/metrics` for scrapers when `metrics.enabled=true`.
 
-- `auth_login_attempts_total{result="success|failure"}`
-- `auth_active_sessions` (Gauge)
-- `auth_rate_limiter_backend{backend="memory|redis"}` (Gauge always set to 1 for active backend)
-- `auth_login_backoff_ms` (Gauge ΓÇô last applied backoff delay)
-- `auth_rate_limit_failures_total` (Counter ΓÇô failed credential attempts triggering backoff)
-- CV aggregation counters (source classification) if implemented (see service layer)
+- Auth:
+	- `auth_login_attempts_total{result="success|failure"}`
+	- `auth_active_sessions` (gauge)
+	- `auth_rate_limiter_backend{backend}` (gauge=1 for active)
+	- `auth_login_backoff_ms` (gauge)
+	- `auth_rate_limit_failures_total`
+- CV & storage:
+	- `cv_aggregate_loads_total{source="db|empty|redis|s3"}`
+	- `cv_cache_hits_total` / `cv_cache_misses_total`
+	- `cv_storage_backend{backend}` (gauge)
+	- `cv_storage_get_duration_seconds{backend}` (histogram)
+- Export & PDF:
+	- `export_requests_total`, `export_success_total`, `export_failure_total{reason}`
+	- `export_duration_seconds`, `export_selection_derive_duration_seconds`
+	- `export_pdf_size_bytes`
+	- `pdf_requests_total{result}`, `pdf_generation_duration_seconds{result}`
+	- `pdf_cache_hits_total`, `pdf_cache_misses_total`, `pdf_cache_entries` (memory backend)
 - RUM vitals aggregated stats
 
 Planned additions:
 
-- Cache hit ratio & load latency histogram
-- DB parse / static fallback counter (cv)
+- DB parse/static fallback counters for CV
+- Export pool sizing gauge (if pool introduced)
 - Per-locale request distribution & missing translation key counts
-- PDF generation duration & failure counters
 
 ## Scaling
 
@@ -137,6 +147,9 @@ Helm: set values under `env:` in `values.yaml`; the Secret template lowercases k
 | i18n | Path-based + metadata | Localize persisted CV data |
 
 ## Internationalization Ops Notes
+
+CV loader fallback behavior:
+- In environments without a configured database URL, the service layer returns a validated static aggregate. Routes `/cv` and `/cv/print` continue to function for CI/E2E. Metrics will show `cv_aggregate_loads_total{source="empty"}` during this mode.
 
 - Current hreflang strategy is dynamic DOM insertion; static pre-rendered alternates & sitemap localization still pending. Expect search engines to pick up alternates but completeness improves after sitemap feature lands.
 - Adding a new locale requires: update `next.config.mjs`, add message catalog JSON, extend tests, and (later) add locale-specific DB content.

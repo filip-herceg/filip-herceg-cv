@@ -53,7 +53,7 @@ Library: `prom-client` with a single Registry exposed at `/api/metrics` (`text/p
 | `pdf_cache_hits_total` / `pdf_cache_misses_total` | Counter | ΓÇô | Effectiveness of PDF caching layer |
 | `pdf_cache_get_duration_seconds` | Histogram | `backend` | Backend cache access latency |
 | `permalink_creates_total` | Counter | ΓÇô | User engagement with permalink feature |
-| `cv_aggregate_loads_total` | Counter | `source` (`db|empty|redis`) | Data source provenance for CV aggregates |
+| `cv_aggregate_loads_total` | Counter | `source` (`db|empty|redis|s3`) | Data source provenance for CV aggregates |
 | `cv_cache_hits_total` / `cv_cache_misses_total` | Counter | `backend` | CV data caching effectiveness |
 | `cv_storage_backend` | Gauge | `backend` | Which backend is active (value=1) |
 | `cv_storage_get_duration_seconds` | Histogram | `backend` | Latency of CV storage fetch operations |
@@ -64,6 +64,12 @@ Library: `prom-client` with a single Registry exposed at `/api/metrics` (`text/p
 | `auth_rate_limit_failures_total` | Counter | ΓÇô | Credential failure / limiter trigger counts |
 | `cv_entity_mutations_total` | Counter | `entity,action,result` | CRUD throughput + error surface in admin panel |
 | (Default metrics) | Gauge / Counter | ΓÇô | Node runtime and process resource indicators |
+| `export_requests_total` | Counter | `result` | Export generation attempts |
+| `export_success_total` / `export_failure_total{reason}` | Counter | ΓÇô | Export success/failure breakdown |
+| `export_cache_hit_total` / `export_cache_miss_total` | Counter | ΓÇô | Export-level cache effectiveness |
+| `export_duration_seconds{result}` | Histogram | `result` | Export end-to-end latency |
+| `export_selection_derive_duration_seconds{result}` | Histogram | `result` | Selection derivation latency |
+| `export_pdf_size_bytes` | Histogram | ΓÇô | Distribution of generated PDF sizes |
 
 > Label Cardinality Control: All labels are low cardinality (controlled vocabularies) to remain Prometheus friendly.
 

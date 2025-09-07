@@ -88,7 +88,7 @@ Visual diff harness for print fidelity:
 - First run creates baselines; review and commit if intentional.
 
 Deterministic loader fallback:
-- CV pages use a robust loader that seeds from DB when available, else falls back to bundled defaults so /cv works without a database in CI/E2E.
+- CV pages use a robust loader that seeds from DB when available; if `DATABASE_URL` is missing or invalid, they fall back to bundled defaults so `/cv` works without a database in CI/E2E. Metrics reflect this via `cv_aggregate_loads_total{source="empty"}`.
 
 ### Export Configs (Admin)
 
@@ -163,7 +163,7 @@ metrics:
 	port: 9464
 ```
 
-Prometheus scrape annotations are added automatically to the Service when `metrics.enabled` is true. Provide an exporter or integrate instrumentation to serve metrics at `/metrics`.
+Prometheus scrape annotations are added automatically to the Service when `metrics.enabled` is true. The app serves metrics at `/api/metrics`; the Helm Service maps this to the metrics port path `/metrics` for Prometheus.
 
 If you run Prometheus Operator, enable a ServiceMonitor:
 

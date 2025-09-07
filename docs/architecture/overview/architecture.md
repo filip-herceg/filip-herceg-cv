@@ -2,7 +2,7 @@
 title: System Architecture
 category: architecture
 status: active
-lastUpdated: 2025-09-02
+lastUpdated: 2025-09-07
 canonical: docs/architecture/architecture.md
 ---
 <!-- Source: formerly docs/architecture.md -->
@@ -10,7 +10,7 @@ canonical: docs/architecture/architecture.md
 
 ## Overview
 
-A containerized Next.js 14 (App Router) application served via Node.js (standalone output) and deployed to Kubernetes with optional Helm chart. CI builds, lints, tests (unit + integration + coverage + Lighthouse + accessibility) and pushes a container image to GHCR; CD performs a Helm upgrade. Core backend concerns (auth, session lifecycle, metrics, CV data aggregation) are implemented in pure, frameworkΓÇæagnostic modules for high testability.
+A containerized Next.js 15 (App Router) application served via Node.js (standalone output) and deployed to Kubernetes with optional Helm chart. CI builds, lints, tests (unit + integration + coverage + Lighthouse + accessibility) and pushes a container image to GHCR; CD performs a Helm upgrade. Core backend concerns (auth, session lifecycle, metrics, CV data aggregation) are implemented in pure, frameworkΓÇæagnostic modules for high testability.
 
 ## Layers
 
@@ -59,7 +59,7 @@ Upcoming (Phase 3 candidates): localized persisted CV content, richer JSON-LD (B
 | Auth          | Pure handlers + session cookie| Deterministic tests, decoupled from Next request scope  |
 | Security      | Scrypt hashing + rotation     | Strong password hashing + session fixation mitigation   |
 | Metrics       | prom-client (Counter/Gauge)   | Operational visibility (login attempts, active sessions) |
-| PDF Generation| Playwright (conditional)     | Enables printable/export flows; graceful 501 fallback   |
+| PDF Generation| Chromium (puppeteer-core)    | Server-side PDF for exports; 501 when Chromium missing  |
 | i18n Strategy | Explicit locale in URL       | SEO-friendly, cacheable & user-copyable links           |
 
 ## Auth & Session Architecture

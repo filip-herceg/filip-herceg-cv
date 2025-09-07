@@ -1,7 +1,7 @@
 # Phase 2 Roadmap – Export Fidelity & Selective Application Packets
 
-Status: draft
-LastUpdated: 2025-09-06 (post CI hardening)
+Status: active
+LastUpdated: 2025-09-07 (after CI + docs alignment)
 Owner: product/engineering
 
 ## Goal
@@ -24,7 +24,7 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 	- Preset generator utilities shipped (Comprehensive, Concise, Leadership, Technical) with Admin UI "New from preset" actions.
 	- Telemetry events added: export_config_applied (on create from preset) and export_section_filtered (when filters/limits prune selection).
 - In Progress
-	- Print polish and fidelity (media print tokens exist; tune styles with the new diff harness).
+	- Print polish and fidelity (media print tokens exist; tune styles using the new diff harness; thresholds pending).
 - Upcoming
 	- Threshold tuning for the visual diff harness (initial harness landed; thresholds TBD).
 	- Chromium context warm pool for consistent warm performance.
@@ -60,7 +60,7 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 - Versioning: simple updatedAt check (future diff history deferred)
 
 ### 3. Layout Fidelity & Styles
-- Status: print stylesheet exists; fidelity tuning and diff harness not yet implemented.
+- Status: print stylesheet exists; diff harness landed (flagged via `EXPORT_PRINT_DIFF=1`); fidelity tuning ongoing.
 - Print stylesheet pass (media print + forced color adjustments)
 - Density modes: normal | compact (line-height, margins)
 - Diff harness: render canonical screen HTML & print HTML, compare serialized DOM & bounding boxes (tolerance config)
@@ -81,11 +81,11 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 - Measure: instrumentation (start, domReady, pdfDone)
 
 ### 6. Observability & Reliability
-- Status: metrics (histograms/counters) and tracing spans present; error branches covered in tests; health endpoint TBD.
+- Status: metrics (histograms/counters) and tracing spans present; error branches covered in tests; health endpoint implemented at `/api/healthz`.
 - Traces: root span export.request with child spans (fetch.profile, render.html, chromium.launch, pdf.generate, store.cache)
-- Metrics: histogram pdf_duration_ms, counter pdf_fail_total, gauge chromium_context_pool_size
+- Metrics implemented now: `export_requests_total`, `export_success_total`, `export_failure_total{reason}`, `export_duration_seconds`, `export_selection_derive_duration_seconds`, `export_pdf_size_bytes`; PDF route also exposes `pdf_requests_total`, `pdf_generation_duration_seconds`, cache hit/miss counters and gauges. Pool sizing gauge deferred.
 - Structured error classes (ExportConfigNotFound, RenderTimeout, ChromiumCrashed)
-- Health endpoint /api/export/health (pool status)
+- Health endpoint `/api/healthz` (generic liveness)
 
 ### 7. Security & Link Bridge
 - Status: selection tokens in JSON/skills routes exist; dedicated signed one‑click export token and footer QR are pending.

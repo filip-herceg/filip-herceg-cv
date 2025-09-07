@@ -3,7 +3,7 @@
 
 Status: draft
 Owner: product/engineering
-LastUpdated: 2025-09-03
+LastUpdated: 2025-09-07
 Related: vision-mission.md, phase-2-roadmap.md, export-matrix.md
 
 ## Objective
@@ -161,14 +161,15 @@ Chromium Context Pool (size 1..N, default 2):
 ## Metrics (Prometheus style)
 | Name | Type | Labels | Description |
 |------|------|--------|-------------|
-| export_requests_total | counter | presetType | number of export generate calls |
-| export_success_total | counter | presetType | successful exports |
+| export_requests_total | counter | result (implicit via success/failure counters) | number of export generate calls |
+| export_success_total | counter | - | successful exports |
 | export_failure_total | counter | reason | failures by class |
-| export_duration_ms | histogram | presetType | end-to-end generate latency |
-| export_pdf_size_bytes | histogram | presetType | artifact size distribution |
-| export_cache_hit_total | counter | | cache served |
-| export_cache_miss_total | counter | | cache miss |
-| export_context_pool_in_use | gauge | | contexts checked out |
+| export_duration_seconds | histogram | result | end-to-end generate latency |
+| export_selection_derive_duration_seconds | histogram | result | selection derivation latency |
+| export_pdf_size_bytes | histogram | - | artifact size distribution |
+| export_cache_hit_total | counter | - | cache served |
+| export_cache_miss_total | counter | - | cache miss |
+| (future) export_context_pool_in_use | gauge | - | contexts checked out (if pool introduced) |
 
 ## Tracing Spans
 `export.request` (root)
