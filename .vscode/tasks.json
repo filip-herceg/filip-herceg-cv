@@ -253,6 +253,12 @@
 			"type": "shell",
 			"command": "npm run typecheck",
 			"group": "test"
+		},
+		{
+			"label": "Typecheck (post-cleanup)",
+			"type": "shell",
+			"command": "npm run typecheck",
+			"group": "test"
 		}
 	]
 }

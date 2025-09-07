@@ -10,6 +10,7 @@ import path from 'node:path'
 
 
 const ROOT = process.cwd()
+const REPORTS_DIR = process.env.REPORTS_DIR || 'reports'
 const NEXT_STATIC = path.join(ROOT, '.next', 'static', 'chunks')
 const BUILD_MANIFEST = path.join(ROOT, '.next', 'build-manifest.json')
 const PUBLIC_DIR = path.join(ROOT, 'public')
@@ -107,8 +108,18 @@ function analyzeImages() {
   ].filter(Boolean)
   failures.push(...checks)
 
-  const reportPath = path.join(ROOT, 'budget-report.json')
-  fs.writeFileSync(reportPath, JSON.stringify({ summary, jsDetails: js.details, images }, null, 2))
+  // Primary: write into reports/budgets
+  const budgetsDir = path.join(ROOT, REPORTS_DIR, 'budgets')
+  fs.mkdirSync(budgetsDir, { recursive: true })
+  const reportObj = { summary, jsDetails: js.details, images }
+  const reportPath = path.join(budgetsDir, 'budget-report.json')
+  fs.writeFileSync(reportPath, JSON.stringify(reportObj, null, 2))
+
+  // Transitional compatibility: also write legacy root file if it previously existed or for consumers expecting it
+  try {
+    const legacyPath = path.join(ROOT, 'budget-report.json')
+    fs.writeFileSync(legacyPath, JSON.stringify(reportObj, null, 2))
+  } catch {}
 
   if (failures.length) {
   process.stderr.write('Performance budget failures:\n' + failures.join('\n') + '\n')

@@ -61,3 +61,9 @@ docs-index.json
 
 # If you ever want to persist a dev DB under version control, override with a negation rule:
 # !prisma/seed-data.db
+
+# Reports and artifacts (centralized)
+reports/
+test-results/
+pa11y-screenshots/
+.lighthouseci/
