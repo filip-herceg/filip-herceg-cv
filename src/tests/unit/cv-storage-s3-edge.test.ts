@@ -110,7 +110,7 @@ describe('cv storage s3 edge/error coverage', () => {
     const miss = await storage.get('en')
     expect(miss.source === 'db' || miss.source === 'empty').toBe(true)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const s3: any = (globalThis as any).__lastMockS3Client!
+  const s3: any = (globalThis as any).__lastMockS3Client
     // Wait microtask for async void store
     await Promise.resolve()
     const keyEn = 'cv/en/v1.json'
@@ -142,7 +142,10 @@ describe('cv storage s3 edge/error coverage', () => {
 
     // 6: invalidate single locale (en)
     storage.invalidate('en')
-    await Promise.resolve()
+    // allow async invalidate to complete
+    for (let i = 0; i < 5 && s3.store.has(keyEn); i++) { // eslint-disable-line no-await-in-loop
+      await new Promise(r => setTimeout(r, i === 0 ? 0 : 5))
+    }
     expect(s3.store.has(keyEn)).toBe(false)
 
     // 7: Add multiple keys then wildcard invalidate with pagination

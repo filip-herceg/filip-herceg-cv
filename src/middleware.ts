@@ -26,11 +26,14 @@ export function middleware(req: Request) {
       'x-request-id': incomingId,
     },
   })
-  const csp = [
+  const isE2E = process.env.E2E === '1'
+  const cspDirectives = [
     "default-src 'self'",
     "img-src 'self' data: https:",
-    // Disallow inline scripts except those carrying our nonce
-    `script-src 'self' 'nonce-${nonce}'`,
+    // In E2E/testing allow inline/eval so Next hydration can run without wiring nonces
+    isE2E
+      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+      : `script-src 'self' 'nonce-${nonce}'`,
     // Allow nonce styles plus safe inline for Tailwind (could be tightened later)
     `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
     "font-src 'self' data:",
@@ -38,7 +41,8 @@ export function middleware(req: Request) {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-  ].join('; ')
+  ]
+  const csp = cspDirectives.join('; ')
   res.headers.set('Content-Security-Policy', csp)
   // Expose nonce so it can be injected into <style> / <script> tags if needed
   // Provide nonce header only in non-production to aid local debugging (avoid leaking in prod logs)

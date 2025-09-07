@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest'
 // We mock the loader module to introduce an artificial delay so the synchronous getters reliably throw.
 
 describe('sample-data sync getters pre-resolution', () => {
-  it('throws informative errors when accessed too early', async () => {
+  it('returns static fallback before resolution, then resolves to async values', async () => {
     vi.resetModules()
     const delayed = <T,>(val: T) => new Promise<T>(r => setTimeout(() => r(val), 25))
     const dataVal = { person: { name: 'Delayed', title: 'T', profile: 'P', contact: { email: 'x@y.z' }, links: [] }, skills: [], projects: [] }
@@ -13,14 +13,15 @@ describe('sample-data sync getters pre-resolution', () => {
       getCvData: () => delayed(dataVal),
       getCvDesign: () => delayed(designVal)
     }))
-    const mod = await import('@/lib/cv/sample-data')
-    // Immediately accessing before the mocked promises resolve should throw
-    expect(() => mod.getSampleCvDataSync()).toThrowError(/not loaded yet/)
-    expect(() => mod.getSampleCvDesignSync()).toThrowError(/not loaded yet/)
-    // Await the original exported promises then synchronous getters should work
-    await mod.sampleCvDataPromise
-    await mod.sampleCvDesignPromise
-    expect(() => mod.getSampleCvDataSync()).not.toThrow()
-    expect(mod.getSampleCvDataSync().person.name).toBe('Delayed')
+  const mod = await import('@/lib/cv/sample-data')
+  // Immediately accessing before the mocked promises resolve should not throw; returns fallback
+  expect(() => mod.getSampleCvDataSync()).not.toThrow()
+  const earlyName = mod.getSampleCvDataSync().person.name
+  expect(typeof earlyName).toBe('string')
+  expect(earlyName.length).toBeGreaterThan(0)
+  // Await the original exported promises then synchronous getters should return the delayed value
+  await mod.sampleCvDataPromise
+  await mod.sampleCvDesignPromise
+  expect(mod.getSampleCvDataSync().person.name).toBe('Delayed')
   })
 })

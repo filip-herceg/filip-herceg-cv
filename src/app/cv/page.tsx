@@ -1,13 +1,13 @@
 import { CvDataSchema, CvSelectionSchema } from '@/lib/cv/schema'
 import { decodePreset } from '@/lib/cv/permalink'
-import { getAggregate } from '@/lib/cv/service'
+import { getCvData, getCvDesign } from '@/lib/cv/loader'
 import CvView from '@/components/cv/CvView'
 import ShortModeContainer from '@/components/cv/ShortModeContainer'
 import { localizedMeta, localeFromHeaders } from '@/lib/i18n'
 
-type SearchParams = Record<string, string | string[] | undefined>
+type SearchParamsRecord = Record<string, string | string[] | undefined>
 
-export const dynamic = 'error'
+export const dynamic = 'force-dynamic'
 export async function generateMetadata() {
   const locale = localeFromHeaders()
   return localizedMeta(locale, 'cv', { path: 'cv' })
@@ -15,7 +15,7 @@ export async function generateMetadata() {
 
 // Client-only builder (no SSR) to keep full page lean
 // Helper function to build URLSearchParams from searchParams record
-function buildURLSearchParams(searchParams: Record<string, string | string[] | undefined>): URLSearchParams {
+function buildURLSearchParams(searchParams: SearchParamsRecord): URLSearchParams {
   const usp = new URLSearchParams()
   for (const [k,v] of Object.entries(searchParams)) {
     if (typeof v === 'string') usp.set(k, v)
@@ -23,7 +23,7 @@ function buildURLSearchParams(searchParams: Record<string, string | string[] | u
   return usp
 }
 // Helper function to parse selection from search parameters
-async function parseSelection(searchParams: Record<string, string | string[] | undefined>): Promise<{ mode?: 'short'; skills?: string[]; projects?: string[] } | undefined> {
+async function parseSelection(searchParams: SearchParamsRecord): Promise<{ mode?: 'short'; skills?: string[]; projects?: string[] } | undefined> {
   const usp = buildURLSearchParams(searchParams)
   
   // Try token first
@@ -42,10 +42,12 @@ async function parseSelection(searchParams: Record<string, string | string[] | u
   return parsedSelection.success ? parsedSelection.data : undefined
 }
 // Full CV page with optional short builder mode
-export default async function CvPage({ searchParams }: { searchParams: SearchParams }) {
-  const { data, design } = await getAggregate('en')
+// Align with Next typegen: searchParams may be a Promise
+export default async function CvPage(props: { searchParams?: Promise<SearchParamsRecord> }) {
+  const [data, design] = await Promise.all([getCvData('en'), getCvDesign('en')])
   const validated = CvDataSchema.parse(data)
-  const selection = await parseSelection(searchParams)
+  const spResolved: SearchParamsRecord = props.searchParams ? await props.searchParams : {}
+  const selection = await parseSelection(spResolved)
   const isShort = selection?.mode === 'short'
   
   return isShort ? (
@@ -58,3 +60,4 @@ export default async function CvPage({ searchParams }: { searchParams: SearchPar
     </main>
   )
 }
+  

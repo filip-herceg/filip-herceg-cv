@@ -1,14 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// hoisted guard mock
-const { requireAdmin } = vi.hoisted(() => ({ requireAdmin: vi.fn(async () => ({ ok: true })) }))
-const getAggregate = vi.fn()
-const invalidateSpy = vi.fn()
+// hoisted mocks (must be available during mock factory evaluation)
+const { requireAdmin, getAggregate, invalidateSpy } = vi.hoisted(() => ({
+  requireAdmin: vi.fn(async () => ({ ok: true })),
+  getAggregate: vi.fn(),
+  invalidateSpy: vi.fn()
+}))
 
 vi.mock('@/lib/auth/cookies', () => ({ NextCookieStore: class { async init() { return this } } }))
 vi.mock('@/lib/auth/context', () => ({ buildAuthContext: () => ({ user: { id: 'admin' } }) }))
 vi.mock('@/lib/auth/guard', () => ({ requireAdmin }))
-vi.mock('@/lib/cv/service', () => ({ getAggregate: (...a: any[]) => getAggregate(...a), invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a) }))
+vi.mock('@/lib/cv/service', () => ({
+  getAggregate: (...a: any[]) => getAggregate(...a),
+  invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a)
+}))
 vi.mock('@/lib/metrics', () => ({
   cvEntityMutationsTotal: { inc: () => {} },
   cvStorageGetDurationSeconds: { startTimer: () => () => {} },

@@ -1,6 +1,5 @@
 import React from 'react'
 import type { CvRenderProps } from '@/lib/cv/types'
-import { sampleCvDesign } from '@/lib/cv/sample-data'
 import Stripe from './shapes/Stripe'
 import Grid from './shapes/Grid'
 import Wave from './shapes/Wave'
@@ -13,7 +12,7 @@ const shapeComponentMap = {
   blob: Blob,
 }
 
-export const CvView: React.FC<CvRenderProps> = ({ data, design = sampleCvDesign, selection, className }) => {
+export const CvView: React.FC<CvRenderProps> = ({ data, design, selection, className }) => {
   const selectedSkills = selection?.skills?.length
     ? data.skills.filter((s) => selection.skills!.includes(s.id))
     : data.skills

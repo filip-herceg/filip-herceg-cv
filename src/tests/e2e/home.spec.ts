@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test'
 // In CI, we can launch a server via Playwright config or a script.
 
 test('home page renders and has hero copy', async ({ page }) => {
-  await page.goto('http://localhost:3000/')
+  await page.goto('/')
   await expect(page.getByRole('heading', { name: /Hi, I'm Filip Herceg/i })).toBeVisible()
 })
 

@@ -2,7 +2,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { buildPermalink, encodePreset } from '@/lib/cv/permalink'
-import { permalinkCreatesTotal } from '@/lib/metrics'
 import type { CvData, CvSelection , CvDesign } from '@/lib/cv/schema'
 
 import CvView from './CvView'
@@ -53,7 +52,10 @@ export const ShortModeContainer: React.FC<Props> = ({ data, design, initialSelec
     try {
       const url = await buildPermalink(`${window.location.origin}${pathname}`, selectionToPreset(selection))
       await navigator.clipboard.writeText(url)
-      try { permalinkCreatesTotal.inc() } catch {}
+      // Optional: fire-and-forget beacon to server for metrics (no-op if unavailable)
+      try {
+        navigator.sendBeacon?.('/api/rum', JSON.stringify({ e: 'permalink_created' }))
+      } catch {}
     } catch {
       // ignore copy errors
     }

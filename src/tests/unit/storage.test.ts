@@ -54,6 +54,7 @@ describe('CvStorageBackend redis (mocked)', () => {
   beforeEach(async () => {
     vi.resetModules()
     process.env.CV_STORAGE = 'redis'
+  process.env.REDIS_URL = 'redis://unit-test'
     process.env.CV_REDIS_TTL = '60'
     // Mock service aggregate so DB fetch returns consistent data
     vi.doMock('../../lib/cv/service', () => {

@@ -20,6 +20,13 @@ npm run dev
 
 Visit http://localhost:3000
 
+E2E quick run (build → start → tests → shutdown):
+
+```bash
+npm run e2e:orchestrate
+```
+This script builds the app, starts it on 127.0.0.1 with relaxed CSP for tests (E2E=1), waits for readiness, runs Playwright tests (including optional visual diffs), then shuts the server down.
+
 ### Build & Run Production
 
 ```bash
@@ -75,6 +82,13 @@ PDF Download (curl):
 ```bash
 curl -L "http://localhost:3000/api/cv/pdf?skills=ts,react&projects=obs-platform" -o cv.pdf
 ```
+
+Visual diff harness for print fidelity:
+- Set `EXPORT_PRINT_DIFF=1` and run Playwright tests to generate/compare print snapshots.
+- First run creates baselines; review and commit if intentional.
+
+Deterministic loader fallback:
+- CV pages use a robust loader that seeds from DB when available, else falls back to bundled defaults so /cv works without a database in CI/E2E.
 
 ### Export Configs (Admin)
 

@@ -146,6 +146,14 @@ export async function seedIfEmpty(locale: string, data: CvData, design: CvDesign
 }
 
 async function loadFromDb(locale: string) {
+  // Fast path: if DATABASE_URL is not configured or clearly invalid, avoid initializing Prisma
+  const dbUrl = process.env.DATABASE_URL
+  const isTest = process.env.NODE_ENV === 'test'
+  if (!isTest) {
+    if (!dbUrl || !(dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://'))) {
+      return null
+    }
+  }
   try {
     const client = getPrisma()
     const [person, skills, projects, experiences, education, certifications, traits, hobbies, design] = await Promise.all([

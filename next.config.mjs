@@ -3,11 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   // Removed standalone output for now to avoid missing route modules in packaged start; default output works with tests.
   poweredByHeader: false,
-  i18n: {
-    locales: ['en', 'de'],
-    defaultLocale: 'en',
-    localeDetection: true,
-  },
   images: { formats: ['image/avif', 'image/webp'] },
   eslint: {
     // We lint separately in CI; allow build for perf budget script
@@ -51,6 +46,16 @@ const nextConfig = {
       },
     ]
   },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Avoid bundling optional node-only deps into server layer; they'll be resolved at runtime if used
+      config.externals = config.externals || []
+      config.externals.push('ioredis', '@aws-sdk/client-s3')
+    }
+    return config
+  }
 }
+
+// Note: Do not add `i18n` at the root of nextConfig for App Router; we use app-level locale handling.
 
 export default nextConfig

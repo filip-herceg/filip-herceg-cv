@@ -48,6 +48,7 @@ describe('cv storage redis edge/error coverage', () => {
   let storage: any // eslint-disable-line @typescript-eslint/no-explicit-any
   beforeAll(async () => {
     process.env.CV_STORAGE = 'redis'
+  process.env.REDIS_URL = 'redis://unit-test'
   // Reset module cache so storage.ts re-evaluates with our ioredis mock instead of a prior real import
   vi.resetModules()
     const { createStorage } = await import('@/lib/cv/storage')
@@ -62,10 +63,10 @@ describe('cv storage redis edge/error coverage', () => {
     const second = await storage.get('en')
     expect(second.source === 'db' || second.source === 'empty').toBe(true)
     // At this point the second set should have succeeded; verify we are using the mock (has populate or internal map via symbol check)
-    const redisImpl = (storage as any).redis
+  const redisImpl = storage.redis
     // If mock didn't take (e.g. prior real import), bail early with clearer diagnostics
   // Enforce that our mock (with populate) is actually in use; fail loudly if not.
-  expect(Boolean(redisImpl && typeof (redisImpl as any).populate === 'function')).toBe(true)
+  expect(Boolean(redisImpl && typeof redisImpl.populate === 'function')).toBe(true)
     // Ensure key present (in case second set path short-circuited); populate explicitly if missing
     const key = 'cv:en:v1'
     const existing = await redisImpl.get(key)

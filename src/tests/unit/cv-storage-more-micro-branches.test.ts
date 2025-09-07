@@ -9,7 +9,7 @@ describe('cv-storage micro branches', () => {
   it('redis tryGetCached parse failure and get failure, plus invalidate scan path', async () => {
     vi.resetModules()
     process.env.CV_STORAGE = 'redis'
-    process.env.REDIS_URL = 'redis://unit-test'
+  process.env.REDIS_URL = 'redis://unit-test'
     // Mock ioredis with minimal interface and controllable get/scan
     class FakeRedis {
       store = new Map<string,string>()

@@ -1,4 +1,3 @@
-import { useEffect, useState, useCallback } from 'react'
 import en from './messages.en.json'
 
 // Default locale eagerly loaded; all others lazy via dynamic import.
@@ -36,36 +35,6 @@ export async function translateAsync(locale: string, key: string): Promise<strin
   return dict[key] ?? key
 }
 
-export interface I18nApi {
-  locale: string
-  t: (key: string) => string
-  ready: boolean
-}
-
-// React hook for client components; loads non-default catalogs lazily.
-export function useI18n(locale: string): I18nApi {
-  const initial = locale === defaultLocale ? getSyncMessages(locale) : undefined
-  const [dict, setDict] = useState<Record<string,string> | undefined>(initial)
-  useEffect(() => {
-    let active = true
-    if (locale === defaultLocale) {
-      setDict(getSyncMessages(locale))
-      return
-    }
-    // load lazily
-    loadMessages(locale).then(d => { if (active) setDict(d) })
-    return () => { active = false }
-  }, [locale])
-
-  const tFn = useCallback((key: string) => {
-    if (!dict) return key // while loading show key (short wait)
-    return dict[key] ?? key
-  }, [dict])
-
-  return { locale, t: tFn, ready: !!dict }
-}
-
-// Backwards compatible exports
 export const t = (locale: string, key: string) => translate(locale, key)
 export const tAsync = (locale: string, key: string) => translateAsync(locale, key)
 

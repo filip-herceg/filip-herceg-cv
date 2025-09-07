@@ -9,7 +9,7 @@ describe('cv-storage uncovered branches', () => {
   it('redis cached value schema validation failure treated as miss', async () => {
     vi.resetModules()
     process.env.CV_STORAGE = 'redis'
-    process.env.REDIS_URL = 'redis://unit-test'
+  process.env.REDIS_URL = 'redis://unit-test'
 
     class FakeRedis {
       store = new Map<string,string>()

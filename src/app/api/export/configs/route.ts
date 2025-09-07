@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+// NextResponse not used when returning plain Response
 import { FEATURE_EXPORT_ENABLED } from '@/lib/constants'
 import { buildAuthContext } from '@/lib/auth/context'
 import { NextCookieStore } from '@/lib/auth/cookies'
@@ -11,37 +11,38 @@ import { withRequestContext, logEvent, logError } from '@/lib/logger'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-async function authCheck(req: Request) {
+type AuthCheck = { logger: ReturnType<typeof withRequestContext> } | { res: Response }
+async function authCheck(req: Request): Promise<AuthCheck> {
   const ctxLogger = withRequestContext(req)
   if (!FEATURE_EXPORT_ENABLED) {
     logEvent(ctxLogger, 'domain:export.configs.disabled')
-    return { res: NextResponse.json({ error: 'EXPORT_DISABLED' }, { status: 501 }) }
+  return { res: new Response(JSON.stringify({ error: 'EXPORT_DISABLED' }), { status: 501, headers: { 'content-type': 'application/json' } }) }
   }
   const store = await new (NextCookieStore)().init()
   const ctx = buildAuthContext({ store })
   const auth = await requireAdmin(ctx)
   if (!auth.ok) {
     logEvent(ctxLogger, 'domain:export.configs.auth_failed')
-    return { res: NextResponse.json(auth.body, { status: auth.status }) }
+  return { res: new Response(JSON.stringify(auth.body), { status: auth.status, headers: { 'content-type': 'application/json' } }) }
   }
   return { logger: ctxLogger }
 }
 
-export async function GET(req: Request) {
+export async function GET(req: Request): Promise<Response> {
   const auth = await authCheck(req)
   if ('res' in auth) return auth.res
   try {
     const repo = new ExportConfigRepository(new PrismaClient())
     const rows = await repo.list()
     logEvent(auth.logger, 'domain:export.configs.list_success', { count: rows.length })
-    return NextResponse.json({ configs: rows })
+    return new Response(JSON.stringify({ configs: rows }), { status: 200, headers: { 'content-type': 'application/json' } })
   } catch (e) {
     logError(auth.logger, 'domain:export.configs.list_error', e as Error)
-    return NextResponse.json({ error: 'LIST_FAILED' }, { status: 500 })
+    return new Response(JSON.stringify({ error: 'LIST_FAILED' }), { status: 500, headers: { 'content-type': 'application/json' } })
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
   const auth = await authCheck(req)
   if ('res' in auth) return auth.res
   let body: unknown
@@ -49,21 +50,28 @@ export async function POST(req: Request) {
   const parsed = ExportConfigInputSchema.safeParse(body)
   if (!parsed.success) {
     logEvent(auth.logger, 'domain:export.configs.validation_failed', { issues: parsed.error.issues.length })
-    return NextResponse.json({ error: 'VALIDATION', issues: parsed.error.issues }, { status: 400 })
+    return new Response(JSON.stringify({ error: 'VALIDATION', issues: parsed.error.issues }), { status: 400, headers: { 'content-type': 'application/json' } })
   }
   try {
     const repo = new ExportConfigRepository(new PrismaClient())
     const row = await repo.create(parsed.data)
     logEvent(auth.logger, 'domain:export.configs.create_success', { id: row.id })
-    return NextResponse.json({ config: row }, { status: 201 })
+    // Telemetry: record when a preset-backed config is applied/created
+    if (parsed.data.presetType) {
+      logEvent(auth.logger, 'domain:export_config_applied', {
+        preset: parsed.data.presetType,
+        sections: parsed.data.sections?.length ?? 0,
+      })
+    }
+  return new Response(JSON.stringify({ config: row }), { status: 201, headers: { 'content-type': 'application/json' } })
   } catch (e) {
     logError(auth.logger, 'domain:export.configs.create_error', e as Error)
-    return NextResponse.json({ error: 'CREATE_FAILED' }, { status: 500 })
+  return new Response(JSON.stringify({ error: 'CREATE_FAILED' }), { status: 500, headers: { 'content-type': 'application/json' } })
   }
 }
 
 // Update existing config (optimistic concurrency via version field)
-export async function PUT(req: Request) {
+export async function PUT(req: Request): Promise<Response> {
   const auth = await authCheck(req)
   if ('res' in auth) return auth.res
   let body: unknown
@@ -73,28 +81,32 @@ export async function PUT(req: Request) {
   const b = body as UpdateBody
   if (!b.id || typeof b.version !== 'number' || typeof b.config !== 'object' || b.config === null) {
     logEvent(auth.logger, 'domain:export.configs.update.invalid')
-    return NextResponse.json({ error: 'INVALID_UPDATE_SHAPE' }, { status: 400 })
+  return new Response(JSON.stringify({ error: 'INVALID_UPDATE_SHAPE' }), { status: 400, headers: { 'content-type': 'application/json' } })
   }
   const cfgParsed = ExportConfigInputSchema.safeParse(b.config)
   if (!cfgParsed.success) {
     logEvent(auth.logger, 'domain:export.configs.update.validation_failed', { issues: cfgParsed.error.issues.length })
-    return NextResponse.json({ error: 'VALIDATION', issues: cfgParsed.error.issues }, { status: 400 })
+  return new Response(JSON.stringify({ error: 'VALIDATION', issues: cfgParsed.error.issues }), { status: 400, headers: { 'content-type': 'application/json' } })
   }
   try {
     const repo = new ExportConfigRepository(new PrismaClient())
     const res = await repo.update(b.id, b.version, cfgParsed.data)
-    if (res === 'NOT_FOUND') return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 })
-    if (res === 'VERSION_CONFLICT') return NextResponse.json({ error: 'VERSION_CONFLICT' }, { status: 409 })
+    if (res === 'NOT_FOUND') {
+      return new Response(JSON.stringify({ error: 'NOT_FOUND' }), { status: 404, headers: { 'content-type': 'application/json' } })
+    }
+    if (res === 'VERSION_CONFLICT') {
+      return new Response(JSON.stringify({ error: 'VERSION_CONFLICT' }), { status: 409, headers: { 'content-type': 'application/json' } })
+    }
     logEvent(auth.logger, 'domain:export.configs.update_success', { id: res.id })
-    return NextResponse.json({ config: res })
+    return new Response(JSON.stringify({ config: res }), { status: 200, headers: { 'content-type': 'application/json' } })
   } catch (e) {
     logError(auth.logger, 'domain:export.configs.update_error', e as Error)
-    return NextResponse.json({ error: 'UPDATE_FAILED' }, { status: 500 })
+  return new Response(JSON.stringify({ error: 'UPDATE_FAILED' }), { status: 500, headers: { 'content-type': 'application/json' } })
   }
 }
 
 // Delete config by id
-export async function DELETE(req: Request) {
+export async function DELETE(req: Request): Promise<Response> {
   const auth = await authCheck(req)
   if ('res' in auth) return auth.res
   let body: unknown
@@ -102,16 +114,16 @@ export async function DELETE(req: Request) {
   const id = (body as { id?: string }).id
   if (!id) {
     logEvent(auth.logger, 'domain:export.configs.delete.invalid')
-    return NextResponse.json({ error: 'INVALID_DELETE_SHAPE' }, { status: 400 })
+    return new Response(JSON.stringify({ error: 'INVALID_DELETE_SHAPE' }), { status: 400, headers: { 'content-type': 'application/json' } })
   }
   try {
     const repo = new ExportConfigRepository(new PrismaClient())
     const ok = await repo.remove(id)
-    if (!ok) return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 })
+    if (!ok) return new Response(JSON.stringify({ error: 'NOT_FOUND' }), { status: 404, headers: { 'content-type': 'application/json' } })
     logEvent(auth.logger, 'domain:export.configs.delete_success', { id })
-    return NextResponse.json({ removed: true })
+    return new Response(JSON.stringify({ removed: true }), { status: 200, headers: { 'content-type': 'application/json' } })
   } catch (e) {
     logError(auth.logger, 'domain:export.configs.delete_error', e as Error)
-    return NextResponse.json({ error: 'DELETE_FAILED' }, { status: 500 })
+    return new Response(JSON.stringify({ error: 'DELETE_FAILED' }), { status: 500, headers: { 'content-type': 'application/json' } })
   }
 }

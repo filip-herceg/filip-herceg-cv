@@ -1,16 +1,24 @@
 import { defineConfig } from '@playwright/test'
 
+const PORT = Number(process.env.PORT || 3000)
+const BASE = process.env.BASE_URL || `http://127.0.0.1:${PORT}`
+
+const webServer = process.env.SKIP_WEB_SERVER
+  ? undefined
+  : {
+  // Run a production server to match real behavior and avoid dev-only warnings
+  command: 'npm run build && npm run serve',
+    url: BASE,
+  timeout: 180_000,
+  reuseExistingServer: true,
+    env: { PORT: String(PORT), HOSTNAME: '127.0.0.1' },
+  }
+
 export default defineConfig({
   testDir: 'src/tests/e2e',
-  webServer: {
-    command: 'next start',
-    url: 'http://localhost:3000',
-    timeout: 120_000,
-    reuseExistingServer: true,
-    env: { PORT: '3000', HOSTNAME: '127.0.0.1' },
-  },
+  webServer,
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: BASE,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

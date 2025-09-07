@@ -18,14 +18,15 @@ import type { Logger } from 'pino'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Narrow internal histogram contract to avoid casting to any
+// Narrow internal histogram contract with a minimal interface to avoid any casts
 interface HistogramLike { observe: (v: number) => void }
-// prom-client Histogram has observe method; we defensively check while preserving type safety
-const histogram: HistogramLike | undefined = (() => {
-  const candidate = exportPdfSizeBytes as unknown as Partial<HistogramLike>
-  return typeof candidate.observe === 'function' ? { observe: candidate.observe.bind(candidate) } : undefined
-})()
-const observeExportSize = (n: number): void => { histogram?.observe(n) }
+function isHistogramLike(x: unknown): x is HistogramLike {
+  return !!x && typeof (x as { observe?: unknown }).observe === 'function'
+}
+const observeExportSize = (n: number): void => {
+  const h = exportPdfSizeBytes
+  if (isHistogramLike(h)) h.observe(n)
+}
 
 
 interface LoadedConfig { cfg: ExportConfigInput; name: string }
@@ -107,13 +108,13 @@ async function attemptCacheHit(cacheKey: string, cfg: ExportConfigInput, logger:
     if (cached) {
       exportCacheHitTotal.inc()
       exportRequestsTotal.inc({ result: 'cache_hit' })
-      observeExportSize(cached.byteLength || (Array.isArray(cached) ? cached.length : 0))
+      const bytes = new Uint8Array(cached)
+      observeExportSize(bytes.byteLength)
       logEvent(logger, 'domain:export.generate.cache_hit', { key: cacheKey })
-  const bytes = new Uint8Array(cached)
-  return pdfResponseStream(bytes, `${cfg.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-export.pdf`, 'HIT')
+      return pdfResponseStream(bytes, `${cfg.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-export.pdf`, 'HIT')
     }
     exportCacheMissTotal.inc()
-  } catch (e) {
+  } catch (e: unknown) {
     logError(logger, 'domain:export.generate.cache_get_error', e instanceof Error ? e : new Error('cache_get'))
   }
   return undefined
@@ -121,7 +122,7 @@ async function attemptCacheHit(cacheKey: string, cfg: ExportConfigInput, logger:
 
 async function generateAndRespond(target: string, cacheKey: string, cfg: ExportConfigInput, configName: string, logger: Logger): Promise<NextResponse> {
   const { final, person } = await generateCvPdf(target)
-  try { await pdfCache.set(cacheKey, final) } catch (e) { logError(logger, 'domain:export.generate.cache_set_error', e instanceof Error ? e : new Error('cache_set')) }
+  try { await pdfCache.set(cacheKey, final) } catch (e: unknown) { logError(logger, 'domain:export.generate.cache_set_error', e instanceof Error ? e : new Error('cache_set')) }
   exportRequestsTotal.inc({ result: 'success' })
   exportSuccessTotal.inc()
   observeExportSize(final.byteLength)
@@ -184,27 +185,59 @@ export async function POST(_req: NextRequest): Promise<NextResponse> {
   const configName = loaded.name
 
   // Selection derive timing
-  const selectionTimerEnd = exportSelectionDeriveDurationSeconds.startTimer ? exportSelectionDeriveDurationSeconds.startTimer({ result: 'pending' }) : undefined
-  const { data: agg } = await getAggregate('en')
+  const selectionTimerEnd: ((additional?: Record<string,string>)=>void) | undefined =
+    exportSelectionDeriveDurationSeconds.startTimer
+      ? exportSelectionDeriveDurationSeconds.startTimer({ result: 'pending' })
+      : undefined
+  // Be explicit to keep ESLint from inferring any in complex destructures
+  const aggregateResult = await getAggregate('en')
+  const agg = aggregateResult.data
+  // Capture before/after counts to detect pruning
+  type SectionCounts = { skills: number; projects: number; experiences: number; education: number }
+  const before: SectionCounts = {
+    skills: agg.skills.length,
+    projects: agg.projects.length,
+    experiences: (agg.experiences ?? []).length,
+    education: (agg.education ?? []).length,
+  }
   const selection = deriveSelection(cfg, agg)
+  const after: SectionCounts = {
+    skills: selection.skills.length,
+    projects: selection.projects.length,
+    experiences: selection.experiences.length,
+    education: selection.education?.length ?? 0,
+  }
   selectionTimerEnd?.({ result: 'ok' })
   const target = await buildTargetUrl(cfg, selectionToQueryParams(cfg, selection))
   logEvent(logger, 'domain:export.generate.selection_computed', { targetQuery: target.split('?')[1] || '', skills: selection.skills.length, projects: selection.projects.length, experiences: selection.experiences.length })
+  // Telemetry: emit when any section was pruned by filters/limits
+  if (after.skills < before.skills || after.projects < before.projects || after.experiences < before.experiences || after.education < before.education) {
+    const filtered: SectionCounts = {
+      skills: Math.max(0, before.skills - after.skills),
+      projects: Math.max(0, before.projects - after.projects),
+      experiences: Math.max(0, before.experiences - after.experiences),
+      education: Math.max(0, before.education - after.education),
+    }
+    logEvent(logger, 'domain:export_section_filtered', { before, after, filtered })
+  }
 
   const cacheKey = buildCacheKey(cfg, selectionHashParts(selection))
   const cachedResponse = await attemptCacheHit(cacheKey, cfg, logger)
   if (cachedResponse) { await prisma.$disconnect().catch(() => {}); return cachedResponse }
 
-  const endTotal = exportDurationSeconds.startTimer ? exportDurationSeconds.startTimer({ result: 'pending' }) : undefined
+  const endTotal: ((additional?: Record<string,string>)=>void) | undefined =
+    exportDurationSeconds.startTimer
+      ? exportDurationSeconds.startTimer({ result: 'pending' })
+      : undefined
   try {
     const resp = await generateAndRespond(target, cacheKey, cfg, configName, logger)
-    endTotal?.({ result: 'success' })
+  endTotal?.({ result: 'success' })
     return resp
-  } catch (e) {
+  } catch (e: unknown) {
     const err = e instanceof Error ? e : new Error('export_failed')
     exportRequestsTotal.inc({ result: 'error' })
     exportFailureTotal.inc({ reason: err.name || 'Error' })
-    endTotal?.({ result: 'error' })
+  endTotal?.({ result: 'error' })
     logError(logger, 'domain:export.generate.error', err)
     return NextResponse.json({ error: 'EXPORT_FAILED' }, { status: err.message === 'no_chromium' ? 501 : 500 })
   } finally {

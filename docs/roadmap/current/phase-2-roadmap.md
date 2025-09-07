@@ -1,7 +1,7 @@
 # Phase 2 Roadmap – Export Fidelity & Selective Application Packets
 
 Status: draft
-LastUpdated: 2025-09-06
+LastUpdated: 2025-09-06 (post CI hardening)
 Owner: product/engineering
 
 ## Goal
@@ -21,11 +21,12 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 	- Quick Export UX via cookie for last-used config; admin exports API and UI scaffolding present.
 	- Metrics and tracing around selection/export (histograms, counters); structured logs with privacy considerations.
 	- Solid test coverage across export pipeline components (unit + integration), including error branches.
+	- Preset generator utilities shipped (Comprehensive, Concise, Leadership, Technical) with Admin UI "New from preset" actions.
+	- Telemetry events added: export_config_applied (on create from preset) and export_section_filtered (when filters/limits prune selection).
 - In Progress
-	- Print polish and fidelity (media print tokens exist; further tuning + diff harness TBD).
-	- Preset generation utilities (functions) and telemetry event wiring to be added next.
+	- Print polish and fidelity (media print tokens exist; tune styles with the new diff harness).
 - Upcoming
-	- Visual diff harness and thresholds for print fidelity.
+	- Threshold tuning for the visual diff harness (initial harness landed; thresholds TBD).
 	- Chromium context warm pool for consistent warm performance.
 	- Tokenized share link for latest preset export and footer QR.
 
@@ -66,7 +67,7 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 - Image / icon fallback (SVG inline) for consistent output
 
 ### 4. Presets & Heuristics
-- Status: Quick Export UX wired; next up — preset generator functions and analytics events.
+- Status: Preset generators implemented; Admin UI wired; telemetry events emitted.
 - Preset generator functions (e.g. buildLeadershipPreset(profile): ExportConfig)
 - Heuristics: limit Projects to last 5 yrs or top impact score; limit Experience bullet points (future scoring placeholder)
 - Quick Export button chooses last used preset
@@ -116,17 +117,21 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 - Alert: pdf_fail_total > 5 in 10m OR pdf_duration_ms p95 > 8000
 
 ## Next Step Plan (to start now)
-Focus: Slice 4 – Presets & Heuristics
+Focus: Slice 3 – Layout Fidelity & Styles
 
 Deliverables (small, incremental):
-- Add preset generator utilities that produce typed ExportConfigInput for: Comprehensive, Concise, Leadership, Technical.
-- Seed presets in dev/test and expose “Create from preset” actions in Admin Exports page (behind a small button group).
-- Emit telemetry events when a preset is applied (export_config_applied) and when filters prune sections (export_section_filtered).
-- Unit tests for each preset ensuring expected filters/limits and stable ordering.
+- Add baseline snapshots and wire thresholds (<2%) to the already added visual diff harness.
+- Tune print tokens (spacing, fonts, line-heights) for A4 and Letter; verify with harness.
+- Add unit/integration smoke checks to assert harness runs and reports within threshold.
+
+How to run locally:
+- Build and start the app (or rely on Playwright webServer in config).
+- Set EXPORT_PRINT_DIFF=1 and run e2e tests. On first run, review/update the generated baseline snapshot at tests-output/snapshots.
+- Commit baseline updates alongside style changes that intentionally adjust print output.
 
 Exit criteria for this step:
-- All four presets selectable in UI and persisted.
-- Tests green with coverage ≥ existing thresholds; events visible in logs during tests.
+- CI runs the diff harness and passes under configured threshold.
+- No regressions in export timing/coverage.
 
 ## Definition of Done (Phase 2)
 All slices 1–6 complete; 7 & 8 at least partially landed (footer link + a11y baseline). Metrics hitting targets for two consecutive weeks. No P1 reliability issues open. Documentation updated (operations runbook + product spec for export config format).

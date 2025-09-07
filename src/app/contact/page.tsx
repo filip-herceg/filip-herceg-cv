@@ -4,13 +4,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
-import { localizedMeta, localeFromHeaders, t } from '@/lib/i18n'
-
+import { t } from '@/lib/i18n'
 export const dynamic = 'error'
-export async function generateMetadata() {
-  const locale = localeFromHeaders()
-  return localizedMeta(locale, 'contact', { path: 'contact' })
-}
 
 export default function ContactPage() {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')

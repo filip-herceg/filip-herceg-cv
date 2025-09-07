@@ -21,7 +21,9 @@ const HistogramCtor = resolveHistogram()
 // Single registry for the app. In serverless/edge scenarios this would need adaptation; here node runtime.
 export const registry = new client.Registry()
 registry.setDefaultLabels({ app: 'filip-herceg-cv' })
-client.collectDefaultMetrics({ register: registry })
+if (typeof window === 'undefined') {
+  client.collectDefaultMetrics({ register: registry })
+}
 
 export const pdfRequestsTotal = new client.Counter({
   name: 'pdf_requests_total',

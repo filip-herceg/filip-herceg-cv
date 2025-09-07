@@ -229,6 +229,30 @@
 			"label": "Unit tests: export-selector",
 			"type": "shell",
 			"command": "npm test -- -t export selection deriveSelection --run"
+		},
+		{
+			"label": "Typecheck (on repo)",
+			"type": "shell",
+			"command": "npm run typecheck",
+			"group": "test"
+		},
+		{
+			"label": "Typecheck (re-run)",
+			"type": "shell",
+			"command": "npm run typecheck",
+			"group": "test"
+		},
+		{
+			"label": "Typecheck (retry after page fixes)",
+			"type": "shell",
+			"command": "npm run typecheck",
+			"group": "test"
+		},
+		{
+			"label": "Typecheck (retry after loosening page props)",
+			"type": "shell",
+			"command": "npm run typecheck",
+			"group": "test"
 		}
 	]
 }
