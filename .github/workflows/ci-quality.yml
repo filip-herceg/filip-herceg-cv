@@ -40,6 +40,8 @@ jobs:
           npm run lint:report || true
       - name: Typecheck
         run: npm run typecheck
+      - name: Root hygiene guard
+        run: node scripts/check-root-artifacts.mjs
       - name: Build
         run: npm run build
       - name: Tests (with coverage)
