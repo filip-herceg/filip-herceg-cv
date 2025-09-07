@@ -153,6 +153,14 @@ Commit types mapped:
 
 Use `[skip ci]` in trivial docs-only commits if desired; release commit already includes it automatically.
 
+### Reports and Artifacts
+
+Generated outputs are centralized under `reports/` (override base with `REPORTS_DIR`). Useful commands:
+- `npm run lint:report` → JSON at `reports/lint/eslint-report.json`
+- `npm run lhci:reports` → LHCI files under `reports/lighthouse/`
+- `npm run test:a11y:report` → Pa11y results in `reports/a11y/pa11y-report.json` (requires the app running)
+- `npm run docs:index:reports` → Docs index at `reports/docs/docs-index.json`
+
 ### Metrics & Observability
 
 Helm values:
