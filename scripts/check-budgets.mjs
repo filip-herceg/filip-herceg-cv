@@ -115,11 +115,7 @@ function analyzeImages() {
   const reportPath = path.join(budgetsDir, 'budget-report.json')
   fs.writeFileSync(reportPath, JSON.stringify(reportObj, null, 2))
 
-  // Transitional compatibility: also write legacy root file if it previously existed or for consumers expecting it
-  try {
-    const legacyPath = path.join(ROOT, 'budget-report.json')
-    fs.writeFileSync(legacyPath, JSON.stringify(reportObj, null, 2))
-  } catch {}
+  // Legacy root copy removed; use reports/budgets/budget-report.json exclusively
 
   if (failures.length) {
   process.stderr.write('Performance budget failures:\n' + failures.join('\n') + '\n')

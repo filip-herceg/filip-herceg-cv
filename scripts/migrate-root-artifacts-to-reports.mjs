@@ -18,6 +18,7 @@ const plans = [
   { src: 'single_service_lint.json', dest: 'lint/single_service_lint.json' },
   { src: 'single_storage_lint.json', dest: 'lint/single_storage_lint.json' },
   { src: 'eslint-debug.log', dest: 'lint/eslint-debug.log' },
+  { src: 'eslint-print-config.json', dest: 'lint/eslint-print-config.json' },
   { src: 'docs-index.json', dest: 'docs/docs-index.json' },
   { src: 'budget-report.json', dest: 'budgets/budget-report.json' },
   { src: 'flakey.json', dest: 'lint/flakey.json' },

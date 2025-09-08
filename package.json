@@ -27,7 +27,6 @@
     "check:budgets": "node scripts/check-budgets.mjs",
     "docs:links": "node scripts/docs-link-check.mjs",
   "docs:index": "node scripts/docs-generate-index.mjs",
-  "docs:index:write": "node scripts/docs-generate-index.mjs > docs-index.json",
   "docs:index:reports": "node scripts/docs-write-index.mjs",
   "reports:ensure": "node scripts/reports-ensure-dirs.mjs",
   "reports:clean-root": "node scripts/clean-root-artifacts.mjs --delete",

@@ -40,6 +40,19 @@ jobs:
           npm run lint:report || true
       - name: Typecheck
         run: npm run typecheck
+      - name: Legacy types/ grace-period check
+        env:
+          GRACE_EXPIRES: '2025-09-22'
+        run: |
+          if [ -d "types" ]; then
+            NOW=$(date -u +%Y-%m-%d)
+            if [ "$NOW" \< "$GRACE_EXPIRES" ] || [ "$NOW" = "$GRACE_EXPIRES" ]; then
+              echo "::warning::Legacy 'types/' folder still exists. All declarations should be under 'src/types/'. Remove 'types/' before $GRACE_EXPIRES."
+            else
+              echo "::error::Legacy 'types/' folder found after grace period ($GRACE_EXPIRES). Please delete 'types/' and migrate declarations to 'src/types/'."
+              exit 1
+            fi
+          fi
       - name: Root hygiene guard
         run: node scripts/check-root-artifacts.mjs
       - name: Build

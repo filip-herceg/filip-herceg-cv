@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readdirSync, mkdirSync, renameSync, statSync } from 'fs'
+import { readdirSync, mkdirSync, renameSync } from 'fs'
 import path from 'node:path'
 
 const ROOT = process.cwd()
@@ -10,7 +10,7 @@ const entries = readdirSync(ROOT, { withFileTypes: true })
 const candidates = entries
   .filter(e => e.isFile())
   .map(e => e.name)
-  .filter(n => /\.sqlite$/i.test(n))
+  .filter(n => /(\.sqlite|\.sqlite-journal|\.db|\.db-wal|\.db-shm)$/i.test(n))
 
 if (!candidates.length) {
   console.log('No root .sqlite files found; nothing to move.')
@@ -21,8 +21,7 @@ for (const f of candidates) {
   const from = path.join(ROOT, f)
   const to = path.join(FIX_DIR, f)
   try {
-    // Skip if source is 0 bytes (defensive)
-    if (statSync(from).size === 0) continue
+    // Move regardless of size to fully clean the root
     renameSync(from, to)
     console.log(`Moved ${f} -> ${path.relative(ROOT, to)}`)
   } catch (err) {

@@ -304,6 +304,26 @@
 			"label": "Move root sqlite to fixtures",
 			"type": "shell",
 			"command": "node scripts/move-root-sqlite-to-fixtures.mjs"
+		},
+		{
+			"label": "Lint (post-scripts)",
+			"type": "shell",
+			"command": "npm run lint"
+		},
+		{
+			"label": "Clean and verify root hygiene",
+			"type": "shell",
+			"command": "node scripts/clean-root-artifacts.mjs --delete && node scripts/check-root-artifacts.mjs"
+		},
+		{
+			"label": "Move root sqlite and recheck hygiene",
+			"type": "shell",
+			"command": "node scripts/move-root-sqlite-to-fixtures.mjs && node scripts/check-root-artifacts.mjs"
+		},
+		{
+			"label": "Migrate and clean root artifacts, then hygiene check",
+			"type": "shell",
+			"command": "node scripts/reports-ensure-dirs.mjs && node scripts/migrate-root-artifacts-to-reports.mjs && node scripts/clean-root-artifacts.mjs --delete && node scripts/move-root-sqlite-to-fixtures.mjs && node scripts/check-root-artifacts.mjs"
 		}
 	]
 }

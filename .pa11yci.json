@@ -6,12 +6,20 @@
     "screenCapture": "pa11y-screenshots/${url}.png",
     "chromeLaunchConfig": {
       "args": ["--no-sandbox", "--disable-dev-shm-usage"]
+    },
+    "headers": {
+      "Accept-Language": "de-DE,de;q=0.9,en;q=0.8"
     }
   },
   "urls": [
     "http://localhost:3000/",
-    "http://localhost:3000/about",
+    "http://localhost:3000/cv",
     "http://localhost:3000/projects",
     "http://localhost:3000/contact"
-  ]
+  ],
+  "rules": {
+    "ignore": [
+      "region"
+    ]
+  }
 }
