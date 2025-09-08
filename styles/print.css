@@ -1,11 +1,13 @@
 /* Print specific adjustments – imported only by /cv/print route to avoid global impact */
 @media print {
   @page {
-    size: A4;
-    margin: 16mm;
+    size: A4; /* can be overridden via inline style in /cv/print */
+    margin: var(--print-margin, 16mm);
   }
   body {
     background: #ffffff !important;
+    font-size: var(--print-font-size, 11pt);
+    line-height: var(--print-line-height, 1.35);
   }
   .no-print { display: none !important; }
   .print-only { display: initial !important; }
@@ -17,4 +19,5 @@
 
 /* Screen + Print shared helpers */
 .break-avoid { break-inside: avoid; }
+.print-density-compact { font-size: 10.5pt; line-height: 1.28; }
 

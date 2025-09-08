@@ -31,4 +31,20 @@ test.describe('Print fidelity', () => {
       animations: 'disabled',
     })
   })
+
+  test('cv/print letter+compact matches baseline', async ({ page }) => {
+    await page.emulateMedia({ media: 'print', reducedMotion: 'reduce', colorScheme: 'light' })
+    await page.setViewportSize({ width: 1200, height: 1600 })
+
+    await page.goto('/cv/print?paper=letter&density=compact')
+    await page.waitForLoadState('networkidle')
+    await expect(page.locator('.print-page')).toHaveAttribute('data-paper', 'letter')
+    await expect(page.locator('.print-page')).toHaveAttribute('data-density', 'compact')
+
+    await expect(page).toHaveScreenshot('cv-print-letter-compact.png', {
+      fullPage: true,
+      maxDiffPixelRatio: 0.02,
+      animations: 'disabled',
+    })
+  })
 })
