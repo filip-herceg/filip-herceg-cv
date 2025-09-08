@@ -1,6 +1,6 @@
 ---
 title: Phase 4 – Types consolidation, DB policy, infra workflow
-status: in-progress
+status: completed
 category: engineering
 ---
 
