@@ -143,10 +143,7 @@ function buildTargetUrl(base: string, selection: { skills?: string[]; projects?:
 
 async function renderPdf(target: string) {
   const puppeteer = await getPuppeteer()
-  let executablePath = process.env.CHROMIUM_PATH
-  if (!executablePath) {
-    executablePath = CHROMIUM_CANDIDATE_PATHS.find((p) => { try { return existsSync(p) } catch { return false } })
-  }
+  const executablePath = process.env.CHROMIUM_PATH ?? CHROMIUM_CANDIDATE_PATHS.find((p) => { try { return existsSync(p) } catch { return false } })
   if (!executablePath) throw new Error('no_chromium')
   const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--font-render-hinting=none'] })
   const page = await browser.newPage()

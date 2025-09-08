@@ -49,6 +49,11 @@ vi.mock('@/lib/metrics', () => {
     pdfCacheHitsTotal: makeNamedCounter('pdf_cache_hits_total'),
     pdfCacheMissesTotal: makeNamedCounter('pdf_cache_misses_total'),
   pdfGenerationDurationSeconds: makeHistogram(),
+  // Chromium pool metrics (ensure named exports exist for module-level import bindings)
+  chromiumPoolEnabled: makeGauge(),
+  chromiumPoolPagesTotal: makeGauge(),
+  chromiumPoolPagesBusy: makeGauge(),
+  chromiumAcquireDurationSeconds: makeHistogram(),
     // Permalinks
     permalinkCreatesTotal: makeNamedCounter('permalink_creates_total'),
   // Admin mutations

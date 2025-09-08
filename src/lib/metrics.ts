@@ -168,6 +168,32 @@ export const exportPdfSizeBytes = new HistogramCtor({
   registers: [registry],
 })
 
+// Chromium pool metrics (warm contexts for PDF)
+export const chromiumPoolEnabled = new client.Gauge({
+  name: 'chromium_pool_enabled',
+  help: 'Indicates whether a warm Chromium pool is enabled (1) or not (0)',
+  registers: [registry],
+})
+
+export const chromiumPoolPagesTotal = new client.Gauge({
+  name: 'chromium_pool_pages_total',
+  help: 'Total pages tracked by the Chromium pool (busy + available)',
+  registers: [registry],
+})
+
+export const chromiumPoolPagesBusy = new client.Gauge({
+  name: 'chromium_pool_pages_busy',
+  help: 'Number of pages currently checked out from the Chromium pool',
+  registers: [registry],
+})
+
+export const chromiumAcquireDurationSeconds = new HistogramCtor({
+  name: 'chromium_acquire_duration_seconds',
+  help: 'Time to acquire a Chromium page from the warm pool (seconds)',
+  buckets: [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2],
+  registers: [registry],
+})
+
 // Auth metrics
 export const authLoginAttemptsTotal = new client.Counter({
   name: 'auth_login_attempts_total',

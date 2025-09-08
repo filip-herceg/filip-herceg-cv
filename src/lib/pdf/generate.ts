@@ -1,21 +1,30 @@
 import { CHROMIUM_CANDIDATE_PATHS, PDF_DEFAULT_TIMEOUT_MS, PDF_NAVIGATION_GRACE_MS, PDF_POST_RENDER_DELAY_MS, CV_PAGE_SIZE } from '@/lib/constants'
 import { existsSync } from 'fs'
 import type { Page } from 'puppeteer-core'
+import { acquirePooledPage, warmChromiumPool } from '@/lib/pdf/chromium-pool'
 
 async function getPuppeteer() { return (await import('puppeteer-core')) }
 
 export interface PdfResult { final: Buffer; person: { name: string; title: string } }
 
 export async function generateCvPdf(target: string): Promise<PdfResult> {
+  // Try warm pool first
+  await warmChromiumPool()
+  const pooled = await acquirePooledPage()
+  let page: Page
+  let closeBrowser: null | (() => Promise<void>) = null
+  if (pooled) {
+    page = pooled.page
+  } else {
   const puppeteer = await getPuppeteer()
-  let executablePath = process.env.CHROMIUM_PATH
-  if (!executablePath) {
-    executablePath = CHROMIUM_CANDIDATE_PATHS.find((p) => { try { return existsSync(p) } catch { return false } })
+  const executablePath = process.env.CHROMIUM_PATH ?? CHROMIUM_CANDIDATE_PATHS.find((p) => { try { return existsSync(p) } catch { return false } })
+    if (!executablePath) throw new Error('no_chromium')
+    const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--font-render-hinting=none'] })
+    const tmpPage = await browser.newPage()
+    tmpPage.setDefaultTimeout(PDF_DEFAULT_TIMEOUT_MS)
+    page = tmpPage
+    closeBrowser = async () => { try { await browser.close() } catch { /* ignore */ } }
   }
-  if (!executablePath) throw new Error('no_chromium')
-  const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--font-render-hinting=none'] })
-  const page = await browser.newPage()
-  page.setDefaultTimeout(PDF_DEFAULT_TIMEOUT_MS)
   const navResult = await Promise.race([
     page.goto(target, { waitUntil: 'networkidle0' }),
     new Promise((_, reject) => setTimeout(() => reject(new Error('Navigation timeout')), PDF_DEFAULT_TIMEOUT_MS + PDF_NAVIGATION_GRACE_MS)),
@@ -40,6 +49,10 @@ export async function generateCvPdf(target: string): Promise<PdfResult> {
   pdfDoc.setSubject('Curriculum Vitae')
   pdfDoc.setKeywords(['CV','Resume', person.title, 'Short'].filter(Boolean))
   const final = Buffer.from(await pdfDoc.save())
-  await browser.close()
+  if (pooled) {
+    await pooled.release()
+  } else if (closeBrowser) {
+    await closeBrowser()
+  }
   return { final, person }
 }

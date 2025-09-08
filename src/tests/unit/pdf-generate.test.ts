@@ -10,6 +10,10 @@ describe('generateCvPdf', () => {
   })
 
   it('throws no_chromium when no executable found', async () => {
+    vi.doMock('@/lib/pdf/chromium-pool', () => ({
+      warmChromiumPool: vi.fn(),
+      acquirePooledPage: vi.fn().mockResolvedValue(null),
+    }))
     vi.doMock('fs', () => ({ __esModule: true, existsSync: () => false, default: { existsSync: () => false } }))
     vi.doMock('puppeteer-core', () => ({}))
     const { generateCvPdf } = await importTarget()
@@ -25,6 +29,10 @@ describe('generateCvPdf', () => {
       // no pdf function -> triggers branch
     }
     const browser = { newPage: vi.fn().mockResolvedValue(page), close }
+    vi.doMock('@/lib/pdf/chromium-pool', () => ({
+      warmChromiumPool: vi.fn(),
+      acquirePooledPage: vi.fn().mockResolvedValue(null),
+    }))
   vi.doMock('puppeteer-core', () => ({ launch: vi.fn().mockResolvedValue(browser) }))
 	vi.doMock('fs', () => ({ __esModule: true, existsSync: () => true, default: { existsSync: () => true } }))
     // pdf-lib & cv/service still mocked though not reached (pdf_fn_missing happens earlier)
@@ -46,6 +54,10 @@ describe('generateCvPdf', () => {
       pdf: vi.fn().mockResolvedValue(pdfBytes),
     }
     const browser = { newPage: vi.fn().mockResolvedValue(page), close: vi.fn() }
+    vi.doMock('@/lib/pdf/chromium-pool', () => ({
+      warmChromiumPool: vi.fn(),
+      acquirePooledPage: vi.fn().mockResolvedValue(null),
+    }))
   vi.doMock('puppeteer-core', () => ({ launch: vi.fn().mockResolvedValue(browser) }))
 	vi.doMock('fs', () => ({ __esModule: true, existsSync: () => true, default: { existsSync: () => true } }))
     vi.doMock('pdf-lib', () => ({

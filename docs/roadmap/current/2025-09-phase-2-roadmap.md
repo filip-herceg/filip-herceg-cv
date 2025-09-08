@@ -1,7 +1,7 @@
 # Phase 2 Roadmap – Export Fidelity & Selective Application Packets
 
 Status: active
-LastUpdated: 2025-09-07 (after CI + docs alignment)
+LastUpdated: 2025-09-08 (visual diff baselines + thresholds wired)
 Owner: product/engineering
 
 ## Goal
@@ -14,7 +14,7 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 - Metrics & logs show < 1% failed exports and trace spans for 100% of export requests.
 - Basic presets available (Comprehensive, Concise, Leadership, Technical) with overridable heuristics.
 
-## Progress Snapshot (as of 2025-09-06)
+## Progress Snapshot (as of 2025-09-08)
 - Completed
 	- Headless PDF export route with direct streaming responses and cache integration in place (GET /api/cv/pdf; admin export generate route available).
 	- Section selection and tag/stack filters implemented with per-section limits; query/hash helpers wired for URL/token flows.
@@ -24,9 +24,9 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 	- Preset generator utilities shipped (Comprehensive, Concise, Leadership, Technical) with Admin UI "New from preset" actions.
 	- Telemetry events added: export_config_applied (on create from preset) and export_section_filtered (when filters/limits prune selection).
 - In Progress
-	- Print polish and fidelity (media print tokens exist; tune styles using the new diff harness; thresholds pending).
+	- Print polish and fidelity: print tokens and density/paper options added; visual diff harness landed with baselines; thresholds set to 2%.
 - Upcoming
-	- Threshold tuning for the visual diff harness (initial harness landed; thresholds TBD).
+	- CI stability tuning for visual diffs (adjust per-OS thresholds if needed; keep 2% default where stable).
 	- Chromium context warm pool for consistent warm performance.
 	- Tokenized share link for latest preset export and footer QR.
 
@@ -117,21 +117,21 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 - Alert: pdf_fail_total > 5 in 10m OR pdf_duration_ms p95 > 8000
 
 ## Next Step Plan (to start now)
-Focus: Slice 3 – Layout Fidelity & Styles
+Focus: Slice 3 – Layout Fidelity & Styles (wrap-up) and kick off Slice 5 – Performance & Caching
 
 Deliverables (small, incremental):
-- Add baseline snapshots and wire thresholds (<2%) to the already added visual diff harness.
-- Tune print tokens (spacing, fonts, line-heights) for A4 and Letter; verify with harness.
-- Add unit/integration smoke checks to assert harness runs and reports within threshold.
+- Validate visual diff stability in CI runners; adjust thresholds OS-specifically if needed, otherwise keep 2% default.
+- Expand diff coverage with 1–2 additional views if low risk (e.g., compact mode variant) and keep runtime fast.
+- Prototype warm Chromium context pool and measure warm vs cold timings; add gauges/metrics for pool size.
+- Prepare groundwork for tokenized share link + footer QR (schema + toggle, no external exposure yet).
 
 How to run locally:
 - Build and start the app (or rely on Playwright webServer in config).
-- Set EXPORT_PRINT_DIFF=1 and run e2e tests. On first run, review/update the generated baseline snapshot at tests-output/snapshots.
-- Commit baseline updates alongside style changes that intentionally adjust print output.
+- Set EXPORT_PRINT_DIFF=1 and run e2e tests; update snapshots only when intended visual changes are made.
 
 Exit criteria for this step:
-- CI runs the diff harness and passes under configured threshold.
-- No regressions in export timing/coverage.
+- Visual diffs pass on CI consistently across 3 consecutive runs without flaky failures.
+- p50 warm export time trend improves vs baseline measurements; metrics available in logs.
 
 ## Definition of Done (Phase 2)
 All slices 1–6 complete; 7 & 8 at least partially landed (footer link + a11y baseline). Metrics hitting targets for two consecutive weeks. No P1 reliability issues open. Documentation updated (operations runbook + product spec for export config format).

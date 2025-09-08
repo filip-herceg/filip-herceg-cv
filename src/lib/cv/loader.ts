@@ -17,43 +17,59 @@ let backend: CvStorageBackend | undefined
 // Flag: disable automatic DB seeding by setting CV_AUTO_SEED=false
 const AUTO_SEED = process.env.CV_AUTO_SEED !== 'false'
 
-async function ensure(locale: Locale) {
+async function initBackendIfNeeded() {
   if (!backend) {
     const { createStorage } = await import('./storage')
     backend = createStorage()
   }
-  if (cache.data[locale]) return
-  const agg = await backend.get(locale)
-  if (agg.source === 'empty') {
-    if (AUTO_SEED) {
-      if (backend.seedIfEmpty) {
-        try {
-          await backend.seedIfEmpty(locale, defaultSeedData, defaultSeedDesign)
-          const seeded = await backend.get(locale)
-          if (seeded.source !== 'empty') {
-            cache.data[locale] = seeded.data
-            cache.design[locale] = seeded.design
-            return
-          }
-        } catch {
-          // ignore and fall back to defaults
-        }
-        // DB still empty/unavailable -> fall back to local defaults
-        cache.data[locale] = defaultSeedData
-        cache.design[locale] = defaultSeedDesign
-      } else {
-        cache.data[locale] = defaultSeedData
-        cache.design[locale] = defaultSeedDesign
-      }
-    } else {
-      // Use ephemeral in-memory seed only (tests / dev scenarios)
-      cache.data[locale] = defaultSeedData
-      cache.design[locale] = defaultSeedDesign
-    }
-  } else {
-    cache.data[locale] = agg.data
-    cache.design[locale] = agg.design
+}
+
+function setDefaults(locale: Locale) {
+  cache.data[locale] = defaultSeedData
+  cache.design[locale] = defaultSeedDesign
+}
+
+function setFromAgg(locale: Locale, agg: { data: CvData; design: CvDesign }) {
+  cache.data[locale] = agg.data
+  cache.design[locale] = agg.design
+}
+
+async function handleEmpty(locale: Locale) {
+  if (!AUTO_SEED) {
+    setDefaults(locale)
+    return
   }
+
+  if (!backend?.seedIfEmpty) {
+    setDefaults(locale)
+    return
+  }
+
+  try {
+    await backend.seedIfEmpty(locale, defaultSeedData, defaultSeedDesign)
+    const seeded = await backend.get(locale)
+    if (seeded.source !== 'empty') {
+      setFromAgg(locale, seeded)
+      return
+    }
+  } catch {
+    // ignore and fall back to defaults
+  }
+
+  setDefaults(locale)
+}
+
+async function ensure(locale: Locale) {
+  await initBackendIfNeeded()
+  if (cache.data[locale]) return
+
+  const agg = await backend!.get(locale)
+  if (agg.source !== 'empty') {
+    setFromAgg(locale, agg)
+    return
+  }
+
+  await handleEmpty(locale)
 }
 
 export async function getCvData(locale: Locale = 'en'): Promise<CvData> {
