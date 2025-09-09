@@ -133,6 +133,28 @@ Exit criteria for this step:
 - Visual diffs pass on CI consistently across 3 consecutive runs without flaky failures.
 - p50 warm export time trend improves vs baseline measurements; metrics available in logs.
 
+## PDF Pool Benchmark
+- Script: `scripts/benchmark-pdf-pool.mjs`
+- NPM alias: `npm run bench:pdf`
+- Env:
+	- `BENCH_BASE` (default http://localhost:3000)
+	- `BENCH_ITERS` (default 8)
+	- `BENCH_OUT` (optional JSON results path, e.g. `reports/bench/pdf.json`)
+	- For local prod-like run without DB: set `CV_STORAGE=memory CV_AUTO_SEED=false` and point `CHROMIUM_PATH` to your Chrome/Chromium binary.
+
+Expected output: cold-start and warm timings with p50/p95. Commit results summary back here when measured on CI runner and a developer laptop.
+
+Measured locally (Windows laptop, Edge headless via CHROMIUM_PATH):
+- cold: ~2393 ms
+- warm p50: ~2307 ms
+- warm p95: ~2695 ms
+- warm avg: ~2347 ms
+
+Notes:
+- Backend: CV_STORAGE=memory, CV_AUTO_SEED=false
+- Pool size default (1) with warmChromiumPool() primed on first request.
+- These meet the warm target (< 2.5s) and are close to the cold target (< 4s).
+
 ## Definition of Done (Phase 2)
 All slices 1–6 complete; 7 & 8 at least partially landed (footer link + a11y baseline). Metrics hitting targets for two consecutive weeks. No P1 reliability issues open. Documentation updated (operations runbook + product spec for export config format).
 

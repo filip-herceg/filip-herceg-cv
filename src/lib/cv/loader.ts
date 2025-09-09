@@ -14,8 +14,20 @@ const cache: Cached = { data: {} as Record<Locale, CvData>, design: {} as Record
 // Selected storage backend (db or memory) controlled by CV_STORAGE env; resolved lazily
 let backend: CvStorageBackend | undefined
 
-// Flag: disable automatic DB seeding by setting CV_AUTO_SEED=false
-const AUTO_SEED = process.env.CV_AUTO_SEED !== 'false'
+// Runtime flags
+function canUseDatabase() {
+  const url = process.env.DATABASE_URL || ''
+  // Only allow obvious Postgres URLs; anything else is treated as unavailable
+  return Boolean(url.startsWith('postgresql://') || url.startsWith('postgres://'))
+}
+
+// Only auto-seed when explicitly enabled AND a database is configured.
+// Default is OFF to avoid touching DB during builds or without an explicit opt-in.
+function shouldAutoSeed() {
+  if (process.env.CV_AUTO_SEED !== 'true') return false
+  if (!canUseDatabase()) return false
+  return true
+}
 
 async function initBackendIfNeeded() {
   if (!backend) {
@@ -35,7 +47,7 @@ function setFromAgg(locale: Locale, agg: { data: CvData; design: CvDesign }) {
 }
 
 async function handleEmpty(locale: Locale) {
-  if (!AUTO_SEED) {
+  if (!shouldAutoSeed()) {
     setDefaults(locale)
     return
   }

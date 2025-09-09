@@ -1,12 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Covers uncovered lines in loader.ensure(): seedIfEmpty branch & second get population.
 // Strategy: mock storage factory so first get returns empty, seedIfEmpty is invoked, second get returns seeded data.
 
 describe('cv loader seeding branch', () => {
   beforeEach(() => {
-    delete (process as any).env.CV_AUTO_SEED // ensure auto-seed true (not 'false')
+    // New behavior: auto-seed is opt-in. Enable it explicitly and provide a valid-looking DATABASE_URL
+    // so loader.shouldAutoSeed() returns true without actually touching a real DB (storage is mocked below).
+    ;(process as any).env.CV_AUTO_SEED = 'true'
+    ;(process as any).env.DATABASE_URL = 'postgresql://test:test@localhost:5432/db'
     vi.resetModules()
+  })
+
+  afterEach(() => {
+    delete (process as any).env.CV_AUTO_SEED
+    delete (process as any).env.DATABASE_URL
   })
 
   it('invokes seedIfEmpty then caches seeded data/design', async () => {

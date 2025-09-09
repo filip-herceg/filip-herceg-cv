@@ -21,7 +21,16 @@ function safeJson<T>(raw: string | Prisma.JsonValue | null | undefined, fallback
 }
 
 let prisma: PrismaClient | undefined
+function canUseDatabase() {
+  const url = process.env.DATABASE_URL || ''
+  const isTest = process.env.NODE_ENV === 'test'
+  if (isTest) return true
+  return Boolean(url.startsWith('postgresql://') || url.startsWith('postgres://'))
+}
 function getPrisma(): PrismaClient {
+  if (!canUseDatabase()) {
+    throw new Error('DATABASE_URL not configured; database access is disabled')
+  }
   prisma ??= new PrismaClient()
   return prisma
 }
@@ -53,6 +62,7 @@ export async function getAggregate(locale: string = 'en'): Promise<{ data: CvDat
 
 // Seed database with initial static content if empty. Returns true if seeding performed.
 export async function seedIfEmpty(locale: string, data: CvData, design: CvDesign): Promise<boolean> {
+  if (!canUseDatabase()) return false
   if (seedingInFlight.has(locale)) {
   return seedingInFlight.get(locale)!
   }
@@ -147,13 +157,7 @@ export async function seedIfEmpty(locale: string, data: CvData, design: CvDesign
 
 async function loadFromDb(locale: string) {
   // Fast path: if DATABASE_URL is not configured or clearly invalid, avoid initializing Prisma
-  const dbUrl = process.env.DATABASE_URL
-  const isTest = process.env.NODE_ENV === 'test'
-  if (!isTest) {
-    if (!dbUrl || !(dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://'))) {
-      return null
-    }
-  }
+  if (!canUseDatabase()) return null
   try {
     const client = getPrisma()
     const [person, skills, projects, experiences, education, certifications, traits, hobbies, design] = await Promise.all([

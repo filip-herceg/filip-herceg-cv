@@ -6,6 +6,12 @@
 			"type": "shell",
 			"command": "npm run dev",
 			"isBackground": true,
+			"options": {
+				"env": {
+					"PORT": "3001",
+					"HOSTNAME": "127.0.0.1"
+				}
+			},
 			"problemMatcher": {
 				"owner": "custom",
 				"pattern": [
@@ -15,8 +21,8 @@
 				],
 				"background": {
 					"activeOnStart": true,
-					"beginsPattern": "ready -",
-					"endsPattern": "ready -"
+					"beginsPattern": "ready -|Ready in|\\- Local:",
+					"endsPattern": "ready -|Ready in|\\- Local:"
 				}
 			},
 			"group": {
@@ -32,6 +38,12 @@
 			"label": "Build: next build",
 			"type": "shell",
 			"command": "npm run build",
+			"options": {
+				"env": {
+					"CV_STORAGE": "memory",
+					"CV_AUTO_SEED": "false"
+				}
+			},
 			"group": "build",
 			"presentation": {
 				"reveal": "always",
@@ -41,10 +53,12 @@
 		{
 			"label": "Start: next start",
 			"type": "shell",
-			"command": "node .next/standalone/server.js",
+			"command": "npm run serve",
 			"options": {
 				"env": {
-					"PORT": "3000"
+					"PORT": "3000",
+					"CV_STORAGE": "memory",
+					"CV_AUTO_SEED": "false"
 				}
 			},
 			"dependsOn": [
@@ -61,10 +75,55 @@
 				],
 				"background": {
 					"activeOnStart": true,
-					"beginsPattern": "ready -|Listening on|started server",
-					"endsPattern": "ready -|Listening on|started server"
+					"beginsPattern": "ready -|Ready in|^\\u001b?\\[[0-9;]*m?ready -|\\- Local:|Listening on|started server",
+					"endsPattern": "ready -|Ready in|^\\u001b?\\[[0-9;]*m?ready -|\\- Local:|Listening on|started server"
 				}
 			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Start: prod (PDF bench)",
+			"type": "shell",
+			"command": "npm run serve",
+			"options": {
+				"env": {
+					"PORT": "3003",
+					"HOSTNAME": "127.0.0.1",
+					"CV_STORAGE": "memory",
+					"CV_AUTO_SEED": "false",
+					"CHROMIUM_PATH": "C:/Program Files/Microsoft/Edge/Application/msedge.exe"
+				}
+			},
+			"dependsOn": [
+				"Build: next build"
+			],
+			"dependsOrder": "sequence",
+			"isBackground": true,
+			"problemMatcher": {
+				"owner": "custom",
+				"pattern": [
+					{
+						"regexp": "."
+					}
+				],
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": "ready -|Ready in|\\- Local:|Listening on|started server",
+					"endsPattern": "ready -|Ready in|\\- Local:|Listening on|started server"
+				}
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Stop: background servers",
+			"type": "shell",
+			"command": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/stop-servers.ps1",
 			"presentation": {
 				"reveal": "always",
 				"panel": "shared"
@@ -139,11 +198,18 @@
 			}
 		},
 		{
+			"label": "Wait: healthz (prod)",
+			"type": "shell",
+			"command": "npx wait-on http://localhost:3000/api/healthz",
+			"presentation": { "reveal": "never" }
+		},
+		{
 			"label": "A11y (pa11y-ci)",
 			"type": "shell",
 			"command": "npm run test:a11y:report",
 			"dependsOn": [
-				"Start: next start"
+				"Start: next start",
+				"Wait: healthz (prod)"
 			],
 			"dependsOrder": "sequence",
 			"presentation": {
@@ -156,7 +222,8 @@
 			"type": "shell",
 			"command": "npm run lhci:reports",
 			"dependsOn": [
-				"Start: next start"
+				"Start: next start",
+				"Wait: healthz (prod)"
 			],
 			"dependsOrder": "sequence",
 			"presentation": {
@@ -169,6 +236,16 @@
 			"type": "shell",
 			"command": "npm run lint:report",
 			"group": "test"
+		},
+		{
+			"label": "Bench: PDF (self-contained)",
+			"type": "shell",
+			"command": "node scripts/benchmark-pdf-pool-run.mjs",
+			"group": "test",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
 		},
 		{
 			"label": "CI: lint+typecheck+build+test",
@@ -305,11 +382,7 @@
 			"type": "shell",
 			"command": "node scripts/move-root-sqlite-to-fixtures.mjs"
 		},
-		{
-			"label": "Lint (post-scripts)",
-			"type": "shell",
-			"command": "npm run lint"
-		},
+
 		{
 			"label": "Clean and verify root hygiene",
 			"type": "shell",
@@ -324,6 +397,7 @@
 			"label": "Migrate and clean root artifacts, then hygiene check",
 			"type": "shell",
 			"command": "node scripts/reports-ensure-dirs.mjs && node scripts/migrate-root-artifacts-to-reports.mjs && node scripts/clean-root-artifacts.mjs --delete && node scripts/move-root-sqlite-to-fixtures.mjs && node scripts/check-root-artifacts.mjs"
-		}
+		},
+
 	]
 }

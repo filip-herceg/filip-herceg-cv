@@ -1,0 +1,71 @@
+name: CI PDF Benchmark
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'public/**'
+      - 'next.config.mjs'
+      - 'package.json'
+  workflow_dispatch:
+  schedule:
+    - cron: '15 2 * * *'
+
+concurrency:
+  group: ci-bench-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pdf-benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Resolve Chromium path for Puppeteer
+        id: chromium
+        shell: bash
+        run: |
+          CHROME_PATH=$(node -e "console.log(require('playwright-core').chromium.executablePath())")
+          echo "CHROMIUM_PATH=$CHROME_PATH" >> $GITHUB_ENV
+          echo "chromium_path=$CHROME_PATH" >> $GITHUB_OUTPUT
+
+      - name: Run self-contained PDF benchmark
+        env:
+          CHROMIUM_PATH: ${{ env.CHROMIUM_PATH }}
+          BENCH_ITERS: '8'
+        run: node scripts/benchmark-pdf-pool-run.mjs
+
+      - name: Upload benchmark artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdf-benchmark
+          path: reports/bench/pdf.json
+          retention-days: 14
+
+      - name: Publish summary
+        if: always()
+        run: |
+          if [ -f reports/bench/pdf.json ]; then
+            node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('reports/bench/pdf.json','utf8'));const r=(n)=>Math.round(n||0);const lines=[`Base: ${p.base}`, `Iterations: ${p.iterations}`, `Cold: ${r(p.cold)} ms`, `Warm p50: ${r(p.p50)} ms`, `Warm p95: ${r(p.p95)} ms`, `Warm avg: ${r(p.avg)} ms`, `Timestamp: ${p.ts}`]; console.log(lines.join('\n'))" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No benchmark results found" >> $GITHUB_STEP_SUMMARY
+          fi
