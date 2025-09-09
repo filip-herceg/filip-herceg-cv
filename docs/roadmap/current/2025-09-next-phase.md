@@ -18,3 +18,5 @@ Deliverables:
 - Legacy `types/` marked deprecated; de-duped files replaced with no-op and notes. (Done)
 - Docs: short note under `docs/operations/platform/deploy.md` clarifying Helm → k8s generation.
 - Test DB fixtures README and runbook added. (Done)
+
+For current product roadmap status, see `docs/roadmap/current/2025-09-phase-2-roadmap.md`.

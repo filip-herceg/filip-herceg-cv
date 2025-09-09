@@ -1,7 +1,7 @@
 # Phase 2 Roadmap – Export Fidelity & Selective Application Packets
 
 Status: active
-LastUpdated: 2025-09-08 (visual diff baselines + thresholds wired)
+LastUpdated: 2025-09-09 (clarified done vs remaining; added slice checklist)
 Owner: product/engineering
 
 ## Goal
@@ -13,6 +13,35 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 - Export completes < 4s median cold; < 2.5s warm (server cached assets / chromium reuse).
 - Metrics & logs show < 1% failed exports and trace spans for 100% of export requests.
 - Basic presets available (Comprehensive, Concise, Leadership, Technical) with overridable heuristics.
+
+## At‑a‑glance status
+- [x] 1) Export Core Infra — core routes + streaming cache shipped; [ ] deterministic SSR snapshot refinements
+- [x] 2) Section Selection MVP — selection + filters shipped; [ ] drag & drop ordering (kbd accessible)
+- [ ] 3) Layout Fidelity & Styles — diff harness/baselines landed; print tuning/threshold hardening pending
+- [x] 4) Presets & Heuristics — 4 presets + telemetry shipped
+- [ ] 5) Performance & Caching — [x] export caching, [ ] warm Chromium context pool
+- [x] 6) Observability & Reliability — tracing + metrics shipped; [ ] pool gauges later
+- [ ] 7) Security & Link Bridge — tokenized share link + footer QR pending
+- [ ] 8) UX Polish & Accessibility — wizard preview + a11y polish pending
+
+## What’s done vs what’s left
+Done (shipped):
+- Headless PDF export route with direct streaming and cache integration.
+- Section selection with tag/stack filters and per‑section limits; URL/token helpers.
+- Presets (Comprehensive, Concise, Leadership, Technical) + Admin “New from preset”.
+- Quick Export UX via last‑used config cookie.
+- Metrics/tracing around selection/export; structured logs; health endpoint.
+- Unit + integration tests incl. error branches.
+- Telemetry events: export_config_applied, export_section_filtered.
+- Visual diff harness with baselines and default 2% threshold (tuning ongoing).
+
+Remaining (to ship):
+- Print polish to consistently meet visual diff thresholds in CI.
+- Drag & drop ordering (keyboard accessible) in selection UI.
+- Warm Chromium context pool and related metrics/gauges.
+- Tokenized share link for “latest preset export” and footer QR.
+- Deterministic SSR snapshot refinements (fonts subset, stable layout invariants).
+- Wizard preview panel and a11y polish (aria‑live progress, roving tabindex).
 
 ## Progress Snapshot (as of 2025-09-08)
 - Completed

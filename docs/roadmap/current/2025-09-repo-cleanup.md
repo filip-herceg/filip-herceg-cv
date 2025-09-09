@@ -24,3 +24,5 @@ Added in Phase 4 updates:
 - Helm lint/render CI now validates output with kubeconform (strict, ignore-missing-schemas) to catch schema issues early.
 - Legacy `types/` folder removed; CI grace note can be dropped on the next main merge.
 - Roadmap files under `docs/roadmap/current/` normalized to `YYYY-MM-*` naming.
+
+See also: Phase 2 export roadmap in `docs/roadmap/current/2025-09-phase-2-roadmap.md` for product‑facing deliverables status.
