@@ -46,6 +46,14 @@ function handlePdfError(e: Error & { message?: string }, ctx: { child: ReturnTyp
     span.end()
     return NextResponse.json({ error: 'Chromium binary not available', status: 501 }, { status: 501 })
   }
+  if (e?.message?.startsWith('launch_failed')) {
+    logError(child, 'domain:cv.pdf.launch_failed', e)
+    pdfRequestsTotal.inc({ result: 'error' })
+    try { genTimerEnd?.({ result: 'error' }) } catch {}
+    span.setAttribute('error', 'launch_failed')
+    span.end()
+    return NextResponse.json({ error: 'Chromium launch failed', status: 500 }, { status: 500 })
+  }
   if (e?.message?.includes('Navigation timeout')) {
     logError(child, 'domain:cv.pdf.timeout', e)
     pdfRequestsTotal.inc({ result: 'timeout' })
@@ -159,7 +167,14 @@ async function acquirePage(): Promise<{ page: Page; cleanup: () => Promise<void>
   const puppeteer = await getPuppeteer()
   const executablePath = process.env.CHROMIUM_PATH ?? CHROMIUM_CANDIDATE_PATHS.find((p) => { try { return existsSync(p) } catch { return false } })
   if (!executablePath) throw new Error('no_chromium')
-  const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--font-render-hinting=none'] })
+  // Best-effort: attempt launch and surface clearer error if it fails
+  let browser: Awaited<ReturnType<(typeof puppeteer)['launch']>>
+  try {
+    browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--font-render-hinting=none'] })
+  } catch (err: unknown) {
+    const msg = (err as Error)?.message || 'unknown'
+    throw new Error(`launch_failed: ${msg}`)
+  }
   const page = await browser.newPage()
   page.setDefaultTimeout(DEFAULT_TIMEOUT_MS)
   return { page, cleanup: async () => { try { await browser.close() } catch { /* ignore */ } } }
@@ -197,14 +212,18 @@ async function injectDeterministicEnv(page: Page): Promise<void> {
 // Navigate to target and measure DOMContentLoaded time
 async function navigateAndMeasureDomReady(page: Page, target: string): Promise<void> {
   const domTimerEnd = (pdfRenderDomDurationSeconds as unknown as { startTimer?: (l?: Record<string,string>) => (add?: Record<string,string>) => void }).startTimer?.()
-  const navDom = await Promise.race([
-    page.goto(target, { waitUntil: 'domcontentloaded' }),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Navigation timeout')), DEFAULT_TIMEOUT_MS + PDF_NAVIGATION_GRACE_MS)),
-  ])
-  if (!navDom) throw new Error('Navigation failed')
-  try { domTimerEnd?.() } catch {}
-  // Keep prior behavior: wait for full load but don't fail hard
-  try { await page.waitForFunction(() => document.readyState === 'complete', { timeout: DEFAULT_TIMEOUT_MS }).catch(() => {}) } catch {}
+  try {
+    const navDom = await Promise.race([
+      page.goto(target, { waitUntil: 'domcontentloaded' }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Navigation timeout')), DEFAULT_TIMEOUT_MS + PDF_NAVIGATION_GRACE_MS)),
+    ])
+    if (!navDom) throw new Error('Navigation failed')
+    // Keep prior behavior: wait for full load but don't fail hard
+    try { await page.waitForFunction(() => document.readyState === 'complete', { timeout: DEFAULT_TIMEOUT_MS }).catch(() => {}) } catch {}
+  } finally {
+    // Always finalize the histogram so failures are observable
+    try { domTimerEnd?.() } catch {}
+  }
 }
 
 // Optionally draw a QR footer pointing to short link
