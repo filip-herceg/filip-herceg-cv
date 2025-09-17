@@ -1,0 +1,72 @@
+{{- if and .Values.metrics.enabled .Values.metrics.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "app.fullname" . }}-rules
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  groups:
+    - name: {{ include "app.fullname" . }}.alerts
+      interval: 30s
+      rules:
+        # Chromium pool utilization high
+        - alert: CVChromiumPoolHighUtilization
+          expr: (chromium_pool_pages_busy{job='{{ include "app.fullname" . }}'} / clamp_min(chromium_pool_pages_total{job='{{ include "app.fullname" . }}'}, 1)) > {{ .Values.metrics.alerts.utilization.threshold }}
+          for: {{ .Values.metrics.alerts.utilization.for }}
+          labels:
+            severity: warning
+            app_kubernetes_io_instance: {{ .Release.Name }}
+          annotations:
+            summary: "High Chromium pool utilization"
+            description: |-
+              Pool utilization is above {{ .Values.metrics.alerts.utilization.threshold | mul 100 | printf "%.0f" }}% for {{ .Values.metrics.alerts.utilization.for }}.
+              Consider increasing pool size (PDF_CHROMIUM_POOL_SIZE) or replicas, or investigate long acquire durations.
+
+        # PDF export failure ratio high
+        - alert: CVPdfExportFailureRatioHigh
+          expr: |
+            (sum(rate(pdf_requests_total{result=~"error|timeout" ,job='{{ include "app.fullname" . }}'}[{{ .Values.metrics.alerts.failureRatio.window }}])))
+            /
+            clamp_min(sum(rate(pdf_requests_total{job='{{ include "app.fullname" . }}'}[{{ .Values.metrics.alerts.failureRatio.window }}])), 1)
+            > {{ .Values.metrics.alerts.failureRatio.threshold }}
+          for: {{ .Values.metrics.alerts.failureRatio.for }}
+          labels:
+            severity: critical
+            app_kubernetes_io_instance: {{ .Release.Name }}
+          annotations:
+            summary: "High PDF export failure ratio"
+            description: |-
+              Failure ratio exceeded {{ .Values.metrics.alerts.failureRatio.threshold }} over the last {{ .Values.metrics.alerts.failureRatio.window }}.
+              Check logs, CHROMIUM_PATH, pool readiness, and upstream route health.
+
+        # PDF p95 generation duration high (warm path guardrail)
+        - alert: CVPdfP95DurationHigh
+          expr: |
+            histogram_quantile(0.95, sum by (le) (rate(pdf_generation_duration_seconds_bucket{job='{{ include "app.fullname" . }}'}[{{ .Values.metrics.alerts.p95DurationSeconds.window }}])))
+            > {{ .Values.metrics.alerts.p95DurationSeconds.threshold }}
+          for: {{ .Values.metrics.alerts.p95DurationSeconds.for }}
+          labels:
+            severity: warning
+            app_kubernetes_io_instance: {{ .Release.Name }}
+          annotations:
+            summary: "PDF p95 generation duration high"
+            description: |-
+              p95 export duration is above {{ .Values.metrics.alerts.p95DurationSeconds.threshold }}s for {{ .Values.metrics.alerts.p95DurationSeconds.for }}.
+              Investigate pool utilization and acquire duration; consider scaling replicas or pool size.
+
+        # Chromium acquire p95 duration high (pool contention)
+        - alert: CVChromiumAcquireP95High
+          expr: |
+            histogram_quantile(0.95, sum by (le) (rate(chromium_acquire_duration_seconds_bucket{job='{{ include "app.fullname" . }}'}[{{ .Values.metrics.alerts.acquireP95Seconds.window }}])))
+            > {{ .Values.metrics.alerts.acquireP95Seconds.threshold }}
+          for: {{ .Values.metrics.alerts.acquireP95Seconds.for }}
+          labels:
+            severity: warning
+            app_kubernetes_io_instance: {{ .Release.Name }}
+          annotations:
+            summary: "Chromium acquire p95 duration high"
+            description: |-
+              p95 acquire time above {{ .Values.metrics.alerts.acquireP95Seconds.threshold }}s for {{ .Values.metrics.alerts.acquireP95Seconds.for }}.
+              Indicates pool contention or stuck pages. Check pool utilization, total/busy gauges, and release hygiene.
+{{- end }}

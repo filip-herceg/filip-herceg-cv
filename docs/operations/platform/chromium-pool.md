@@ -27,3 +27,10 @@ Troubleshooting:
 - Memory pressure: lower PDF_CHROMIUM_POOL_SIZE or disable prime (set PDF_CHROMIUM_POOL_PRIME=false).
 
 Observed benchmarks (Windows, Edge): cold ~1.23s; warm p50 ~0.76s (8 iterations) with pool primed.
+
+Alerts
+- See PDF alert triage: docs/operations/platform/pdf-alert-triage.md
+- Key alerts configured (when enabled in Helm values):
+	- CVChromiumPoolHighUtilization (busy/total > 80% for 5m)
+	- CVPdfExportFailureRatioHigh (>1% over 15m)
+	- CVPdfP95DurationHigh (>2.5s sustained)

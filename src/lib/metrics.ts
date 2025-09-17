@@ -253,5 +253,45 @@ export const cvEntityMutationsTotal = new client.Counter({
 
 // Simple helper to expose metrics (text format)
 export async function renderMetrics(): Promise<string> {
+  // Opportunistically parse CI benchmark trend to expose synthetic metric.
+  await setBenchSyntheticMetric()
   return registry.metrics()
+}
+
+// Synthetic metric for CI bench trend (latest warm p50)
+export const pdfBenchWarmP50Seconds = new client.Gauge({
+  name: 'pdf_bench_warm_p50_seconds',
+  help: 'Latest warm p50 from CI PDF benchmark trend (seconds)',
+  labelNames: ['source'] as const,
+  registers: [registry],
+})
+
+async function setBenchSyntheticMetric(): Promise<void> {
+  // Only execute on server
+  if (typeof window !== 'undefined') return
+  try {
+    // Read CSV from repo path. During container/runtime, path is relative to cwd.
+    const fs = await import('node:fs/promises')
+    const path = await import('node:path')
+    const repoRoot = process.cwd()
+    const csvPath = path.join(repoRoot, 'reports', 'bench', 'trend.csv')
+    const content = await fs.readFile(csvPath, 'utf8')
+    const lines = content.trim().split(/\r?\n/)
+    if (lines.length <= 1) return
+    // Header: ts,cold_ms,warm_p50_ms,warm_p95_ms,warm_avg_ms,iters
+    const header = lines[0].split(',').map(s => s.trim())
+    const idx = {
+      ts: header.indexOf('ts'),
+      warmP50: header.indexOf('warm_p50_ms'),
+    }
+    if (idx.warmP50 === -1) return
+    const last = lines[lines.length - 1]
+    const cols = last.split(',')
+    const warmP50Ms = Number(cols[idx.warmP50])
+    if (!Number.isFinite(warmP50Ms)) return
+  const seconds = warmP50Ms / 1000
+  pdfBenchWarmP50Seconds.set({ source: 'ci' }, seconds)
+  } catch {
+    // Best-effort; ignore errors (file missing in non-CI environments)
+  }
 }

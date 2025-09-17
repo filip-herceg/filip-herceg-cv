@@ -27,3 +27,25 @@ hpa:
   minReplicas: 1
   maxReplicas: 3
   targetCPUUtilizationPercentage: 70
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+  alerts:
+    enabled: true
+    utilization:
+      threshold: 0.7
+      for: 5m
+    failureRatio:
+      threshold: 0.02
+      window: 15m
+      for: 10m
+    p95DurationSeconds:
+      threshold: 2.8
+      window: 5m
+      for: 15m
+    acquireP95Seconds:
+      threshold: 0.6
+      window: 5m
+      for: 10m

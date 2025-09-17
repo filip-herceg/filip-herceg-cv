@@ -31,6 +31,35 @@ data:
           ]
         },
         {
+          "id": 11,
+          "title": "PDF Failure Ratio (5m)",
+          "type": "stat",
+          "targets": [
+            { "expr": "sum(rate(pdf_requests_total{result=~\\"error|timeout\\"}[5m])) / clamp_min(sum(rate(pdf_requests_total[5m])), 1)" }
+        {
+          "id": 13,
+          "title": "PDF Generation p95 (5m)",
+          "type": "stat",
+          "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(pdf_generation_duration_seconds_bucket[5m])))" } ],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "id": 14,
+          "title": "Acquire p95 (5m)",
+          "type": "stat",
+          "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(chromium_acquire_duration_seconds_bucket[5m])))" } ],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+          ],
+          "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } }
+        },
+        {
+          "id": 12,
+          "title": "Alerts",
+          "type": "alertlist",
+          "options": { "show":"state","stateFilter":["alerting","no_data","pending"] }
+        },
+        {
           "id": 2,
           "title": "PDF Cache Entries",
           "type": "stat",
@@ -158,7 +187,7 @@ data:
         {
           "type": "timeseries",
           "title": "Chromium Pool Pages",
-          "targets": [
+            name: {{ include "app.fullname" . }}-grafana-dashboard-internal
             { "expr": "chromium_pool_pages_total{job='{{ include \"app.fullname\" . }}'}", "legendFormat": "total" },
             { "expr": "chromium_pool_pages_busy{job='{{ include \"app.fullname\" . }}'}", "legendFormat": "busy" },
             { "expr": "chromium_pool_pages_available{job='{{ include \"app.fullname\" . }}'}", "legendFormat": "available" }
@@ -178,6 +207,15 @@ data:
           "targets": [ { "expr": "chromium_pool_pages_busy{job='{{ include \"app.fullname\" . }}'} / clamp_min(chromium_pool_pages_total{job='{{ include \"app.fullname\" . }}'}, 1)" } ],
           "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } },
           "gridPos": {"h":6,"w":6,"x":0,"y":24}
+        },
+        {
+          "type": "stat",
+          "title": "PDF Failure Ratio (5m)",
+          "targets": [
+            { "expr": "sum(rate(pdf_requests_total{result=~\\"error|timeout\\",job='{{ include \"app.fullname\" . }}'}[5m])) / clamp_min(sum(rate(pdf_requests_total{job='{{ include \"app.fullname\" . }}'}[5m])), 1)" }
+          ],
+          "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } },
+          "gridPos": {"h":6,"w":6,"x":6,"y":24}
         }
       ]
     }

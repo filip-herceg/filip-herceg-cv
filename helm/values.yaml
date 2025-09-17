@@ -71,13 +71,34 @@ networkPolicy:
   extraEgressCidrs: []
 
 metrics:
-  enabled: false
+  enabled: true
   port: 9464
   serviceMonitor:
-    enabled: false
+    enabled: true
     interval: 30s
   scrapeTimeout: 10s
   labels: {}
   grafanaDashboard:
     enabled: false
     folder: Applications
+  alerts:
+    enabled: true
+    # Utilization alert: busy/total > threshold for duration
+    utilization:
+      threshold: 0.8
+      for: 5m
+    # Failure ratio alert: pdf_failures / (pdf_success + pdf_failures) > threshold over window
+    failureRatio:
+      threshold: 0.01
+      window: 15m
+      for: 10m
+    # p95 export duration alert in seconds over rate window
+    p95DurationSeconds:
+      threshold: 2.5
+      window: 5m
+      for: 15m
+    # p95 acquire duration (pool contention) in seconds
+    acquireP95Seconds:
+      threshold: 0.5
+      window: 5m
+      for: 10m
