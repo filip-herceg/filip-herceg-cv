@@ -6,15 +6,15 @@ metadata:
   labels:
     {{- include "app.labels" . | nindent 4 }}
     grafana_dashboard: "1"
-    {{- range $k, $v := .Values.metrics.grafanaDashboard.labels }}
-    {{ $k }}: {{ $v | quote }}
-    {{- end }}
+  {{- with .Values.metrics.grafanaDashboard.labels }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
   annotations:
     {{- if .Values.metrics.grafanaDashboard.folder }}
     grafana_folder: {{ .Values.metrics.grafanaDashboard.folder | quote }}
     {{- end }}
 data:
-  filip-herceg-cv-dashboard.json: |-
+  {{ include "app.fullname" . }}-dashboard.json: |-
     {
       "schemaVersion": 39,
       "title": "CV Platform Overview",
@@ -23,199 +23,92 @@ data:
       "timezone": "browser",
       "panels": [
         {
+          "type": "timeseries",
           "id": 1,
           "title": "PDF Requests by Result (rate)",
-          "type": "timeseries",
-          "targets": [
-            { "expr": "rate(pdf_requests_total[5m])", "legendFormat": "{{result}}" }
-          ]
+          "targets": [ { "expr": "sum by (result) (rate(pdf_requests_total[5m]))", "legendFormat": "{{result}}" } ],
+          "gridPos": {"h":8,"w":12,"x":0,"y":0}
         },
         {
-          "id": 11,
-          "title": "PDF Failure Ratio (5m)",
           "type": "stat",
-          "targets": [
-            { "expr": "sum(rate(pdf_requests_total{result=~\\"error|timeout\\"}[5m])) / clamp_min(sum(rate(pdf_requests_total[5m])), 1)" }
-        {
-          "id": 13,
-          "title": "PDF Generation p95 (5m)",
-          "type": "stat",
-          "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(pdf_generation_duration_seconds_bucket[5m])))" } ],
-          "fieldConfig": { "defaults": { "unit": "s" } }
-        },
-        {
-          "id": 14,
-          "title": "Acquire p95 (5m)",
-          "type": "stat",
-          "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(chromium_acquire_duration_seconds_bucket[5m])))" } ],
-          "fieldConfig": { "defaults": { "unit": "s" } }
-        },
-          ],
-          "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } }
-        },
-        {
-          "id": 12,
-          "title": "Alerts",
-          "type": "alertlist",
-          "options": { "show":"state","stateFilter":["alerting","no_data","pending"] }
-        },
-        {
           "id": 2,
-          "title": "PDF Cache Entries",
-          "type": "stat",
-          "targets": [ { "expr": "pdf_cache_entries" } ]
+          "title": "PDF Failure Ratio (5m)",
+          "targets": [ { "expr": "sum(rate(pdf_requests_total{result=~\"error|timeout\"}[5m])) / clamp_min(sum(rate(pdf_requests_total[5m])), 1)" } ],
+          "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } },
+          "gridPos": {"h":4,"w":6,"x":12,"y":0}
         },
         {
+          "type": "stat",
           "id": 3,
-          "title": "PDF Cache Hit Ratio",
-          "type": "gauge",
-          "targets": [ { "expr": "pdf_cache_hits_total / (pdf_cache_hits_total + pdf_cache_misses_total)" } ],
-          "fieldConfig": { "defaults": { "min": 0, "max": 1 } }
+          "title": "PDF Busy Ratio (5m)",
+          "targets": [ { "expr": "sum(rate(pdf_requests_total{result=\"busy\"}[5m])) / clamp_min(sum(rate(pdf_requests_total[5m])), 1)" } ],
+          "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } },
+          "gridPos": {"h":4,"w":6,"x":18,"y":0}
         },
         {
-          "id": 4,
-          "title": "Permalink Creates (rate)",
-          "type": "timeseries",
-          "targets": [ { "expr": "rate(permalink_creates_total[5m])" } ]
-        },
-        {
-          "id": 5,
-          "title": "CV Aggregate Loads by Source (rate)",
-          "type": "timeseries",
-          "targets": [ { "expr": "rate(cv_aggregate_loads_total[5m])", "legendFormat": "{{source}}" } ],
-          "description": "Shows frequency of CV aggregate fetches split by 'db' vs 'empty' onboarding placeholder. Aim for 'empty' to drop after initial admin population.",
-          "fieldConfig": { "defaults": { "unit": "req/s" } }
-        },
-        {
-          "id": 6,
-          "title": "Chromium Pool Enabled",
-          "type": "gauge",
-          "targets": [ { "expr": "chromium_pool_enabled" } ],
-          "fieldConfig": { "defaults": { "min": 0, "max": 1 } }
-        },
-        {
-          "id": 7,
-          "title": "Chromium Pool Capacity",
           "type": "stat",
-          "targets": [ { "expr": "chromium_pool_max_capacity" } ]
+          "id": 4,
+          "title": "PDF Gen p95 (5m)",
+          "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(pdf_generation_duration_seconds_bucket[5m])))" } ],
+          "fieldConfig": { "defaults": { "unit": "s" } },
+          "gridPos": {"h":4,"w":6,"x":12,"y":4}
         },
         {
-          "id": 8,
-          "title": "Chromium Pool Pages (total/busy/available)",
+          "type": "stat",
+          "id": 5,
+          "title": "DOM Ready p95 (5m)",
+          "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(pdf_render_dom_duration_seconds_bucket[5m])))" } ],
+          "fieldConfig": { "defaults": { "unit": "s" } },
+          "gridPos": {"h":4,"w":6,"x":18,"y":4}
+        },
+        {
+          "type": "stat",
+          "id": 6,
+          "title": "Bench Warm p50 (latest)",
+          "targets": [ { "expr": "pdf_bench_warm_p50_seconds" } ],
+          "fieldConfig": { "defaults": { "unit": "s" } },
+          "gridPos": {"h":4,"w":6,"x":0,"y":8}
+        },
+        {
+          "type": "stat",
+          "id": 7,
+          "title": "Last PDF Page Count",
+          "targets": [ { "expr": "pdf_last_page_count" } ],
+          "gridPos": {"h":4,"w":4,"x":6,"y":8}
+        },
+        {
           "type": "timeseries",
+          "id": 8,
+          "title": "PDF Cache Evictions (rate by backend)",
+          "targets": [ { "expr": "sum by (backend) (rate(pdf_cache_evictions_total[5m]))", "legendFormat": "{{backend}}" } ],
+          "gridPos": {"h":8,"w":14,"x":10,"y":8}
+        },
+        {
+          "type": "timeseries",
+          "id": 9,
+          "title": "Chromium Pool Pages",
           "targets": [
             { "expr": "chromium_pool_pages_total", "legendFormat": "total" },
             { "expr": "chromium_pool_pages_busy", "legendFormat": "busy" },
             { "expr": "chromium_pool_pages_available", "legendFormat": "available" }
-          ]
+          ],
+          "gridPos": {"h":8,"w":12,"x":0,"y":12}
         },
         {
-          "id": 9,
-          "title": "Chromium Acquire Duration (p95)",
-          "type": "timeseries",
-          "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(chromium_acquire_duration_seconds_bucket[5m])))", "legendFormat": "p95" } ],
-          "fieldConfig": { "defaults": { "unit": "s" } }
-        }
-        {
+          "type": "gauge",
           "id": 10,
-          "title": "Chromium Pool Utilization",
-          "type": "gauge",
+          "title": "Pool Utilization",
           "targets": [ { "expr": "chromium_pool_pages_busy / clamp_min(chromium_pool_pages_total, 1)" } ],
-          "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } }
-        }
-      ]
-    }
-{{- end }}
-{{- if and .Values.metrics.enabled .Values.metrics.grafanaDashboard.enabled }}
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "app.fullname" . }}-grafana-dashboard
-  labels:
-    {{- include "app.labels" . | nindent 4 }}
-    grafana_dashboard: "1"
-    {{- if .Values.metrics.grafanaDashboard.folder }}
-    dashboard-folder: {{ .Values.metrics.grafanaDashboard.folder | quote }}
-    {{- end }}
-data:
-  {{ include "app.fullname" . }}-dashboard.json: |
-    {
-      "__inputs": [],
-      "__requires": [{"type":"panel","id":"timeseries","name":"Time series","version":"8.0.0"}],
-      "schemaVersion": 38,
-      "version": 1,
-      "title": "{{ include "app.fullname" . }} Metrics",
-      "refresh": "30s",
-      "panels": [
-        {
-          "type": "timeseries",
-          "title": "CPU Usage",
-          "targets": [
-            { "expr": "rate(process_cpu_seconds_total{job='{{ include "app.fullname" . }}'}[5m])" }
-          ],
-          "gridPos": {"h":8,"w":12,"x":0,"y":0}
-        },
-        {
-          "type": "timeseries",
-          "title": "Memory RSS",
-          "targets": [
-            { "expr": "process_resident_memory_bytes{job='{{ include "app.fullname" . }}'}" }
-          ],
-          "gridPos": {"h":8,"w":12,"x":12,"y":0}
-        },
-        {
-          "type": "timeseries",
-          "title": "Event Loop Lag",
-          "targets": [
-            { "expr": "nodejs_eventloop_lag_seconds{job='{{ include "app.fullname" . }}'}" }
-          ],
-          "gridPos": {"h":8,"w":12,"x":0,"y":8}
-        },
-        {
-          "type": "gauge",
-          "title": "Chromium Pool Enabled",
-          "targets": [ { "expr": "chromium_pool_enabled{job='{{ include \"app.fullname\" . }}'}" } ],
-          "fieldConfig": { "defaults": { "min": 0, "max": 1 } },
-          "gridPos": {"h":6,"w":6,"x":12,"y":8}
+          "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } },
+          "gridPos": {"h":4,"w":6,"x":12,"y":12}
         },
         {
           "type": "stat",
-          "title": "Chromium Pool Capacity",
-          "targets": [ { "expr": "chromium_pool_max_capacity{job='{{ include \"app.fullname\" . }}'}" } ],
-          "gridPos": {"h":6,"w":6,"x":18,"y":8}
-        },
-        {
-          "type": "timeseries",
-          "title": "Chromium Pool Pages",
-            name: {{ include "app.fullname" . }}-grafana-dashboard-internal
-            { "expr": "chromium_pool_pages_total{job='{{ include \"app.fullname\" . }}'}", "legendFormat": "total" },
-            { "expr": "chromium_pool_pages_busy{job='{{ include \"app.fullname\" . }}'}", "legendFormat": "busy" },
-            { "expr": "chromium_pool_pages_available{job='{{ include \"app.fullname\" . }}'}", "legendFormat": "available" }
-          ],
-          "gridPos": {"h":8,"w":12,"x":0,"y":16}
-        },
-        {
-          "type": "timeseries",
-          "title": "Chromium Acquire Duration (p95)",
-          "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(chromium_acquire_duration_seconds_bucket{job='{{ include \"app.fullname\" . }}'}[5m])))", "legendFormat": "p95" } ],
+          "id": 11,
+          "title": "Acquire p95 (5m)",
+          "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(chromium_acquire_duration_seconds_bucket[5m])))" } ],
           "fieldConfig": { "defaults": { "unit": "s" } },
-          "gridPos": {"h":8,"w":12,"x":12,"y":16}
-        },
-        {
-          "type": "gauge",
-          "title": "Chromium Pool Utilization",
-          "targets": [ { "expr": "chromium_pool_pages_busy{job='{{ include \"app.fullname\" . }}'} / clamp_min(chromium_pool_pages_total{job='{{ include \"app.fullname\" . }}'}, 1)" } ],
-          "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } },
-          "gridPos": {"h":6,"w":6,"x":0,"y":24}
-        },
-        {
-          "type": "stat",
-          "title": "PDF Failure Ratio (5m)",
-          "targets": [
-            { "expr": "sum(rate(pdf_requests_total{result=~\\"error|timeout\\",job='{{ include \"app.fullname\" . }}'}[5m])) / clamp_min(sum(rate(pdf_requests_total{job='{{ include \"app.fullname\" . }}'}[5m])), 1)" }
-          ],
-          "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } },
-          "gridPos": {"h":6,"w":6,"x":6,"y":24}
+          "gridPos": {"h":4,"w":6,"x":18,"y":12}
         }
       ]
     }
