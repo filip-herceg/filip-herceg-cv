@@ -12,8 +12,12 @@ const HOST = process.env.BENCH_HOST || '127.0.0.1'
 const BASE = process.env.BENCH_BASE || `http://${HOST}:${PORT}`
 const ITERS = process.env.BENCH_ITERS || '8'
 const OUT = process.env.BENCH_OUT || 'reports/bench/pdf.json'
+const EDGE_WIN = 'C:/Program Files/Microsoft/Edge/Application/msedge.exe'
 const CHROME_WIN = 'C:/Program Files/Google/Chrome/Application/chrome.exe'
-const CHROME_ENV = process.env.CHROMIUM_PATH || (existsSync(CHROME_WIN) ? CHROME_WIN : '')
+const CHROME_WIN_X86 = 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe'
+const EDGE_WIN_X86 = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+const candidatePaths = [process.env.CHROMIUM_PATH, EDGE_WIN, CHROME_WIN, CHROME_WIN_X86, EDGE_WIN_X86].filter(Boolean)
+const CHROME_ENV = candidatePaths.find(p => existsSync(p)) || ''
 
 async function waitForReady(url, timeoutMs = 30_000) {
   const start = Date.now()
@@ -87,6 +91,26 @@ async function runBenchmark() {
   try {
     await runBenchmark()
     console.log(`[bench-run] benchmark complete, results at ${OUT}`)
+    // Fetch metrics and print PDF-related lines for quick verification
+    try {
+      const metricsRaw = await new Promise((resolve, reject) => {
+        const req = http.get(`${BASE}/api/metrics`, (res) => {
+          let data = ''
+          res.setEncoding('utf8')
+          res.on('data', (chunk) => { data += chunk })
+          res.on('end', () => resolve(data))
+        })
+        req.on('error', reject)
+        req.setTimeout(5000, () => { try { req.destroy() } catch {} ; reject(new Error('metrics timeout')) })
+      })
+      const lines = String(metricsRaw).split(/\r?\n/)
+      const wanted = /pdf_render_dom_duration_seconds|pdf_last_page_count|pdf_cache_evictions_total/
+      const filtered = lines.filter((l) => wanted.test(l))
+      console.log('[bench-run] metrics (pdf subset):')
+      for (const l of filtered) console.log(l)
+    } catch (e) {
+      console.warn('[bench-run] could not fetch metrics:', e?.message || e)
+    }
   } catch (e) {
     console.error('[bench-run] benchmark failed:', e?.message || e)
     try { srv.kill('SIGTERM') } catch {}
