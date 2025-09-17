@@ -66,4 +66,5 @@ coverage-badge.json
 build-artifact.tgz
 
 # Legacy types folder is deprecated; all declarations live under src/types
-types/
+ # Only ignore the root-level types/ folder; allow src/types/
+ /types/
