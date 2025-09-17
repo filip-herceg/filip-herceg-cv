@@ -17,7 +17,8 @@ export async function generateCvPdf(target: string): Promise<PdfResult> {
     page = pooled.page
   } else {
   const puppeteer = await getPuppeteer()
-  const executablePath = process.env.CHROMIUM_PATH ?? CHROMIUM_CANDIDATE_PATHS.find((p) => { try { return existsSync(p) } catch { return false } })
+    const candidates = [process.env.CHROMIUM_PATH, ...CHROMIUM_CANDIDATE_PATHS].filter((p): p is string => !!p && p.length > 0)
+    const executablePath = candidates.find((p) => { try { return existsSync(p) } catch { return false } })
     if (!executablePath) throw new Error('no_chromium')
     const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--font-render-hinting=none'] })
     const tmpPage = await browser.newPage()

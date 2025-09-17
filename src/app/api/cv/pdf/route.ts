@@ -165,7 +165,9 @@ async function acquirePage(): Promise<{ page: Page; cleanup: () => Promise<void>
     return { page: pooled.page, cleanup: async () => { try { await pooled.release() } catch { /* ignore */ } } }
   }
   const puppeteer = await getPuppeteer()
-  const executablePath = process.env.CHROMIUM_PATH ?? CHROMIUM_CANDIDATE_PATHS.find((p) => { try { return existsSync(p) } catch { return false } })
+  // Validate env-provided path first, else pick the first existing known candidate
+  const candidates = [process.env.CHROMIUM_PATH, ...CHROMIUM_CANDIDATE_PATHS].filter((p): p is string => !!p && p.length > 0)
+  const executablePath = candidates.find((p) => { try { return existsSync(p) } catch { return false } })
   if (!executablePath) throw new Error('no_chromium')
   // Best-effort: attempt launch and surface clearer error if it fails
   let browser: Awaited<ReturnType<(typeof puppeteer)['launch']>>
