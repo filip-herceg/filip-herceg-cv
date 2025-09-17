@@ -12,7 +12,7 @@ import { withRequestContext, logEvent, logError } from '@/lib/logger'
 import { pdfRequestsTotal, pdfCacheGetDurationSeconds, pdfGenerationDurationSeconds, pdfRenderDomDurationSeconds, pdfLastPageCount } from '@/lib/metrics'
 import { pdfCache, PdfCache } from '@/lib/pdf-cache'
 import { startSpan } from '@/lib/tracing'
-import { PDF_DEFAULT_TIMEOUT_MS, PDF_NAVIGATION_GRACE_MS, PDF_POST_RENDER_DELAY_MS, CHROMIUM_CANDIDATE_PATHS, CV_PAGE_SIZE } from '@/lib/constants'
+import { PDF_DEFAULT_TIMEOUT_MS, PDF_NAVIGATION_GRACE_MS, PDF_POST_RENDER_DELAY_MS, CHROMIUM_CANDIDATE_PATHS, CV_PAGE_SIZE, PDF_POOL_ACQUIRE_SLA_MS, PDF_RETRY_AFTER_SECONDS } from '@/lib/constants'
 import { freezeNow } from '@/lib/deterministic'
 
 export const dynamic = 'force-dynamic'
@@ -107,6 +107,26 @@ export async function GET(req: NextRequest) {
   // Start overall generation timer
   const genTimerEnd = (pdfGenerationDurationSeconds as unknown as { startTimer?: (l: Record<string,string>) => (l2?: Record<string,string>) => void }).startTimer?.({ result: 'pending' })
   try {
+  // SLA guardrail: quick pool probe. If we can't acquire within threshold, fail fast with 503 to protect tail latency
+  await warmChromiumPool()
+  const quickAcquire = await Promise.race([
+    acquirePooledPage(),
+    new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), PDF_POOL_ACQUIRE_SLA_MS)),
+  ])
+  if (quickAcquire === 'timeout') {
+    logEvent(child, 'domain:cv.pdf.busy', { sla_ms: PDF_POOL_ACQUIRE_SLA_MS })
+    pdfRequestsTotal.inc({ result: 'busy' })
+    span.setAttribute('busy', true)
+    span.end()
+    return new NextResponse(JSON.stringify({ error: 'PDF service busy, please retry', status: 503 }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json', 'Retry-After': String(PDF_RETRY_AFTER_SECONDS) },
+    })
+  }
+  // Safely release if the pooled handle exposes a release() method
+  const hasRelease = (x: unknown): x is { release: () => Promise<void> } =>
+    typeof x === 'object' && x !== null && 'release' in x && typeof (x as { release?: unknown }).release === 'function'
+  if (hasRelease(quickAcquire)) { try { await quickAcquire.release() } catch { /* ignore */ } }
   const { final, person } = await renderPdf(target, { baseUrl: base, shareToken })
 
     const duration = Date.now() - started

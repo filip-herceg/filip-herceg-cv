@@ -5,6 +5,9 @@ export const PDF_DEFAULT_TIMEOUT_MS = 20_000
 export const PDF_NAVIGATION_GRACE_MS = 2_000
 export const PDF_POST_RENDER_DELAY_MS = 300
 export const PDF_CACHE_TTL_MS = 60_000 // matches aggregate cache TTL intention
+// SLA guardrail: max wait for pooled page before failing fast with 503
+export const PDF_POOL_ACQUIRE_SLA_MS = 200
+export const PDF_RETRY_AFTER_SECONDS = 1
 export const CHROMIUM_CANDIDATE_PATHS = [
   '/usr/bin/chromium',
   '/usr/bin/chromium-browser',
