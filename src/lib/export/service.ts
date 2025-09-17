@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '@prisma/client'
 import { ExportConfigInput } from './schema'
 import crypto from 'crypto'
 

@@ -3,7 +3,7 @@ import { FEATURE_EXPORT_ENABLED } from '@/lib/constants'
 import { buildAuthContext } from '@/lib/auth/context'
 import { NextCookieStore } from '@/lib/auth/cookies'
 import { requireAdmin } from '@/lib/auth/guard'
-import { PrismaClient } from '@prisma/client'
+import { getPrisma } from '@/lib/cv/service'
 import { ExportConfigRepository } from '@/lib/export/service'
 import { ExportConfigInputSchema } from '@/lib/export/schema'
 import { withRequestContext, logEvent, logError } from '@/lib/logger'
@@ -32,7 +32,7 @@ export async function GET(req: Request): Promise<Response> {
   const auth = await authCheck(req)
   if ('res' in auth) return auth.res
   try {
-    const repo = new ExportConfigRepository(new PrismaClient())
+  const repo = new ExportConfigRepository(getPrisma())
     const rows = await repo.list()
     logEvent(auth.logger, 'domain:export.configs.list_success', { count: rows.length })
     return new Response(JSON.stringify({ configs: rows }), { status: 200, headers: { 'content-type': 'application/json' } })
@@ -53,7 +53,7 @@ export async function POST(req: Request): Promise<Response> {
     return new Response(JSON.stringify({ error: 'VALIDATION', issues: parsed.error.issues }), { status: 400, headers: { 'content-type': 'application/json' } })
   }
   try {
-    const repo = new ExportConfigRepository(new PrismaClient())
+  const repo = new ExportConfigRepository(getPrisma())
     const row = await repo.create(parsed.data)
     logEvent(auth.logger, 'domain:export.configs.create_success', { id: row.id })
     // Telemetry: record when a preset-backed config is applied/created
@@ -89,7 +89,7 @@ export async function PUT(req: Request): Promise<Response> {
   return new Response(JSON.stringify({ error: 'VALIDATION', issues: cfgParsed.error.issues }), { status: 400, headers: { 'content-type': 'application/json' } })
   }
   try {
-    const repo = new ExportConfigRepository(new PrismaClient())
+  const repo = new ExportConfigRepository(getPrisma())
     const res = await repo.update(b.id, b.version, cfgParsed.data)
     if (res === 'NOT_FOUND') {
       return new Response(JSON.stringify({ error: 'NOT_FOUND' }), { status: 404, headers: { 'content-type': 'application/json' } })
@@ -117,7 +117,7 @@ export async function DELETE(req: Request): Promise<Response> {
     return new Response(JSON.stringify({ error: 'INVALID_DELETE_SHAPE' }), { status: 400, headers: { 'content-type': 'application/json' } })
   }
   try {
-    const repo = new ExportConfigRepository(new PrismaClient())
+  const repo = new ExportConfigRepository(getPrisma())
     const ok = await repo.remove(id)
     if (!ok) return new Response(JSON.stringify({ error: 'NOT_FOUND' }), { status: 404, headers: { 'content-type': 'application/json' } })
     logEvent(auth.logger, 'domain:export.configs.delete_success', { id })

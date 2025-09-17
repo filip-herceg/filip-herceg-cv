@@ -6,8 +6,7 @@ import { buildAuthContext } from '@/lib/auth/context'
 import { NextCookieStore } from '@/lib/auth/cookies'
 import { requireAdmin } from '@/lib/auth/guard'
 import { ProjectSchema } from '@/lib/cv/schema'
-import { PrismaClient } from '@prisma/client'
-import { invalidateAggregateCache } from '@/lib/cv/service'
+import { getPrisma, invalidateAggregateCache } from '@/lib/cv/service'
 import { cvEntityMutationsTotal } from '@/lib/metrics'
 
 // Extend with locale which is stored in composite PK
@@ -21,7 +20,7 @@ export async function POST(req: Request) {
   const body = await parse(req)
   const parsed = CreateProjectSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: 'VALIDATION', issues: parsed.error.issues }, { status: 400 })
-  const prisma = new PrismaClient()
+  const prisma = getPrisma()
   try {
     const existing = await prisma.project.findUnique({ where: { id_locale: { id: parsed.data.id, locale: parsed.data.locale } } })
   const upd: Record<string, unknown> = { title: parsed.data.title, role: parsed.data.role, period: parsed.data.period, company: parsed.data.company, summary: parsed.data.summary, impact: parsed.data.impact }
@@ -48,7 +47,7 @@ export async function DELETE(req: Request) {
   const id = url.searchParams.get('id')
   const locale = url.searchParams.get('locale') || 'en'
   if (!id) return NextResponse.json({ error: 'MISSING_ID' }, { status: 400 })
-  const prisma = new PrismaClient()
+  const prisma = getPrisma()
   try {
     await prisma.project.delete({ where: { id_locale: { id, locale } } })
     cvEntityMutationsTotal.inc({ entity: 'project', action: 'delete', result: 'success' })

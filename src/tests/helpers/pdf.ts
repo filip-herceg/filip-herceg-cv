@@ -11,6 +11,8 @@ export function mockPdfLib(returnBytes: Uint8Array) {
         save: async () => returnBytes,
       }),
     },
+  // Minimal rgb helper used by route when drawing optional caption
+  rgb: (_r: number, _g: number, _b: number) => ({ r: _r, g: _g, b: _b }),
   }))
 }
 

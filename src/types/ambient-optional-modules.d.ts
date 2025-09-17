@@ -16,6 +16,14 @@ declare module 'redis' {
   export function createClient(opts: RedisClientOptions): RedisClient
 }
 
+// Optional QR code library used at runtime in Node only
+declare module 'qrcode' {
+  const _default: {
+    toBuffer: (text: string, cfg?: { errorCorrectionLevel?: 'L'|'M'|'Q'|'H'; margin?: number; width?: number; color?: { dark?: string; light?: string } }) => Promise<Buffer>
+  }
+  export default _default
+}
+
 // S3 client (lightweight shape sufficient for our dynamic usage)
 declare module '@aws-sdk/client-s3' {
   export class S3Client { constructor(cfg: Record<string, unknown>); send<T = unknown>(cmd: unknown): Promise<T> }

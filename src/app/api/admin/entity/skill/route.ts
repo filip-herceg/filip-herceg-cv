@@ -6,8 +6,7 @@ import { buildAuthContext } from '@/lib/auth/context'
 import { NextCookieStore } from '@/lib/auth/cookies'
 import { requireAdmin } from '@/lib/auth/guard'
 import { SkillSchema } from '@/lib/cv/schema'
-import { PrismaClient } from '@prisma/client'
-import { invalidateAggregateCache } from '@/lib/cv/service'
+import { getPrisma, invalidateAggregateCache } from '@/lib/cv/service'
 import { cvEntityMutationsTotal } from '@/lib/metrics'
 import { upsertSkill, deleteSkill } from '@/lib/admin/skill-handler'
 import { withRequestContext, logEvent, logError } from '@/lib/logger'
@@ -29,7 +28,7 @@ export async function POST(req: Request) {
     logEvent(reqLogger, 'domain:admin.skill.validation_failed', { issues: parsed.error.issues.length })
     return NextResponse.json({ error: 'VALIDATION', issues: parsed.error.issues }, { status: 400 })
   }
-  const prisma = new PrismaClient()
+  const prisma = getPrisma()
   try {
     const { action } = await upsertSkill(prisma, parsed.data)
     cvEntityMutationsTotal.inc({ entity: 'skill', action, result: 'success' })
@@ -59,7 +58,7 @@ export async function DELETE(req: Request) {
     logEvent(reqLogger, 'domain:admin.skill.missing_id')
     return NextResponse.json({ error: 'MISSING_ID' }, { status: 400 })
   }
-  const prisma = new PrismaClient()
+  const prisma = getPrisma()
   try {
     await deleteSkill(prisma, id, locale)
     cvEntityMutationsTotal.inc({ entity: 'skill', action: 'delete', result: 'success' })

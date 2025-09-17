@@ -1,10 +1,12 @@
-import { PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '@prisma/client'
+import { getPrisma } from '@/lib/cv/service'
 import { authPrisma } from './auth/prisma-subset'
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
 
 let prisma: PrismaClient | undefined
-function db() { 
-  prisma ??= new PrismaClient();
+function db(): PrismaClient {
+  // Reuse injected prisma in tests if present; otherwise lazily instantiate
+  prisma ??= getPrisma()
   return prisma
 }
 

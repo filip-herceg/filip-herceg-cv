@@ -14,10 +14,12 @@ vi.mock('@/lib/metrics', () => ({
   cvAggregateLoadsTotal: { inc: () => {} },
   cvStorageBackend: { labels: () => ({ set: () => {} }) }
 }))
-vi.mock('@/lib/cv/service', () => ({ invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a) }))
-
+// Mock getPrisma to align with the app's new prisma accessor pattern
 const findUnique = vi.fn(); const upsert = vi.fn(); const del = vi.fn()
-vi.mock('@prisma/client', () => ({ PrismaClient: vi.fn(() => ({ certification: { findUnique, upsert, delete: del } })) }))
+vi.mock('@/lib/cv/service', () => ({
+  getPrisma: () => ({ certification: { findUnique, upsert, delete: del } }),
+  invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a),
+}))
 
 import { POST, DELETE } from '@/app/api/admin/entity/certification/route'
 

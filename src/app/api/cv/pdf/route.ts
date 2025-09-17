@@ -1,5 +1,4 @@
-import type { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { CvSelectionSchema } from '@/lib/cv/schema'
 // getAggregate (Prisma) & PDFDocument (pdf-lib) are intentionally lazy-loaded to avoid
 // pulling heavy / native deps (and Prisma generated client) for early-return paths
@@ -66,6 +65,7 @@ export async function GET(req: NextRequest) {
   const started = Date.now()
   const url = new URL(req.url)
   const selection = parseSelection(url)
+  const shareToken = url.searchParams.get('st') || undefined
 
   const base = buildBaseUrl(req)
   const target = buildTargetUrl(base, selection)
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
   // Start overall generation timer
   const genTimerEnd = (pdfGenerationDurationSeconds as unknown as { startTimer?: (l: Record<string,string>) => (l2?: Record<string,string>) => void }).startTimer?.({ result: 'pending' })
   try {
-    const { final, person } = await renderPdf(target)
+  const { final, person } = await renderPdf(target, { baseUrl: base, shareToken })
 
     const duration = Date.now() - started
   logEvent(child, 'domain:cv.pdf.success', { ms: duration, selection: Object.keys(selection).length > 0 })
@@ -142,7 +142,7 @@ function buildTargetUrl(base: string, selection: { skills?: string[]; projects?:
   return base + '/cv/print' + (qs ? '?' + qs : '')
 }
 
-async function renderPdf(target: string) {
+async function renderPdf(target: string, opts?: { baseUrl?: string; shareToken?: string }) {
   // Prefer pooled warm page for faster warm performance; fall back to on-demand launch
   await warmChromiumPool()
   const pooled = await acquirePooledPage()
@@ -174,7 +174,7 @@ async function renderPdf(target: string) {
     preferCSSPageSize: true,
     margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
   })
-  const { PDFDocument } = await import('pdf-lib')
+  const { PDFDocument, rgb } = await import('pdf-lib')
   const { getAggregate } = await import('@/lib/cv/service')
   const pdfDoc = await PDFDocument.load(pdfUint8)
   const { data } = await getAggregate('en')
@@ -183,6 +183,31 @@ async function renderPdf(target: string) {
   pdfDoc.setAuthor(person.name)
   pdfDoc.setSubject('Curriculum Vitae')
   pdfDoc.setKeywords(['CV','Resume', person.title, 'Short'].filter(Boolean))
+
+  // Optional: draw a tiny QR code in the footer that points to a short link if a share token is provided
+  if (opts?.shareToken && opts.baseUrl) {
+    try {
+      // Lazy import to avoid adding to critical path otherwise
+  const QRCode = (await import('qrcode')).default as unknown as {
+        toBuffer: (text: string, cfg?: { errorCorrectionLevel?: 'L'|'M'|'Q'|'H'; margin?: number; width?: number; color?: { dark?: string; light?: string } }) => Promise<Buffer>
+      }
+      const shortUrl = `${opts.baseUrl.replace(/\/$/, '')}/s/${encodeURIComponent(opts.shareToken)}`
+      const png = await QRCode.toBuffer(shortUrl, { errorCorrectionLevel: 'M', margin: 0, width: 84, color: { dark: '#000000', light: '#FFFFFF00' } })
+      const pngEmbed = await pdfDoc.embedPng(png)
+      const pages = pdfDoc.getPages()
+      for (const page of pages) {
+  const { width } = page.getSize()
+        const qrSize = 28 // mm at 72dpi-ish heuristic; approximate by points
+        const pad = 12
+        page.drawImage(pngEmbed, { x: width - qrSize - pad, y: pad, width: qrSize, height: qrSize })
+        // Optional tiny caption above QR
+        const caption = 'scan to view online'
+        page.drawText(caption, { x: width - qrSize - pad, y: pad + qrSize + 4, size: 8, color: rgb(0,0,0) })
+      }
+    } catch {
+      // QR generation is best-effort; ignore failures to keep PDF working
+    }
+  }
   const final = Buffer.from(await pdfDoc.save())
   if (pooled) {
     await pooled.release()

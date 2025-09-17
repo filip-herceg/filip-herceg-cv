@@ -71,6 +71,12 @@ const eslintConfig = [
     },
   },
   {
+    files: ['src/lib/pdf/chromium-pool.ts'],
+    rules: {
+      'prefer-const': 'off',
+    },
+  },
+  {
     files: ['src/tests/setup.ts', 'src/tests/unit/cv-storage-uncovered-branches.test.ts'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',

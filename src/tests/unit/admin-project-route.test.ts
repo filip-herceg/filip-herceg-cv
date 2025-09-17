@@ -22,7 +22,10 @@ vi.mock('@/lib/metrics', () => ({
   authLoginAttemptsTotal: { inc: () => {} },
   authActiveSessions: { set: () => {}, inc: () => {}, dec: () => {} }
 }))
-vi.mock('@/lib/cv/service', () => ({ invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a) }))
+vi.mock('@/lib/cv/service', () => ({
+  invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a),
+  getPrisma: () => ({ project: { findUnique, upsert, delete: del } } as any),
+}))
 
 // Prisma mock with programmable behaviors per test
 const findUnique = vi.fn()

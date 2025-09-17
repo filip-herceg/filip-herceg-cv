@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Mock heavy modules before importing the route
-vi.mock('@/lib/cv/service', () => ({ invalidateAggregateCache: () => {} }))
+vi.mock('@/lib/cv/service', () => ({
+  invalidateAggregateCache: () => {},
+  getPrisma: () => ({ skill: { findUnique: vi.fn(), upsert: vi.fn(), delete: vi.fn() } } as any),
+}))
 // Provide metrics mocks (avoid accessing real prom-client in unit context)
 vi.mock('@/lib/metrics', () => ({
   cvEntityMutationsTotal: { inc: () => {} },

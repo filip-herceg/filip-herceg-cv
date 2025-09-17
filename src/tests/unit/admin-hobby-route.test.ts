@@ -14,7 +14,10 @@ vi.mock('@/lib/metrics', () => ({
   cvAggregateLoadsTotal: { inc: () => {} },
   cvStorageBackend: { labels: () => ({ set: () => {} }) }
 }))
-vi.mock('@/lib/cv/service', () => ({ invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a) }))
+vi.mock('@/lib/cv/service', () => ({
+  invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a),
+  getPrisma: () => ({ hobby: { findUnique, upsert, delete: del } } as any),
+}))
 
 const findUnique = vi.fn(); const upsert = vi.fn(); const del = vi.fn()
 vi.mock('@prisma/client', () => ({ PrismaClient: vi.fn(() => ({ hobby: { findUnique, upsert, delete: del } })) }))

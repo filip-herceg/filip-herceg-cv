@@ -48,6 +48,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@/': path.resolve(__dirname, 'src/') + '/',
+  // Ensure optional 'qrcode' dep is stubbed in tests to avoid module resolution at transform time
+  'qrcode': path.resolve(__dirname, 'src/tests/stubs/qrcode.ts'),
     },
   },
 })

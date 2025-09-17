@@ -1,7 +1,8 @@
 import { authActiveSessions, authLoginAttemptsTotal } from '@/lib/metrics'
 import type { AuthContext, CookieStore, RateLimiter } from './types'
 import { randomBytes } from 'node:crypto'
-import { PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '@prisma/client'
+import { getPrisma } from '@/lib/cv/service'
 import { loadAuthConfig } from './config'
 import { MemoryRateLimiter } from './memory-rate-limiter'
 import { createRedisRateLimiter, type RedisLike } from './redis-rate-limiter'
@@ -21,8 +22,8 @@ if (process.env.REDIS_URL) {
 }
 
 let prismaSingleton: PrismaClient | undefined
-function prisma() {
-  prismaSingleton ??= new PrismaClient()
+function prisma(): PrismaClient {
+  prismaSingleton ??= getPrisma()
   return prismaSingleton
 }
 

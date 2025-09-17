@@ -2,16 +2,16 @@ import ExportConfigsClient from './ui'
 import { headers } from 'next/headers'
 import { FEATURE_EXPORT_ENABLED } from '@/lib/constants'
 import { ExportConfigRepository, type ExportConfigRecord } from '@/lib/export/service'
-import { PrismaClient } from '@prisma/client'
+import { getPrisma } from '@/lib/cv/service'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Page() {
 	if (!FEATURE_EXPORT_ENABLED) return <p className="p-6 text-sm">Export feature disabled.</p>
-	const prisma = new PrismaClient()
+	const prisma = getPrisma()
 	const repo = new ExportConfigRepository(prisma)
 	const configs: ExportConfigRecord[] = await repo.list()
-	await prisma.$disconnect().catch(()=>{})
+		// Using shared prisma; no explicit disconnect here
 	// Attempt to read last_used cookie (best-effort; Next.js server components allow headers().get('cookie'))
 	let lastUsedId: string | undefined
 	try {

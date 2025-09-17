@@ -6,8 +6,7 @@ import { buildAuthContext } from '@/lib/auth/context'
 import { NextCookieStore } from '@/lib/auth/cookies'
 import { requireAdmin } from '@/lib/auth/guard'
 import { ExperienceSchema } from '@/lib/cv/schema'
-import { PrismaClient } from '@prisma/client'
-import { invalidateAggregateCache } from '@/lib/cv/service'
+import { getPrisma, invalidateAggregateCache } from '@/lib/cv/service'
 import { cvEntityMutationsTotal } from '@/lib/metrics'
 
 const CreateExperienceSchema = ExperienceSchema.extend({ locale: z.string().min(2) })
@@ -20,7 +19,7 @@ export async function POST(req: Request) {
   const body = await parse(req)
   const parsed = CreateExperienceSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: 'VALIDATION', issues: parsed.error.issues }, { status: 400 })
-  const prisma = new PrismaClient()
+  const prisma = getPrisma()
   try {
     const key = { id: parsed.data.id, locale: parsed.data.locale }
     const existing = await prisma.experience.findUnique({ where: { id_locale: key } })
@@ -48,7 +47,7 @@ export async function DELETE(req: Request) {
   const id = url.searchParams.get('id')
   const locale = url.searchParams.get('locale') || 'en'
   if (!id) return NextResponse.json({ error: 'MISSING_ID' }, { status: 400 })
-  const prisma = new PrismaClient()
+  const prisma = getPrisma()
   try {
     await prisma.experience.delete({ where: { id_locale: { id, locale } } })
     cvEntityMutationsTotal.inc({ entity: 'experience', action: 'delete', result: 'success' })

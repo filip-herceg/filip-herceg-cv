@@ -1,6 +1,7 @@
 // NOTE: Broad JSON.parse + Zod validation for Prisma rows. Previously had
 // global eslint-disable; refined now to rely on rule-specific allowances.
-import { PrismaClient, Prisma, type Skill, type Project, type Experience, type Education, type Certification, type Trait, type Hobby } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
+import type { Prisma, Skill, Project, Experience, Education, Certification, Trait, Hobby } from '.prisma/client'
 import { CV_PAGE_SIZE, CV_PAGE_MARGIN, CV_PAGE_COLUMNS, CV_PAGE_GUTTER } from '@/lib/constants'
 import { CvDataSchema, CvDesignSchema, type CvData, type CvDesign } from './schema'
 import { cvAggregateLoadsTotal } from '@/lib/metrics'
@@ -11,25 +12,37 @@ function safeJson<T>(raw: string | Prisma.JsonValue | null | undefined, fallback
   if (!raw) return fallback
   try {
     if (typeof raw === 'string') {
-      return JSON.parse(raw) as unknown as T
+      const parsed: unknown = JSON.parse(raw)
+      return parsed as T
     }
     // If it's already a JsonValue (object/array/primitive), trust it as-is.
-    return raw as unknown as T
+    return raw as T
   } catch {
     return fallback
   }
 }
 
 let prisma: PrismaClient | undefined
-function canUseDatabase() {
+let prismaNoDb: PrismaClient | undefined
+
+function createNoDbClient(): PrismaClient {
+  const err = () => new Error('DATABASE_URL not configured; database access is disabled')
+  const target = {} as PrismaClient
+  const handler: ProxyHandler<PrismaClient> = {
+    get() { throw err() },
+  }
+  return new Proxy(target, handler)
+}
+export function canUseDatabase() {
   const url = process.env.DATABASE_URL || ''
   const isTest = process.env.NODE_ENV === 'test'
   if (isTest) return true
   return Boolean(url.startsWith('postgresql://') || url.startsWith('postgres://'))
 }
-function getPrisma(): PrismaClient {
+export function getPrisma(): PrismaClient {
   if (!canUseDatabase()) {
-    throw new Error('DATABASE_URL not configured; database access is disabled')
+    prismaNoDb ??= createNoDbClient()
+    return prismaNoDb
   }
   prisma ??= new PrismaClient()
   return prisma

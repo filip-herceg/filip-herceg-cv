@@ -17,7 +17,10 @@ vi.mock('@/lib/metrics', () => ({
   cvAggregateLoadsTotal: { inc: () => {} },
   cvStorageBackend: { labels: () => ({ set: () => {} }) }
 }))
-vi.mock('@/lib/cv/service', () => ({ invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a) }))
+vi.mock('@/lib/cv/service', () => ({
+  invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a),
+  getPrisma: () => ({ experience: { findUnique, upsert, delete: del } } as any),
+}))
 
 const findUnique = vi.fn()
 const upsert = vi.fn()

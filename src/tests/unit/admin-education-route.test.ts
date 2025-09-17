@@ -18,7 +18,10 @@ vi.mock('@/lib/metrics', () => ({
   authLoginAttemptsTotal: { inc: () => {} },
   authActiveSessions: { set: () => {}, inc: () => {}, dec: () => {} }
 }))
-vi.mock('@/lib/cv/service', () => ({ invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a) }))
+vi.mock('@/lib/cv/service', () => ({
+  invalidateAggregateCache: (...a: any[]) => invalidateSpy(...a),
+  getPrisma: () => ({ education: { findUnique, upsert, delete: del } } as any),
+}))
 
 const findUnique = vi.fn()
 const upsert = vi.fn()

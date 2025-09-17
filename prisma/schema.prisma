@@ -174,3 +174,15 @@ model Session {
   expiresAt DateTime  @default(now())
   @@index([userId])
 }
+
+// Share tokens for tokenized short links to exports
+model ShareToken {
+  id        String   @id @default(cuid())
+  presetId  String
+  scope     String   @default("latest_preset_export")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([presetId])
+  @@index([expiresAt])
+}

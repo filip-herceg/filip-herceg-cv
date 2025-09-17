@@ -54,9 +54,40 @@ vi.mock('@/lib/logger', () => ({
   logError: () => {}
 }))
 
-// Mock cv aggregate and pdf generation
+// Mock cv aggregate and prisma accessor used by export routes
+const repoRows: any[] = []
+const prismaMock = {
+  exportConfig: {
+    findMany: async () => [...repoRows],
+    findUnique: async ({ where: { id } }: any) => repoRows.find(r => r.id === id) || null,
+    create: async ({ data }: any) => {
+      const row = { id: String(repoRows.length + 1), name: data.name, presetType: data.presetType ?? null, json: data.json, version: 1, createdAt: new Date(), updatedAt: new Date() }
+      repoRows.push(row)
+      return row
+    },
+    update: async ({ where: { id }, data }: any) => {
+      const idx = repoRows.findIndex(r => r.id === id)
+      if (idx === -1) {
+        throw Object.assign(new Error('nf'), { code: 'P2025' })
+      }
+      const existing = repoRows[idx]
+      const updated = { ...existing, name: data.name, presetType: data.presetType ?? null, json: data.json, version: existing.version + 1, updatedAt: new Date() }
+      repoRows[idx] = updated
+      return updated
+    },
+    delete: async ({ where: { id } }: any) => {
+      const idx = repoRows.findIndex(r => r.id === id)
+      if (idx === -1) {
+        throw Object.assign(new Error('nf'), { code: 'P2025' })
+      }
+      repoRows.splice(idx, 1)
+      return {}
+    }
+  }
+}
 vi.mock('@/lib/cv/service', () => ({
-  getAggregate: async () => ({ data: aggregate })
+  getAggregate: async () => ({ data: aggregate }),
+  getPrisma: () => prismaMock,
 }))
 vi.mock('@/lib/pdf/generate', () => ({
   generateCvPdf: async () => ({ final: new Uint8Array([1,2,3]), person: { name: 'Tester' } })
@@ -73,41 +104,7 @@ vi.mock('@/lib/pdf-cache', () => ({
 
 // Use real metrics implementation to avoid missing export mismatches
 
-// Mock Prisma + repository: Provide minimal delegate functions used in handlers.
-const repoRows: any[] = []
-vi.mock('@prisma/client', () => {
-  class PrismaClient {
-    exportConfig = {
-      findMany: async () => [...repoRows],
-      findUnique: async ({ where: { id } }: any) => repoRows.find(r => r.id === id) || null,
-      create: async ({ data }: any) => {
-        const row = { id: String(repoRows.length + 1), name: data.name, presetType: data.presetType ?? null, json: data.json, version: 1, createdAt: new Date(), updatedAt: new Date() }
-        repoRows.push(row)
-        return row
-      },
-      update: async ({ where: { id }, data }: any) => {
-        const idx = repoRows.findIndex(r => r.id === id)
-        if (idx === -1) {
-          throw Object.assign(new Error('nf'), { code: 'P2025' })
-        }
-        const existing = repoRows[idx]
-        const updated = { ...existing, name: data.name, presetType: data.presetType ?? null, json: data.json, version: existing.version + 1, updatedAt: new Date() }
-        repoRows[idx] = updated
-        return updated
-      },
-      delete: async ({ where: { id } }: any) => {
-        const idx = repoRows.findIndex(r => r.id === id)
-        if (idx === -1) {
-          throw Object.assign(new Error('nf'), { code: 'P2025' })
-        }
-        repoRows.splice(idx, 1)
-        return {}
-      }
-    }
-    async $disconnect() { return }
-  }
-  return { PrismaClient }
-})
+// No need to mock '@prisma/client' here, since routes use getPrisma()
 
 // Mock metrics with minimal counters / histograms used in export + other code paths to avoid missing export errors.
 vi.mock('@/lib/metrics', () => {

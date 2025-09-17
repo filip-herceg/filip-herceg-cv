@@ -71,6 +71,15 @@ vi.mock('@/lib/metrics', () => {
     }
   })
 })
+
+// Provide a lightweight mock for 'qrcode' used by PDF route footer injection so tests
+// don't try to resolve the real module or perform image generation.
+vi.mock('qrcode', () => ({
+  __esModule: true,
+  default: {
+    toBuffer: async (_text: string, _opts?: any) => new Uint8Array([137, 80, 78, 71]), // minimal PNG-like bytes
+  },
+}))
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 ;(async () => {
   try {

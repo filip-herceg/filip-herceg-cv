@@ -32,19 +32,18 @@ vi.mock('@/lib/logger', async () => {
   }
 })
 
-vi.mock('pdf-lib', () => {
-  return {
-    PDFDocument: {
-      load: async () => ({
-        setTitle: () => {},
-        setAuthor: () => {},
-        setSubject: () => {},
-  setKeywords: () => {},
-  save: async () => SAMPLE_MUTATED_BYTES,
-      }),
-    },
-  }
-})
+vi.mock('pdf-lib', () => ({
+  PDFDocument: {
+    load: async () => ({
+      setTitle: () => {},
+      setAuthor: () => {},
+      setSubject: () => {},
+      setKeywords: () => {},
+      save: async () => SAMPLE_MUTATED_BYTES,
+    }),
+  },
+  rgb: (_r: number, _g: number, _b: number) => ({ r: _r, g: _g, b: _b }),
+}))
 
 // Mock aggregate service to avoid hitting Prisma in tests
 vi.mock('@/lib/cv/service', () => ({

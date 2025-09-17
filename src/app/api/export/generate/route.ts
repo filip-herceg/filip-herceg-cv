@@ -9,7 +9,7 @@ import { exportRequestsTotal, exportCacheHitTotal, exportCacheMissTotal, exportP
 import { pdfCache } from '@/lib/pdf-cache'
 import { withRequestContext, logEvent, logError } from '@/lib/logger'
 import crypto from 'crypto'
-import { PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '@prisma/client'
 import { ExportConfigRepository } from '@/lib/export/service'
 import { getAggregate } from '@/lib/cv/service'
 import { deriveSelection, selectionToQueryParams, selectionHashParts } from '@/lib/export/selector'
@@ -178,7 +178,9 @@ export async function POST(_req: NextRequest): Promise<NextResponse> {
   }
 
   const body = await parseBody(_req)
-  const prisma = new PrismaClient()
+  // Use shared Prisma instance to avoid value import errors and multiple clients.
+  const { getPrisma } = await import('@/lib/cv/service')
+  const prisma = getPrisma()
   const loaded = await resolveConfig(prisma, body, logger)
   if ('error' in loaded) { return NextResponse.json(loaded, { status: loaded.error === 'CONFIG_NOT_FOUND' ? 404 : 400 }) }
   const cfg = loaded.cfg
@@ -223,7 +225,7 @@ export async function POST(_req: NextRequest): Promise<NextResponse> {
 
   const cacheKey = buildCacheKey(cfg, selectionHashParts(selection))
   const cachedResponse = await attemptCacheHit(cacheKey, cfg, logger)
-  if (cachedResponse) { await prisma.$disconnect().catch(() => {}); return cachedResponse }
+  if (cachedResponse) { return cachedResponse }
 
   const endTotal: ((additional?: Record<string,string>)=>void) | undefined =
     exportDurationSeconds.startTimer
@@ -240,8 +242,6 @@ export async function POST(_req: NextRequest): Promise<NextResponse> {
   endTotal?.({ result: 'error' })
     logError(logger, 'domain:export.generate.error', err)
     return NextResponse.json({ error: 'EXPORT_FAILED' }, { status: err.message === 'no_chromium' ? 501 : 500 })
-  } finally {
-    try { await prisma.$disconnect() } catch { /* ignore */ }
   }
 }
 
