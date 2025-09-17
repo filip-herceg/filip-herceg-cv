@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { pdfCacheEntries, pdfCacheHitsTotal, pdfCacheMissesTotal, pdfCacheGetDurationSeconds } from './metrics'
+import { pdfCacheEntries, pdfCacheHitsTotal, pdfCacheMissesTotal, pdfCacheGetDurationSeconds, pdfCacheEvictionsTotal } from './metrics'
 import { logger } from './logger'
 
 // Pluggable backends: memory (default), redis, s3 (object store). Focus on simple get/set semantics.
@@ -44,7 +44,14 @@ class MemoryPdfCache implements PdfCacheBackend {
     }
     pdfCacheEntries.set(this.map.size)
   }
-  private evict() { let oldest: Entry | undefined; for (const ent of this.map.values()) { if (!oldest || ent.lastAccess < oldest.lastAccess) oldest = ent } if (oldest) this.map.delete(oldest.key) }
+  private evict() {
+    let oldest: Entry | undefined
+    for (const ent of this.map.values()) { if (!oldest || ent.lastAccess < oldest.lastAccess) oldest = ent }
+    if (oldest) {
+      this.map.delete(oldest.key)
+      try { pdfCacheEvictionsTotal.inc({ backend: 'memory' }) } catch { /* ignore */ }
+    }
+  }
 }
 
 class RedisPdfCache implements PdfCacheBackend {

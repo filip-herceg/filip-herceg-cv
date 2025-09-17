@@ -65,6 +65,9 @@ coverage-badge.json
 .eslint_tmp.json
 build-artifact.tgz
 
+# Generated font subsets (built post-build for deterministic print/PDF)
+public/fonts-subset/
+
 # Legacy types folder is deprecated; all declarations live under src/types
  # Only ignore the root-level types/ folder; allow src/types/
  /types/

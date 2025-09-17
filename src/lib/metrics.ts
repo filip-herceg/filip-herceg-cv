@@ -111,6 +111,29 @@ export const pdfGenerationDurationSeconds = new HistogramCtor({
   registers: [registry],
 })
 
+// PDF render phase: HTML fetch → DOM ready (DOMContentLoaded)
+export const pdfRenderDomDurationSeconds = new HistogramCtor({
+  name: 'pdf_render_dom_duration_seconds',
+  help: 'Time from navigation start to DOMContentLoaded for PDF print route',
+  buckets: [0.01,0.02,0.05,0.1,0.2,0.5,1,2,5],
+  registers: [registry],
+})
+
+// Last produced PDF page count (gauge reflects latest render)
+export const pdfLastPageCount = new client.Gauge({
+  name: 'pdf_last_page_count',
+  help: 'Gauge of the last generated PDF page count',
+  registers: [registry],
+})
+
+// Cache evictions (memory backend today; other backends may noop)
+export const pdfCacheEvictionsTotal = new client.Counter({
+  name: 'pdf_cache_evictions_total',
+  help: 'Total number of PDF cache evictions (by backend)',
+  labelNames: ['backend'] as const,
+  registers: [registry],
+})
+
 // Export (selective PDF) metrics
 export const exportRequestsTotal = new client.Counter({
   name: 'export_requests_total',

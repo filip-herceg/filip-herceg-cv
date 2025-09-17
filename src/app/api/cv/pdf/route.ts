@@ -6,12 +6,14 @@ import { CvSelectionSchema } from '@/lib/cv/schema'
 // failed due to an environment-specific Prisma generated package.json resolution issue.
 import { existsSync } from 'fs'
 import type { Page } from 'puppeteer-core'
+import type { PDFDocument as PDFDocumentType, RGB } from 'pdf-lib'
 import { warmChromiumPool, acquirePooledPage } from '@/lib/pdf/chromium-pool'
 import { withRequestContext, logEvent, logError } from '@/lib/logger'
-import { pdfRequestsTotal, pdfCacheGetDurationSeconds, pdfGenerationDurationSeconds } from '@/lib/metrics'
+import { pdfRequestsTotal, pdfCacheGetDurationSeconds, pdfGenerationDurationSeconds, pdfRenderDomDurationSeconds, pdfLastPageCount } from '@/lib/metrics'
 import { pdfCache, PdfCache } from '@/lib/pdf-cache'
 import { startSpan } from '@/lib/tracing'
 import { PDF_DEFAULT_TIMEOUT_MS, PDF_NAVIGATION_GRACE_MS, PDF_POST_RENDER_DELAY_MS, CHROMIUM_CANDIDATE_PATHS, CV_PAGE_SIZE } from '@/lib/constants'
+import { freezeNow } from '@/lib/deterministic'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -103,11 +105,14 @@ export async function GET(req: NextRequest) {
   logEvent(child, 'domain:cv.pdf.success', { ms: duration, selection: Object.keys(selection).length > 0 })
   pdfRequestsTotal.inc({ result: 'success' })
   try { genTimerEnd?.({ result: 'success' }) } catch {}
-  await pdfCache.set(cacheKey, final)
+  // Store as Buffer in cache for compatibility
+  await pdfCache.set(cacheKey, Buffer.from(final))
     span.setAttribute('cache.stored', true)
     span.setAttribute('duration_ms', duration)
     span.end()
-    return new NextResponse(final, {
+  // Respond with bytes as Uint8Array (Web BodyInit)
+  const responseBytes = new Uint8Array(final)
+  return new NextResponse(responseBytes, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
@@ -142,77 +147,126 @@ function buildTargetUrl(base: string, selection: { skills?: string[]; projects?:
   return base + '/cv/print' + (qs ? '?' + qs : '')
 }
 
-async function renderPdf(target: string, opts?: { baseUrl?: string; shareToken?: string }) {
-  // Prefer pooled warm page for faster warm performance; fall back to on-demand launch
+type RgbFn = (r: number, g: number, b: number) => RGB
+
+// Acquire a Chromium page (pooled if available; otherwise launch a new browser)
+async function acquirePage(): Promise<{ page: Page; cleanup: () => Promise<void> }> {
   await warmChromiumPool()
   const pooled = await acquirePooledPage()
-  let page: Page
-  let closeBrowser: null | (() => Promise<void>) = null
   if (pooled) {
-    page = pooled.page
-  } else {
-    const puppeteer = await getPuppeteer()
-    const executablePath = process.env.CHROMIUM_PATH ?? CHROMIUM_CANDIDATE_PATHS.find((p) => { try { return existsSync(p) } catch { return false } })
-    if (!executablePath) throw new Error('no_chromium')
-    const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--font-render-hinting=none'] })
-    const tmpPage = await browser.newPage()
-    tmpPage.setDefaultTimeout(DEFAULT_TIMEOUT_MS)
-    page = tmpPage
-    closeBrowser = async () => { try { await browser.close() } catch { /* ignore */ } }
+    return { page: pooled.page, cleanup: async () => { try { await pooled.release() } catch { /* ignore */ } } }
   }
-  const navResult = await Promise.race([
-    page.goto(target, { waitUntil: 'load' }),
+  const puppeteer = await getPuppeteer()
+  const executablePath = process.env.CHROMIUM_PATH ?? CHROMIUM_CANDIDATE_PATHS.find((p) => { try { return existsSync(p) } catch { return false } })
+  if (!executablePath) throw new Error('no_chromium')
+  const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--font-render-hinting=none'] })
+  const page = await browser.newPage()
+  page.setDefaultTimeout(DEFAULT_TIMEOUT_MS)
+  return { page, cleanup: async () => { try { await browser.close() } catch { /* ignore */ } } }
+}
+
+// Inject browser-side Date/Intl freeze to reduce nondeterminism
+async function injectDeterministicEnv(page: Page): Promise<void> {
+  try {
+    await page.evaluateOnNewDocument(`(() => {
+      const fixed = new Date('2024-01-01T00:00:00.000Z');
+      const RealDate = Date;
+      function FakeDate(...args) {
+        if (new.target) { return args.length ? new RealDate(...args) : new RealDate(fixed); }
+        return RealDate(...args);
+      }
+      FakeDate.UTC = RealDate.UTC; FakeDate.parse = RealDate.parse; FakeDate.now = () => fixed.getTime(); FakeDate.prototype = RealDate.prototype;
+      // @ts-ignore
+      window.Date = FakeDate;
+      const RealDTF = Intl.DateTimeFormat;
+      const FakeDTF = function(locale, options) {
+        const stableOpts = Object.assign({ timeZone: 'UTC' }, options || {});
+        // @ts-ignore
+        return new RealDTF(locale, stableOpts);
+      };
+      // @ts-ignore
+      FakeDTF.supportedLocalesOf = RealDTF.supportedLocalesOf.bind(RealDTF);
+      // @ts-ignore
+      FakeDTF.prototype = RealDTF.prototype;
+      // @ts-ignore
+      Intl.DateTimeFormat = FakeDTF;
+    })();`)
+  } catch { /* ignore */ }
+}
+
+// Navigate to target and measure DOMContentLoaded time
+async function navigateAndMeasureDomReady(page: Page, target: string): Promise<void> {
+  const domTimerEnd = (pdfRenderDomDurationSeconds as unknown as { startTimer?: (l?: Record<string,string>) => (add?: Record<string,string>) => void }).startTimer?.()
+  const navDom = await Promise.race([
+    page.goto(target, { waitUntil: 'domcontentloaded' }),
     new Promise((_, reject) => setTimeout(() => reject(new Error('Navigation timeout')), DEFAULT_TIMEOUT_MS + PDF_NAVIGATION_GRACE_MS)),
   ])
-  if (!navResult) throw new Error('Navigation failed')
-  await new Promise((r) => setTimeout(r, PDF_POST_RENDER_DELAY_MS))
-  const pageWithPdf = page as Page & { pdf?: unknown }
-  if (typeof pageWithPdf.pdf !== 'function') throw new Error('pdf_fn_missing')
-  const pdfUint8 = await page.pdf({
-    format: CV_PAGE_SIZE,
-    printBackground: true,
-    preferCSSPageSize: true,
-    margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
-  })
+  if (!navDom) throw new Error('Navigation failed')
+  try { domTimerEnd?.() } catch {}
+  // Keep prior behavior: wait for full load but don't fail hard
+  try { await page.waitForFunction(() => document.readyState === 'complete', { timeout: DEFAULT_TIMEOUT_MS }).catch(() => {}) } catch {}
+}
+
+// Optionally draw a QR footer pointing to short link
+async function maybeAddQrFooter(pdfDoc: PDFDocumentType, rgb: RgbFn, opts?: { baseUrl?: string; shareToken?: string }) {
+  if (!opts?.shareToken || !opts.baseUrl) return
+  try {
+    const QRCode = (await import('qrcode')).default as unknown as { toBuffer: (text: string, cfg?: { errorCorrectionLevel?: 'L'|'M'|'Q'|'H'; margin?: number; width?: number; color?: { dark?: string; light?: string } }) => Promise<Buffer> }
+    const shortUrl = `${opts.baseUrl.replace(/\/$/, '')}/s/${encodeURIComponent(opts.shareToken)}`
+    const png = await QRCode.toBuffer(shortUrl, { errorCorrectionLevel: 'M', margin: 0, width: 84, color: { dark: '#000000', light: '#FFFFFF00' } })
+    const pngEmbed = await pdfDoc.embedPng(png)
+    const pages = pdfDoc.getPages()
+    for (const p of pages) {
+      const { width } = p.getSize()
+      const qrSize = 28
+      const pad = 12
+      p.drawImage(pngEmbed, { x: width - qrSize - pad, y: pad, width: qrSize, height: qrSize })
+      p.drawText('scan to view online', { x: width - qrSize - pad, y: pad + qrSize + 4, size: 8, color: rgb(0,0,0) })
+    }
+  } catch { /* ignore */ }
+}
+
+async function renderPdf(target: string, opts?: { baseUrl?: string; shareToken?: string }) {
+  const { page, cleanup } = await acquirePage()
+  await injectDeterministicEnv(page)
+  // Freeze time and Intl for deterministic render window
+  const restore = freezeNow()
+  let person: { name: string; title?: string } = { name: 'cv' }
+  try {
+    await navigateAndMeasureDomReady(page, target)
+    await new Promise((r) => setTimeout(r, PDF_POST_RENDER_DELAY_MS))
+    const pageWithPdf = page as Page & { pdf?: unknown }
+    if (typeof pageWithPdf.pdf !== 'function') throw new Error('pdf_fn_missing')
+    const pdfUint8 = await page.pdf({
+      format: CV_PAGE_SIZE,
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
+    })
   const { PDFDocument, rgb } = await import('pdf-lib')
-  const { getAggregate } = await import('@/lib/cv/service')
+    const { getAggregate } = await import('@/lib/cv/service')
   const pdfDoc = await PDFDocument.load(pdfUint8)
-  const { data } = await getAggregate('en')
-  const person = data.person
-  pdfDoc.setTitle(`${person.name} – CV`)
-  pdfDoc.setAuthor(person.name)
-  pdfDoc.setSubject('Curriculum Vitae')
-  pdfDoc.setKeywords(['CV','Resume', person.title, 'Short'].filter(Boolean))
+    const { data } = await getAggregate('en')
+    person = data.person
+    pdfDoc.setTitle(`${person.name} – CV`)
+    pdfDoc.setAuthor(person.name)
+    pdfDoc.setSubject('Curriculum Vitae')
+  pdfDoc.setKeywords(['CV','Resume', person.title, 'Short'].filter((v): v is string => typeof v === 'string' && v.length > 0))
 
   // Optional: draw a tiny QR code in the footer that points to a short link if a share token is provided
-  if (opts?.shareToken && opts.baseUrl) {
-    try {
-      // Lazy import to avoid adding to critical path otherwise
-  const QRCode = (await import('qrcode')).default as unknown as {
-        toBuffer: (text: string, cfg?: { errorCorrectionLevel?: 'L'|'M'|'Q'|'H'; margin?: number; width?: number; color?: { dark?: string; light?: string } }) => Promise<Buffer>
-      }
-      const shortUrl = `${opts.baseUrl.replace(/\/$/, '')}/s/${encodeURIComponent(opts.shareToken)}`
-      const png = await QRCode.toBuffer(shortUrl, { errorCorrectionLevel: 'M', margin: 0, width: 84, color: { dark: '#000000', light: '#FFFFFF00' } })
-      const pngEmbed = await pdfDoc.embedPng(png)
-      const pages = pdfDoc.getPages()
-      for (const page of pages) {
-  const { width } = page.getSize()
-        const qrSize = 28 // mm at 72dpi-ish heuristic; approximate by points
-        const pad = 12
-        page.drawImage(pngEmbed, { x: width - qrSize - pad, y: pad, width: qrSize, height: qrSize })
-        // Optional tiny caption above QR
-        const caption = 'scan to view online'
-        page.drawText(caption, { x: width - qrSize - pad, y: pad + qrSize + 4, size: 8, color: rgb(0,0,0) })
-      }
-    } catch {
-      // QR generation is best-effort; ignore failures to keep PDF working
-    }
+  await maybeAddQrFooter(pdfDoc, rgb, opts)
+  // Update last page count gauge
+  try { pdfLastPageCount.set(pdfDoc.getPageCount()) } catch {}
+  const bytes = await pdfDoc.save()
+  const final = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
+  return finalize(final, person)
+  } finally {
+    // Restore globals after render completes or on error
+    try { restore() } catch { /* ignore */ }
+    await cleanup()
   }
-  const final = Buffer.from(await pdfDoc.save())
-  if (pooled) {
-    await pooled.release()
-  } else if (closeBrowser) {
-    await closeBrowser()
+
+  function finalize(final: Uint8Array, person: { name: string; title?: string }) {
+    return { final, person }
   }
-  return { final, person }
 }

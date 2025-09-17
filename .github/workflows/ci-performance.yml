@@ -65,11 +65,14 @@ jobs:
           cache: 'npm'
       - name: Install (prod subset)
         run: npm ci --omit=dev || npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
       - name: Start & run Lighthouse
         run: |
           npm start &
           npx wait-on http://localhost:3000
           npm run reports:ensure
+          CHROME_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())") \
           npm run lhci:reports || true
         env:
           PORT: 3000

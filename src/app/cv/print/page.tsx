@@ -2,7 +2,7 @@ import React from 'react'
 import { CvDataSchema, CvSelectionSchema } from '@/lib/cv/schema'
 import { getCvData, getCvDesign } from '@/lib/cv/loader'
 import CvView from '@/components/cv/CvView'
-import '../../../../styles/print.css'
+import { PRINT_CSS } from '@/styles/print-inline'
 
 export const metadata = { title: 'CV Print' }
 
@@ -41,8 +41,8 @@ export default async function CvPrintPage(props: Readonly<{ searchParams?: Promi
   const inlinePageStyle = `@media print { @page { size: ${paper === 'letter' ? 'Letter' : 'A4'}; } }`
   return (
     <div className="print-page" data-paper={paper} data-density={density} style={cssVars}>
-      {/* Inline style to set @page size based on query param */}
-      <style dangerouslySetInnerHTML={{ __html: inlinePageStyle }} />
+  {/* Inline critical print CSS and @page override */}
+  <style dangerouslySetInnerHTML={{ __html: PRINT_CSS + '\n' + inlinePageStyle }} />
       <CvView data={validated} design={design} selection={selection} />
     </div>
   )
