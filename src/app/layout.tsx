@@ -9,6 +9,14 @@ const inter = Inter({ subsets: ['latin'], display: 'swap' })
 import Vitals from '@/components/layout/vitals'
 import { LocaleHead } from '@/components/layout/locale-head'
 import { localeFromHeaders } from '@/lib/i18n'
+import { primeChromiumPool } from '@/lib/init/chromium-pool'
+
+// Fire-and-forget boot-time warm Chromium pool prime (server-only, opt-in via env)
+if (typeof window === 'undefined') {
+  // Best effort; ignore errors and do not block render
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  primeChromiumPool().catch(() => {})
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL || 'http://localhost:3000'),

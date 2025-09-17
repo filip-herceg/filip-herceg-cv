@@ -194,6 +194,19 @@ export const chromiumAcquireDurationSeconds = new HistogramCtor({
   registers: [registry],
 })
 
+// Additional gauges for better pool observability
+export const chromiumPoolPagesAvailable = new client.Gauge({
+  name: 'chromium_pool_pages_available',
+  help: 'Number of pages currently available in the Chromium pool',
+  registers: [registry],
+})
+
+export const chromiumPoolMaxCapacity = new client.Gauge({
+  name: 'chromium_pool_max_capacity',
+  help: 'Configured maximum number of pooled Chromium pages (capacity)',
+  registers: [registry],
+})
+
 // Auth metrics
 export const authLoginAttemptsTotal = new client.Counter({
   name: 'auth_login_attempts_total',

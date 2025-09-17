@@ -7,6 +7,7 @@ import { CvSelectionSchema } from '@/lib/cv/schema'
 // failed due to an environment-specific Prisma generated package.json resolution issue.
 import { existsSync } from 'fs'
 import type { Page } from 'puppeteer-core'
+import { warmChromiumPool, acquirePooledPage } from '@/lib/pdf/chromium-pool'
 import { withRequestContext, logEvent, logError } from '@/lib/logger'
 import { pdfRequestsTotal, pdfCacheGetDurationSeconds, pdfGenerationDurationSeconds } from '@/lib/metrics'
 import { pdfCache, PdfCache } from '@/lib/pdf-cache'
@@ -142,14 +143,25 @@ function buildTargetUrl(base: string, selection: { skills?: string[]; projects?:
 }
 
 async function renderPdf(target: string) {
-  const puppeteer = await getPuppeteer()
-  const executablePath = process.env.CHROMIUM_PATH ?? CHROMIUM_CANDIDATE_PATHS.find((p) => { try { return existsSync(p) } catch { return false } })
-  if (!executablePath) throw new Error('no_chromium')
-  const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--font-render-hinting=none'] })
-  const page = await browser.newPage()
-  page.setDefaultTimeout(DEFAULT_TIMEOUT_MS)
+  // Prefer pooled warm page for faster warm performance; fall back to on-demand launch
+  await warmChromiumPool()
+  const pooled = await acquirePooledPage()
+  let page: Page
+  let closeBrowser: null | (() => Promise<void>) = null
+  if (pooled) {
+    page = pooled.page
+  } else {
+    const puppeteer = await getPuppeteer()
+    const executablePath = process.env.CHROMIUM_PATH ?? CHROMIUM_CANDIDATE_PATHS.find((p) => { try { return existsSync(p) } catch { return false } })
+    if (!executablePath) throw new Error('no_chromium')
+    const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--font-render-hinting=none'] })
+    const tmpPage = await browser.newPage()
+    tmpPage.setDefaultTimeout(DEFAULT_TIMEOUT_MS)
+    page = tmpPage
+    closeBrowser = async () => { try { await browser.close() } catch { /* ignore */ } }
+  }
   const navResult = await Promise.race([
-    page.goto(target, { waitUntil: 'networkidle0' }),
+    page.goto(target, { waitUntil: 'load' }),
     new Promise((_, reject) => setTimeout(() => reject(new Error('Navigation timeout')), DEFAULT_TIMEOUT_MS + PDF_NAVIGATION_GRACE_MS)),
   ])
   if (!navResult) throw new Error('Navigation failed')
@@ -172,6 +184,10 @@ async function renderPdf(target: string) {
   pdfDoc.setSubject('Curriculum Vitae')
   pdfDoc.setKeywords(['CV','Resume', person.title, 'Short'].filter(Boolean))
   const final = Buffer.from(await pdfDoc.save())
-  await browser.close()
+  if (pooled) {
+    await pooled.release()
+  } else if (closeBrowser) {
+    await closeBrowser()
+  }
   return { final, person }
 }

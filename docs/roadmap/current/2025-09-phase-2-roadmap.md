@@ -1,7 +1,7 @@
 # Phase 2 Roadmap – Export Fidelity & Selective Application Packets
 
 Status: active
-LastUpdated: 2025-09-09 (clarified done vs remaining; added slice checklist)
+LastUpdated: 2025-09-09 (clarified done vs remaining; warm pool landed; benchmarked warm stability < 0.8s; Grafana pool gauges wired incl. utilization)
 Owner: product/engineering
 
 ## Goal
@@ -19,8 +19,8 @@ Deliver a reliable, high‑fidelity selective export pipeline (website → tailo
 - [x] 2) Section Selection MVP — selection + filters shipped; [ ] drag & drop ordering (kbd accessible)
 - [ ] 3) Layout Fidelity & Styles — diff harness/baselines landed; print tuning/threshold hardening pending
 - [x] 4) Presets & Heuristics — 4 presets + telemetry shipped
-- [ ] 5) Performance & Caching — [x] export caching, [ ] warm Chromium context pool
-- [x] 6) Observability & Reliability — tracing + metrics shipped; [ ] pool gauges later
+- [x] 5) Performance & Caching — [x] export caching, [x] warm Chromium context pool (initial)
+- [x] 6) Observability & Reliability — tracing + metrics shipped; [x] pool gauges (enabled/capacity/pages/acquire p95/utilization)
 - [ ] 7) Security & Link Bridge — tokenized share link + footer QR pending
 - [ ] 8) UX Polish & Accessibility — wizard preview + a11y polish pending
 
@@ -38,7 +38,7 @@ Done (shipped):
 Remaining (to ship):
 - Print polish to consistently meet visual diff thresholds in CI.
 - Drag & drop ordering (keyboard accessible) in selection UI.
-- Warm Chromium context pool and related metrics/gauges.
+- CI timings report surfaced in dashboards or PR comments (optional polish).
 - Tokenized share link for “latest preset export” and footer QR.
 - Deterministic SSR snapshot refinements (fonts subset, stable layout invariants).
 - Wizard preview panel and a11y polish (aria‑live progress, roving tabindex).
@@ -56,7 +56,7 @@ Remaining (to ship):
 	- Print polish and fidelity: print tokens and density/paper options added; visual diff harness landed with baselines; thresholds set to 2%.
 - Upcoming
 	- CI stability tuning for visual diffs (adjust per-OS thresholds if needed; keep 2% default where stable).
-	- Chromium context warm pool for consistent warm performance.
+	- Chromium context warm pool for consistent warm performance. [DONE]
 	- Tokenized share link for latest preset export and footer QR.
 
 ## Phase Slices
@@ -173,16 +173,17 @@ Exit criteria for this step:
 
 Expected output: cold-start and warm timings with p50/p95. Commit results summary back here when measured on CI runner and a developer laptop.
 
-Measured locally (Windows laptop, Edge headless via CHROMIUM_PATH):
-- cold: ~2393 ms
-- warm p50: ~2307 ms
-- warm p95: ~2695 ms
-- warm avg: ~2347 ms
+Measured locally (Windows laptop, Edge headless via CHROMIUM_PATH, pool primed, RUM aborted in headless, waitUntil=load):
+- cold: ~1233 ms
+- warm p50: ~762 ms
+- warm p95: ~775 ms
+- warm avg: ~760 ms
 
 Notes:
 - Backend: CV_STORAGE=memory, CV_AUTO_SEED=false
-- Pool size default (1) with warmChromiumPool() primed on first request.
-- These meet the warm target (< 2.5s) and are close to the cold target (< 4s).
+- Pool size default (1) with boot-time prime enabled (PDF_CHROMIUM_POOL_PRIME=true)
+- Headless RUM requests are aborted via request interception; navigation readiness uses 'load' instead of networkidle to avoid background telemetry flakiness.
+- These substantially beat the warm target (< 2.5s) and improve cold performance as well.
 
 ## Definition of Done (Phase 2)
 All slices 1–6 complete; 7 & 8 at least partially landed (footer link + a11y baseline). Metrics hitting targets for two consecutive weeks. No P1 reliability issues open. Documentation updated (operations runbook + product spec for export config format).

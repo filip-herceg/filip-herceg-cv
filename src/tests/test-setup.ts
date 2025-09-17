@@ -53,6 +53,8 @@ vi.mock('@/lib/metrics', () => {
   chromiumPoolEnabled: makeGauge(),
   chromiumPoolPagesTotal: makeGauge(),
   chromiumPoolPagesBusy: makeGauge(),
+  chromiumPoolPagesAvailable: makeGauge(),
+  chromiumPoolMaxCapacity: makeGauge(),
   chromiumAcquireDurationSeconds: makeHistogram(),
     // Permalinks
     permalinkCreatesTotal: makeNamedCounter('permalink_creates_total'),

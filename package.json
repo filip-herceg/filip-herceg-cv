@@ -9,6 +9,8 @@
   "serve": "next start",
   "bench:pdf:run": "node scripts/benchmark-pdf-pool-run.mjs",
   "bench:pdf": "node scripts/benchmark-pdf-pool.mjs",
+  "bench:trend": "node scripts/bench-trend.mjs",
+  "bench:pdf:trend": "npm run bench:pdf:run && npm run bench:trend",
     "lint": "eslint . --no-cache",
     "lint:ci": "eslint . --no-cache --max-warnings=0",
     "lint:fix": "eslint . --fix",

@@ -56,6 +56,43 @@ data:
           "targets": [ { "expr": "rate(cv_aggregate_loads_total[5m])", "legendFormat": "{{source}}" } ],
           "description": "Shows frequency of CV aggregate fetches split by 'db' vs 'empty' onboarding placeholder. Aim for 'empty' to drop after initial admin population.",
           "fieldConfig": { "defaults": { "unit": "req/s" } }
+        },
+        {
+          "id": 6,
+          "title": "Chromium Pool Enabled",
+          "type": "gauge",
+          "targets": [ { "expr": "chromium_pool_enabled" } ],
+          "fieldConfig": { "defaults": { "min": 0, "max": 1 } }
+        },
+        {
+          "id": 7,
+          "title": "Chromium Pool Capacity",
+          "type": "stat",
+          "targets": [ { "expr": "chromium_pool_max_capacity" } ]
+        },
+        {
+          "id": 8,
+          "title": "Chromium Pool Pages (total/busy/available)",
+          "type": "timeseries",
+          "targets": [
+            { "expr": "chromium_pool_pages_total", "legendFormat": "total" },
+            { "expr": "chromium_pool_pages_busy", "legendFormat": "busy" },
+            { "expr": "chromium_pool_pages_available", "legendFormat": "available" }
+          ]
+        },
+        {
+          "id": 9,
+          "title": "Chromium Acquire Duration (p95)",
+          "type": "timeseries",
+          "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(chromium_acquire_duration_seconds_bucket[5m])))", "legendFormat": "p95" } ],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        }
+        {
+          "id": 10,
+          "title": "Chromium Pool Utilization",
+          "type": "gauge",
+          "targets": [ { "expr": "chromium_pool_pages_busy / clamp_min(chromium_pool_pages_total, 1)" } ],
+          "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } }
         }
       ]
     }
@@ -104,6 +141,43 @@ data:
             { "expr": "nodejs_eventloop_lag_seconds{job='{{ include "app.fullname" . }}'}" }
           ],
           "gridPos": {"h":8,"w":12,"x":0,"y":8}
+        },
+        {
+          "type": "gauge",
+          "title": "Chromium Pool Enabled",
+          "targets": [ { "expr": "chromium_pool_enabled{job='{{ include \"app.fullname\" . }}'}" } ],
+          "fieldConfig": { "defaults": { "min": 0, "max": 1 } },
+          "gridPos": {"h":6,"w":6,"x":12,"y":8}
+        },
+        {
+          "type": "stat",
+          "title": "Chromium Pool Capacity",
+          "targets": [ { "expr": "chromium_pool_max_capacity{job='{{ include \"app.fullname\" . }}'}" } ],
+          "gridPos": {"h":6,"w":6,"x":18,"y":8}
+        },
+        {
+          "type": "timeseries",
+          "title": "Chromium Pool Pages",
+          "targets": [
+            { "expr": "chromium_pool_pages_total{job='{{ include \"app.fullname\" . }}'}", "legendFormat": "total" },
+            { "expr": "chromium_pool_pages_busy{job='{{ include \"app.fullname\" . }}'}", "legendFormat": "busy" },
+            { "expr": "chromium_pool_pages_available{job='{{ include \"app.fullname\" . }}'}", "legendFormat": "available" }
+          ],
+          "gridPos": {"h":8,"w":12,"x":0,"y":16}
+        },
+        {
+          "type": "timeseries",
+          "title": "Chromium Acquire Duration (p95)",
+          "targets": [ { "expr": "histogram_quantile(0.95, sum by (le) (rate(chromium_acquire_duration_seconds_bucket{job='{{ include \"app.fullname\" . }}'}[5m])))", "legendFormat": "p95" } ],
+          "fieldConfig": { "defaults": { "unit": "s" } },
+          "gridPos": {"h":8,"w":12,"x":12,"y":16}
+        },
+        {
+          "type": "gauge",
+          "title": "Chromium Pool Utilization",
+          "targets": [ { "expr": "chromium_pool_pages_busy{job='{{ include \"app.fullname\" . }}'} / clamp_min(chromium_pool_pages_total{job='{{ include \"app.fullname\" . }}'}, 1)" } ],
+          "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } },
+          "gridPos": {"h":6,"w":6,"x":0,"y":24}
         }
       ]
     }

@@ -131,3 +131,35 @@ The UI remembers the last-used config id in a cookie `last_export_config=<uuid>`
 
 ---
 Last updated: Phase 2 Slice 4 – presets, telemetry, and tag filtering implemented.
+
+## Chromium PDF Pool (Performance)
+
+Status: landed. The PDF export path prefers a warm Chromium page from an in-process pool for faster warm performance and lower variance. If the pool isn’t available, it falls back to launching a one-off headless browser for the request.
+
+Configuration (env vars):
+- CHROMIUM_PATH: Absolute path to the Chromium/Chrome/Edge executable. If unset, the app tries several common paths (see CHROMIUM_CANDIDATE_PATHS).
+- PDF_CHROMIUM_POOL_SIZE: Number of pages to keep available in the pool (default: 1).
+- PDF_CHROMIUM_POOL_PRIME: When set to "true", the app will best-effort warm the pool on server start.
+
+Behavior:
+- The pool is lazily created on first use; metrics expose enabled flag and pool sizes.
+- acquirePooledPage() returns a release() that must be called to return the page to the pool. At capacity, a one-off page is created and closed on release.
+
+Metrics:
+- chromium_pool_enabled (gauge: 0/1)
+- chromium_pool_pages_total (gauge)
+- chromium_pool_pages_busy (gauge)
+- chromium_acquire_duration_seconds (histogram)
+
+Operational notes:
+- For Windows devs, CHROMIUM_PATH can point to Edge, e.g.: C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe
+- In ephemeral serverless environments without a Chromium binary, the route returns 501 (unsupported) instead of crashing.
+
+Benchmarks (Windows, Edge headless):
+- cold: ~1233 ms
+- warm p50: ~762 ms; p95: ~775 ms; avg: ~760 ms (8 iters)
+
+Stability mitigations:
+- Pooled page hygiene: navigate to about:blank on release.
+- Request interception: abort /api/rum and /api/rum/stats during headless renders.
+- Navigation readiness: use waitUntil='load' to avoid flakiness from background telemetry.

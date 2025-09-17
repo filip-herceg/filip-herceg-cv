@@ -1,5 +1,5 @@
 import { CHROMIUM_CANDIDATE_PATHS, PDF_DEFAULT_TIMEOUT_MS } from '@/lib/constants'
-import { chromiumPoolEnabled, chromiumPoolPagesBusy, chromiumPoolPagesTotal, chromiumAcquireDurationSeconds } from '@/lib/metrics'
+import { chromiumPoolEnabled, chromiumPoolPagesBusy, chromiumPoolPagesTotal, chromiumAcquireDurationSeconds, chromiumPoolPagesAvailable, chromiumPoolMaxCapacity } from '@/lib/metrics'
 import { existsSync } from 'fs'
 import type { Browser, Page } from 'puppeteer-core'
 
@@ -42,12 +42,25 @@ async function ensureBrowser(): Promise<Browser | undefined> {
   state.browser = await puppeteer.launch({ executablePath: resolved, headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--font-render-hinting=none'] })
   state.enabled = true
   chromiumPoolEnabled.set(1)
+  chromiumPoolMaxCapacity.set(state.max)
   return state.browser
 }
 
 async function newPooledPage(browser: Browser): Promise<Page> {
   const page = await browser.newPage()
   page.setDefaultTimeout(PDF_DEFAULT_TIMEOUT_MS)
+  // Avoid background client telemetry interfering with navigation idle by aborting RUM endpoints
+  try {
+    await page.setRequestInterception(true)
+    page.on('request', async (req) => {
+      const url = req.url()
+      if (url.endsWith('/api/rum') || url.endsWith('/api/rum/stats')) {
+        try { await req.abort() } catch { /* ignore */ }
+      } else {
+        try { await req.continue() } catch { /* ignore */ }
+      }
+    })
+  } catch { /* ignore */ }
   return page
 }
 
@@ -60,6 +73,7 @@ export async function warmChromiumPool(): Promise<void> {
   }
   chromiumPoolPagesTotal.set(state.available.length + state.busy.size)
   chromiumPoolPagesBusy.set(state.busy.size)
+  chromiumPoolPagesAvailable.set(state.available.length)
 }
 
 export interface PooledPage {
@@ -92,15 +106,21 @@ export async function acquirePooledPage(): Promise<PooledPage | null> {
   state.busy.add(page)
   chromiumPoolPagesBusy.set(state.busy.size)
   chromiumPoolPagesTotal.set(state.available.length + state.busy.size)
+  chromiumPoolPagesAvailable.set(state.available.length)
   endTimer?.({})
   return {
     page,
     release: async () => {
       if (state.busy.has(page)) {
         state.busy.delete(page)
+        // Best-effort reset to reduce chance of lingering network activity impacting next navigation
+        try {
+          await page.goto('about:blank', { waitUntil: 'load', timeout: 2000 })
+        } catch { /* ignore */ }
         state.available.push(page)
         chromiumPoolPagesBusy.set(state.busy.size)
         chromiumPoolPagesTotal.set(state.available.length + state.busy.size)
+        chromiumPoolPagesAvailable.set(state.available.length)
       } else {
         // Not tracked (should not happen), close defensively
         try { await page.close() } catch { /* ignore */ }
@@ -119,6 +139,7 @@ export async function shutdownChromiumPool(): Promise<void> {
   state.busy.clear()
   chromiumPoolPagesBusy.set(0)
   chromiumPoolPagesTotal.set(0)
+  chromiumPoolPagesAvailable.set(0)
   await Promise.allSettled(toClose.map((p) => p.close()))
   if (b) {
     try { await b.close() } catch { /* ignore */ }
