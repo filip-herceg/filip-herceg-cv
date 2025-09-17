@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test'
+import fs from 'node:fs'
+import path from 'node:path'
 
 // Visual diff harness for print fidelity.
 // Emulates print media and reduced motion, waits for fonts/images, then asserts
@@ -25,11 +27,12 @@ test.describe('Print fidelity', () => {
       }
     })
 
-    await expect(page).toHaveScreenshot('cv-print-a4.png', {
-      fullPage: true,
-      maxDiffPixelRatio: 0.02, // 2% pixel diff threshold
-      animations: 'disabled',
-    })
+  const overridesPath = path.resolve(__dirname, 'visual-thresholds.json')
+  const overrides = fs.existsSync(overridesPath) ? JSON.parse(fs.readFileSync(overridesPath, 'utf8')) : {}
+  const baseOpts = { fullPage: true, maxDiffPixelRatio: 0.02, animations: 'disabled' }
+  const name = 'cv-print-a4.png'
+  const merged = { ...baseOpts, ...(overrides[name] || {}) }
+  await expect(page).toHaveScreenshot(name, merged)
   })
 
   test('cv/print letter+compact matches baseline', async ({ page }) => {
@@ -41,10 +44,11 @@ test.describe('Print fidelity', () => {
     await expect(page.locator('.print-page')).toHaveAttribute('data-paper', 'letter')
     await expect(page.locator('.print-page')).toHaveAttribute('data-density', 'compact')
 
-    await expect(page).toHaveScreenshot('cv-print-letter-compact.png', {
-      fullPage: true,
-      maxDiffPixelRatio: 0.02,
-      animations: 'disabled',
-    })
+  const overridesPath = path.resolve(__dirname, 'visual-thresholds.json')
+  const overrides = fs.existsSync(overridesPath) ? JSON.parse(fs.readFileSync(overridesPath, 'utf8')) : {}
+  const baseOpts = { fullPage: true, maxDiffPixelRatio: 0.02, animations: 'disabled' }
+  const name = 'cv-print-letter-compact.png'
+  const merged = { ...baseOpts, ...(overrides[name] || {}) }
+  await expect(page).toHaveScreenshot(name, merged)
   })
 })

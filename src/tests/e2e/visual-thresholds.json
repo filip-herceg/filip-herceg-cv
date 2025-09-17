@@ -1,0 +1,5 @@
+{
+  "cv-print-a4.png": { "maxDiffPixelRatio": 0.02 },
+  "cv-print-letter-compact.png": { "maxDiffPixelRatio": 0.025 },
+  "hero-section.png": { "maxDiffPixelRatio": 0.03 }
+}

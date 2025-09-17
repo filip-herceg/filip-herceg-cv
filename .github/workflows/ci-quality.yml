@@ -59,6 +59,20 @@ jobs:
         run: npm run build
       - name: Tests (with coverage)
         run: npm test -- --coverage
+      - name: Visual baselines verify
+        run: npm run test:visual:verify
+      - name: Generate visual variance report
+        run: npm run test:visual:variance
+      - name: Upload visual variance report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-variance
+          path: reports/tests/visual-variance
+          retention-days: 7
+      - name: Visual variance summary
+        if: always()
+        run: npm run test:visual:variance:summary
       - name: Upload reports (lint, docs, budgets)
         uses: actions/upload-artifact@v4
         if: always()

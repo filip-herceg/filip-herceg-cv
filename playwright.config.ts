@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test'
+import { defineConfig, devices } from '@playwright/test'
 
 const PORT = Number(process.env.PORT || 3000)
 const BASE = process.env.BASE_URL || `http://127.0.0.1:${PORT}`
@@ -23,4 +23,15 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
+  // Two projects allow easily running different envs if needed later (e.g., compact-specific toggles)
+  projects: [
+    {
+      name: 'default',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'compact-baseline',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
 })

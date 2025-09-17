@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+  "test:visual:verify": "node scripts/verify-visual-baselines.mjs",
+  "test:visual:variance": "node scripts/visual-variance.mjs",
+  "test:visual:variance:summary": "node scripts/visual-variance-summary.mjs",
     "dev": "next dev",
   "build": "rimraf .next && next build",
   "start": "next start",

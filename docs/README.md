@@ -25,6 +25,7 @@ Unified hierarchical structure (Product, Architecture, Engineering, Operations, 
 - Development Workflow (`engineering/process/development-workflow.md`)
 - CI/CD Strategy (`engineering/process/ci-cd.md`)
 - ESM Migration Plan (`engineering/process/esm-migration-plan.md`)
+- Visual Testing & Baselines (`engineering/process/visual-testing.md`)
 - Refactor Program (`engineering/refactoring/refactor-program.md`)
 - Rate Limiter Refactor (`engineering/refactoring/rate-limiter-refactor.md`)
 
