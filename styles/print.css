@@ -1,3 +1,6 @@
+/* a11y utilities */
+@import './sr-only.css';
+
 /* Print specific adjustments – imported only by /cv/print route to avoid global impact */
 @media print {
   @page {

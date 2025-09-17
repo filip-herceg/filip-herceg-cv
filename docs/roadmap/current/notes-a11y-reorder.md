@@ -1,0 +1,2 @@
+- Implemented accessible keyboard reordering for exports sections editor.
+- Uses roving tabindex, lift/move/cancel; aria-live announcements.

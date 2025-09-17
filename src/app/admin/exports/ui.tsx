@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import RovingReorder from '@/components/a11y/RovingReorder'
 import { PRESET_BUILDERS } from '@/lib/export/presets'
 
 interface SectionInput { key: string; limit?: number }
@@ -35,33 +36,35 @@ function SectionEditor({ draft, setDraft }: SectionEditorProps) {
     setDraft({ ...draft, sections: [...draft.sections, { key: remaining }] })
   }
   function remove(idx: number) { setDraft({ ...draft, sections: draft.sections.filter((_,i)=>i!==idx) }) }
-  function move(idx: number, dir: -1 | 1) {
-    const to = idx + dir; if (to < 0 || to >= draft.sections.length) return
-    const next = [...draft.sections]; const [item] = next.splice(idx,1); next.splice(to,0,item)
-    setDraft({ ...draft, sections: next })
-  }
+  function onReorder(next: SectionInput[]) { setDraft({ ...draft, sections: next }) }
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium">Sections</h4>
         <button type="button" onClick={add} className="text-xs px-2 py-1 border rounded hover:bg-accent">Add</button>
       </div>
-      <ul className="space-y-1">
-        {draft.sections.map((s,i)=> (
-          <li key={s.key} className="flex items-center gap-2 text-xs border rounded px-2 py-1">
+      <RovingReorder
+        items={draft.sections}
+        onReorder={onReorder}
+        getId={(s)=>s.key}
+        getLabel={(s,i)=>`${s.key} section at position ${i+1}`}
+        ariaLabel="Reorder sections"
+        renderItem={(s,i,grabbed)=> (
+          <div className="flex items-center gap-2 text-xs border rounded px-2 py-1">
             <span className="font-mono">{i+1}.</span>
             <select aria-label={`Section ${i+1} key`} className="bg-transparent text-xs" value={s.key} onChange={e=>update(i,{ key:e.target.value })}>
               {sectionOptions.map(opt => <option key={opt} disabled={draft.sections.some(sec => sec.key === opt) && opt!==s.key}>{opt}</option>)}
             </select>
             <input aria-label={`Section ${i+1} limit`} className="w-16 border px-1 text-xs" placeholder="limit" value={s.limit ?? ''} onChange={e=>update(i,{ limit: e.target.value ? parseInt(e.target.value,10): undefined })} />
             <div className="ml-auto flex gap-1">
-              <button type="button" aria-label="Move up" onClick={()=>move(i,-1)} className="px-1 border rounded">↑</button>
-              <button type="button" aria-label="Move down" onClick={()=>move(i,1)} className="px-1 border rounded">↓</button>
+              <button type="button" aria-label="Move up" onClick={()=> onReorder(i>0 ? (()=>{ const next=[...draft.sections]; const [it]=next.splice(i,1); next.splice(i-1,0,it); return next })() : draft.sections)} className="px-1 border rounded" disabled={i===0}>↑</button>
+              <button type="button" aria-label="Move down" onClick={()=> onReorder(i<draft.sections.length-1 ? (()=>{ const next=[...draft.sections]; const [it]=next.splice(i,1); next.splice(i+1,0,it); return next })() : draft.sections)} className="px-1 border rounded" disabled={i===draft.sections.length-1}>↓</button>
               <button type="button" aria-label="Remove" onClick={()=>remove(i)} className="px-1 border rounded text-destructive">✕</button>
             </div>
-          </li>
-        ))}
-      </ul>
+            {grabbed && <span className="sr-only"> Lifting</span>}
+          </div>
+        )}
+      />
     </div>
   )
 }
