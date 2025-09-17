@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, feature/** ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install
+        run: npm ci
+      - name: Quality (lint+typecheck+tests+build budgets)
+        run: npm run ci:quality
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            coverage/**
+            reports/lint/**
+
+  bench:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install
+        run: npm ci
+      - name: Run PDF bench and append trend
+        env:
+          CHROMIUM_PATH: C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe
+        run: |
+          npm run bench:pdf:trend
+      - name: Upload bench artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench
+          path: reports/bench/**

@@ -207,6 +207,10 @@ metrics:
 Label `grafana_dashboard=1` is added; many Grafana sidecar importers watch for this automatically. Dashboard panels expect standard Node.js / prom-client metrics.
 Additional panel added: CV aggregate loads by source (`cv_aggregate_loads_total{source}`) distinguishing `empty` onboarding placeholder vs real `db` content. After initial admin population, `empty` series should approach zero.
 
+Bench synthetic metric:
+- CI (Windows) runs `npm run bench:pdf:trend` which appends a row to `reports/bench/trend.csv` based on the latest PDF bench.
+- The metrics endpoint parses the latest row and exposes `pdf_bench_warm_p50_seconds{source="ci"}` to allow tracking bench p50 alongside live SLOs.
+
 Required repository secrets:
 
 - `K8S_SERVER` – API server URL
