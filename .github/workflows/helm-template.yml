@@ -1,0 +1,30 @@
+name: Helm Template
+
+on:
+  push:
+    branches: [ main, feature/** ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  template:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.3
+
+      - name: Render templates
+        run: |
+          mkdir -p ./reports/helm
+          helm template cv ./helm --values ./helm/values.yaml > ./reports/helm/rendered.yaml
+
+      - name: Upload rendered manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-render
+          path: reports/helm
