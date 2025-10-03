@@ -92,13 +92,27 @@ metrics:
       threshold: 0.01
       window: 15m
       for: 10m
+    # Busy ratio alert: share of 503 busy responses over window
+    busyRatio:
+      threshold: 0.1
+      window: 10m
+      for: 10m
     # p95 export duration alert in seconds over rate window
     p95DurationSeconds:
       threshold: 2.5
       window: 5m
       for: 15m
+    # p95 DOM ready duration high (seconds)
+    domP95Seconds:
+      threshold: 1.0
+      window: 5m
+      for: 10m
     # p95 acquire duration (pool contention) in seconds
     acquireP95Seconds:
       threshold: 0.5
       window: 5m
       for: 10m
+    # CI bench budget for warm p50 (seconds); compares gauge pdf_bench_warm_p50_seconds
+    benchWarmP50Seconds:
+      threshold: 0.6
+      for: 0m

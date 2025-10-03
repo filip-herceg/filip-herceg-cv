@@ -69,4 +69,49 @@ spec:
             description: |-
               p95 acquire time above {{ .Values.metrics.alerts.acquireP95Seconds.threshold }}s for {{ .Values.metrics.alerts.acquireP95Seconds.for }}.
               Indicates pool contention or stuck pages. Check pool utilization, total/busy gauges, and release hygiene.
+
+        # PDF busy ratio high (SLA guardrail triggering frequently)
+        - alert: CVPdfBusyRatioHigh
+          expr: |
+            sum(rate(pdf_requests_total{result="busy", job='{{ include "app.fullname" . }}'}[{{ .Values.metrics.alerts.busyRatio.window }}]))
+            /
+            clamp_min(sum(rate(pdf_requests_total{job='{{ include "app.fullname" . }}'}[{{ .Values.metrics.alerts.busyRatio.window }}])), 1)
+            > {{ .Values.metrics.alerts.busyRatio.threshold }}
+          for: {{ .Values.metrics.alerts.busyRatio.for }}
+          labels:
+            severity: warning
+            app_kubernetes_io_instance: {{ .Release.Name }}
+          annotations:
+            summary: "PDF busy ratio high"
+            description: |-
+              A significant portion of requests are returning 503 busy due to pool contention.
+              Consider scaling replicas or increasing pool size, and review acquire p95.
+
+        # DOMContentLoaded p95 high (template/network slowness)
+        - alert: CVPdfDomP95High
+          expr: |
+            histogram_quantile(0.95, sum by (le) (rate(pdf_render_dom_duration_seconds_bucket{job='{{ include "app.fullname" . }}'}[{{ .Values.metrics.alerts.domP95Seconds.window }}])))
+            > {{ .Values.metrics.alerts.domP95Seconds.threshold }}
+          for: {{ .Values.metrics.alerts.domP95Seconds.for }}
+          labels:
+            severity: warning
+            app_kubernetes_io_instance: {{ .Release.Name }}
+          annotations:
+            summary: "PDF DOM p95 high"
+            description: |-
+              DOMContentLoaded p95 exceeds {{ .Values.metrics.alerts.domP95Seconds.threshold }}s.
+              Indicates slow template rendering or upstream network latency before print.
+
+        # CI bench warm p50 budget exceeded (synthetic metric)
+        - alert: CVPdfBenchWarmP50BudgetExceeded
+          expr: pdf_bench_warm_p50_seconds{job='{{ include "app.fullname" . }}'} > {{ .Values.metrics.alerts.benchWarmP50Seconds.threshold }}
+          for: {{ .Values.metrics.alerts.benchWarmP50Seconds.for }}
+          labels:
+            severity: info
+            app_kubernetes_io_instance: {{ .Release.Name }}
+          annotations:
+            summary: "CI bench warm p50 above budget"
+            description: |-
+              Latest CI benchmark warm p50 is above {{ .Values.metrics.alerts.benchWarmP50Seconds.threshold }}s.
+              Review recent changes impacting PDF performance.
 {{- end }}
