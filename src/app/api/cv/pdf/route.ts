@@ -80,8 +80,16 @@ export async function GET(req: NextRequest) {
   const base = buildBaseUrl(req)
   const target = buildTargetUrl(base, selection)
 
-  // Cache handling
-  const cacheKey = PdfCache.hash(selection as Record<string, unknown>)
+  // Cache handling: use robust, versioned cache key (aligned with export route)
+  const cacheKey = (() => {
+    const robust = PdfCache.buildRobustKey({
+      presetId: null,
+      // Bind selection as filters to make key sensitive to query-based selection
+      filters: { skills: selection.skills, projects: selection.projects, mode: selection.mode },
+      locale: 'en',
+    })
+    return `pdf:${robust}`
+  })()
   const span = startSpan('pdf.generate', { cacheKey })
   // Timed cache get
   const cacheTimerEnd = (pdfCacheGetDurationSeconds as unknown as { startTimer?: (l: Record<string,string>) => (l2?: Record<string,string>) => void }).startTimer?.({ backend: pdfCache.kind })

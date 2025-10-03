@@ -1,5 +1,6 @@
 import crypto from 'crypto'
-import { pdfCacheEntries, pdfCacheHitsTotal, pdfCacheMissesTotal, pdfCacheGetDurationSeconds, pdfCacheEvictionsTotal } from './metrics'
+import { pdfCacheEntries, pdfCacheHitsTotal, pdfCacheMissesTotal, pdfCacheGetDurationSeconds, pdfCacheEvictionsTotal, pdfCacheKeyVersion } from './metrics'
+import { PDF_CACHE_KEY_VERSION } from './constants'
 import { logger } from './logger'
 
 // Pluggable backends: memory (default), redis, s3 (object store). Focus on simple get/set semantics.
@@ -165,6 +166,28 @@ export class PdfCache {
     this.backend = this.createBackend()
   }
   static hash(selection: Record<string, unknown>): string { return crypto.createHash('sha256').update(JSON.stringify(selection)).digest('hex').slice(0, 32) }
+  // Robust key builder for exports: hash(presetId|sections|filters|design|locale)+version
+  static buildRobustKey(input: {
+    presetId?: string | number | null
+    sections?: unknown
+    filters?: unknown
+    design?: unknown
+    locale?: string
+  }): string {
+    const h = crypto.createHash('sha256')
+    const parts = [
+      input.presetId != null ? String(input.presetId) : '',
+      JSON.stringify(input.sections ?? {}),
+      JSON.stringify(input.filters ?? {}),
+      JSON.stringify(input.design ?? {}),
+      String(input.locale || 'en'),
+    ]
+    h.update(parts.join('|'))
+    const digest = h.digest('hex').slice(0, 24)
+    // Emit version indicator once per process
+    try { pdfCacheKeyVersion.set({ version: PDF_CACHE_KEY_VERSION }, 1) } catch { /* ignore */ }
+    return `${digest}:${PDF_CACHE_KEY_VERSION}`
+  }
   private createBackend(): PdfCacheBackend {
     const mode = (process.env.PDF_CACHE_BACKEND || '').toLowerCase()
     if (mode === 'redis') return new RedisPdfCache()

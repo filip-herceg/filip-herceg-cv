@@ -6,7 +6,7 @@ import { requireAdmin } from '@/lib/auth/guard'
 import { ExportConfigInputSchema, type ExportConfigInput } from '@/lib/export/schema'
 import { generateCvPdf } from '@/lib/pdf/generate'
 import { exportRequestsTotal, exportCacheHitTotal, exportCacheMissTotal, exportPdfSizeBytes, exportSuccessTotal, exportFailureTotal, exportDurationSeconds, exportSelectionDeriveDurationSeconds } from '@/lib/metrics'
-import { pdfCache } from '@/lib/pdf-cache'
+import { pdfCache, PdfCache as PdfCacheClass } from '@/lib/pdf-cache'
 import { withRequestContext, logEvent, logError } from '@/lib/logger'
 import crypto from 'crypto'
 import type { PrismaClient } from '@prisma/client'
@@ -156,14 +156,18 @@ async function resolveConfig(prisma: PrismaClient, body: unknown, logger: Logger
   return loaded
 }
 
-function buildCacheKey(cfg: ExportConfigInput, selectionHash: string[]): string {
-  const hash = crypto.createHash('sha256')
-    .update(JSON.stringify(cfg))
-    .update('|')
-    .update(selectionHash.join('|'))
-    .digest('hex')
-    .slice(0, 16)
-  return `export:${hash}`
+function buildCacheKey(cfg: ExportConfigInput, selectionHash: string[], locale = 'en'): string {
+  // Map export config into robust key inputs
+  const key = PdfCacheClass.buildRobustKey({
+    presetId: cfg.presetType ?? null,
+    sections: cfg.sections,
+    filters: cfg.filters,
+    design: { density: cfg.density, colorMode: cfg.colorMode, paperSize: cfg.paperSize },
+    locale,
+  })
+  // Also bind selection-specific hash parts to differentiate per selection
+  const sel = crypto.createHash('sha256').update(selectionHash.join('|')).digest('hex').slice(0, 8)
+  return `export:${key}:${sel}`
 }
 
 export async function POST(_req: NextRequest): Promise<NextResponse> {

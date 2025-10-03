@@ -134,6 +134,14 @@ export const pdfCacheEvictionsTotal = new client.Counter({
   registers: [registry],
 })
 
+// Cache key version indicator (value=1 with label=version for dashboard visibility)
+export const pdfCacheKeyVersion = new client.Gauge({
+  name: 'pdf_cache_key_version',
+  help: 'Indicator gauge for current logical PDF cache key version (value=1 for active version label)',
+  labelNames: ['version'] as const,
+  registers: [registry],
+})
+
 // Export (selective PDF) metrics
 export const exportRequestsTotal = new client.Counter({
   name: 'export_requests_total',

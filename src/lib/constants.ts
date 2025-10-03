@@ -8,6 +8,8 @@ export const PDF_CACHE_TTL_MS = 60_000 // matches aggregate cache TTL intention
 // SLA guardrail: max wait for pooled page before failing fast with 503
 export const PDF_POOL_ACQUIRE_SLA_MS = 200
 export const PDF_RETRY_AFTER_SECONDS = 1
+// Logical cache key version for PDF/export artifacts (used in cache key composition and metrics)
+export const PDF_CACHE_KEY_VERSION = 'v2'
 export const CHROMIUM_CANDIDATE_PATHS = [
   '/usr/bin/chromium',
   '/usr/bin/chromium-browser',
