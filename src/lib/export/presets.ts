@@ -82,3 +82,19 @@ export const PRESET_BUILDERS = {
   LEADERSHIP: buildLeadershipPreset,
   TECHNICAL: buildTechnicalPreset,
 } as const
+
+// Preferred default ordering and display labels for application usage.
+// 1) Full Stack (use TECHNICAL preset), 2) Generic (use COMPREHENSIVE preset), others follow.
+export const PRESET_ORDER: Array<keyof typeof PRESET_BUILDERS> = [
+  'TECHNICAL',
+  'COMPREHENSIVE',
+  'CONCISE',
+  'LEADERSHIP',
+]
+
+export const PRESET_LABELS: Record<keyof typeof PRESET_BUILDERS, string> = {
+  TECHNICAL: 'Full Stack',
+  COMPREHENSIVE: 'Generic',
+  CONCISE: 'Concise',
+  LEADERSHIP: 'Leadership',
+}

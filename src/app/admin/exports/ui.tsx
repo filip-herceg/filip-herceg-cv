@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
 import RovingReorder from '@/components/a11y/RovingReorder'
-import { PRESET_BUILDERS } from '@/lib/export/presets'
+import { PRESET_BUILDERS, PRESET_ORDER, PRESET_LABELS } from '@/lib/export/presets'
 
 interface SectionInput { key: string; limit?: number }
 interface ExportConfigDraft {
@@ -98,7 +98,7 @@ function Client({ initial, lastUsedId }: ClientProps) {
       paperSize: cfg.paperSize,
     })
     setMode('create')
-    setStatus(`Preset applied: ${type}`)
+    setStatus(`Preset applied: ${PRESET_LABELS[type]} (${type})`)
   }
   async function submitCreate(e: React.FormEvent) {
     e.preventDefault(); setStatus('Saving...')
@@ -160,10 +160,11 @@ function Client({ initial, lastUsedId }: ClientProps) {
           )}
           <div className="flex gap-1 items-center">
             <span className="text-xs text-muted-foreground">New from preset:</span>
-            <button type="button" onClick={()=>createFromPreset('COMPREHENSIVE')} className="border rounded px-2 py-1 text-xs hover:bg-accent">Comprehensive</button>
-            <button type="button" onClick={()=>createFromPreset('CONCISE')} className="border rounded px-2 py-1 text-xs hover:bg-accent">Concise</button>
-            <button type="button" onClick={()=>createFromPreset('LEADERSHIP')} className="border rounded px-2 py-1 text-xs hover:bg-accent">Leadership</button>
-            <button type="button" onClick={()=>createFromPreset('TECHNICAL')} className="border rounded px-2 py-1 text-xs hover:bg-accent">Technical</button>
+            {PRESET_ORDER.map((key)=> (
+              <button key={key} type="button" onClick={()=>createFromPreset(key)} className="border rounded px-2 py-1 text-xs hover:bg-accent">
+                {PRESET_LABELS[key]}
+              </button>
+            ))}
           </div>
           <button onClick={startCreate} className="border rounded px-3 py-1 text-sm hover:bg-accent">New</button>
         </div>
@@ -174,7 +175,7 @@ function Client({ initial, lastUsedId }: ClientProps) {
           {rows.map(r => (
             <tr key={r.id} className={`border-t ${lastUsed===r.id ? 'bg-accent/20' : ''}`}>
               <td className="p-2 font-medium">{r.name}</td>
-              <td className="p-2">{r.presetType || '-'}</td>
+              <td className="p-2">{r.presetType ? (PRESET_LABELS[r.presetType as keyof typeof PRESET_BUILDERS] || r.presetType) : '-'}</td>
               <td className="p-2 text-xs">{r.sections?.map((s: SectionInput)=>s.key).join(', ')}</td>
               <td className="p-2">{r.version}</td>
               <td className="p-2 text-xs">{new Date(r.updatedAt).toLocaleDateString()}</td>
@@ -197,7 +198,15 @@ function Client({ initial, lastUsedId }: ClientProps) {
       <div className="flex items-center justify-between"><h1 className="text-2xl font-semibold">{kind === 'create' ? 'New Config' : `Edit ${draft.name}`}</h1><button type="button" onClick={()=>{ setMode('list'); setStatus('') }} className="text-sm underline">Back</button></div>
       <div className="grid grid-cols-2 gap-4 text-sm">
         <label className="space-y-1 col-span-2"><span className="block text-xs font-medium">Name</span><input required value={draft.name} onChange={e=>setDraft({ ...draft, name: e.target.value })} className="w-full border rounded px-2 py-1" /></label>
-        <label className="space-y-1"><span className="block text-xs font-medium">Preset Type</span><select value={draft.presetType||''} onChange={e=>setDraft({ ...draft, presetType: e.target.value || undefined })} className="w-full border rounded px-2 py-1"><option value="">(none)</option><option>COMPREHENSIVE</option><option>CONCISE</option><option>LEADERSHIP</option><option>TECHNICAL</option></select></label>
+        <label className="space-y-1">
+          <span className="block text-xs font-medium">Preset Type</span>
+          <select value={draft.presetType||''} onChange={e=>setDraft({ ...draft, presetType: e.target.value || undefined })} className="w-full border rounded px-2 py-1">
+            <option value="">(none)</option>
+            {PRESET_ORDER.map((key)=> (
+              <option key={key} value={key}>{PRESET_LABELS[key]} ({key})</option>
+            ))}
+          </select>
+        </label>
   <label className="space-y-1"><span className="block text-xs font-medium">Density</span><select value={draft.density||'normal'} onChange={e=>setDraft({ ...draft, density: e.target.value as ExportConfigDraft['density'] })} className="w-full border rounded px-2 py-1"><option value="normal">Normal</option><option value="compact">Compact</option></select></label>
   <label className="space-y-1"><span className="block text-xs font-medium">Color Mode</span><select value={draft.colorMode||'auto'} onChange={e=>setDraft({ ...draft, colorMode: e.target.value as ExportConfigDraft['colorMode'] })} className="w-full border rounded px-2 py-1"><option value="auto">Auto</option><option value="monochrome">Monochrome</option></select></label>
   <label className="space-y-1"><span className="block text-xs font-medium">Paper Size</span><select value={draft.paperSize||'A4'} onChange={e=>setDraft({ ...draft, paperSize: e.target.value as ExportConfigDraft['paperSize'] })} className="w-full border rounded px-2 py-1"><option value="A4">A4</option><option value="Letter">Letter</option></select></label>
