@@ -16,6 +16,10 @@ export default function FadeInOnView({ children, delay = 0.05, y = 12, className
 
   if (prefersReducedMotion) return <div className={className}>{children}</div>
 
+  if (!mounted) {
+    return <div className={className}>{children}</div>
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y }}
@@ -25,7 +29,7 @@ export default function FadeInOnView({ children, delay = 0.05, y = 12, className
       className={className}
     >
       {/* Avoid hydration mismatch: only animate on client */}
-      {mounted ? children : <div style={{ opacity: 0 }}>{children}</div>}
+      {children}
     </motion.div>
   )
 }
