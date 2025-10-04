@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import GradientBG from '@/components/visuals/gradient-bg'
-import FadeInOnView from '@/components/visuals/fade-in-on-view'
 import { localizedMeta, localeFromHeaders, t } from '@/lib/i18n'
 
 export async function generateMetadata() {
@@ -43,19 +42,13 @@ export default function HomePage() {
       <Section className="pt-24 relative">
         <GradientBG />
         <div className="text-center max-w-2xl mx-auto">
-          <FadeInOnView>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{heading}</h1>
-          </FadeInOnView>
-          <FadeInOnView delay={0.08}>
-            <p className="mt-4 text-lg text-muted-foreground">{sub}</p>
-          </FadeInOnView>
-          <FadeInOnView delay={0.16}>
-            <div className="mt-6 flex flex-wrap gap-4 justify-center">
-              <Button variant="outline" asChild>
-                <Link href="mailto:me@example.com">{emailCta}</Link>
-              </Button>
-            </div>
-          </FadeInOnView>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{heading}</h1>
+          <p className="mt-4 text-lg text-muted-foreground">{sub}</p>
+          <div className="mt-6 flex flex-wrap gap-4 justify-center">
+            <Button variant="outline" asChild>
+              <Link href="mailto:me@example.com">{emailCta}</Link>
+            </Button>
+          </div>
         </div>
       </Section>
       <Section>
