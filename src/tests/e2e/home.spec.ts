@@ -5,6 +5,7 @@ import { test, expect } from '@playwright/test'
 
 test('home page renders and has hero copy', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: /Hi, I'm Filip Herceg/i })).toBeVisible()
+  const heroHeading = page.getByRole('heading', { level: 1 }).filter({ hasText: /Filip Herceg/i })
+  await expect(heroHeading).toBeVisible()
 })
 
