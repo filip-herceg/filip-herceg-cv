@@ -5,6 +5,9 @@ on:
       image_tag:
         description: 'Image tag (default latest)'
         required: false
+      staging_base_url:
+        description: 'Override staging base URL for smoke checks'
+        required: false
       promote_to_prod:
         description: 'Automatically trigger prod deploy if successful'
         type: boolean
@@ -21,6 +24,7 @@ permissions:
   packages: read
 env:
   NAMESPACE: cv-staging
+  STAGING_BASE_URL: ''
 jobs:
   deploy:
     # environment: staging  # Uncomment after creating the 'staging' environment in repo settings
@@ -60,6 +64,18 @@ jobs:
         run: docker pull ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.tag }}
       - name: Setup Helm
         uses: azure/setup-helm@v4
+      - name: Resolve staging base URL
+        id: resolve_staging_url
+        run: |
+          base='${{ github.event.inputs.staging_base_url }}'
+          if [ -z "$base" ]; then
+            echo "No staging base URL provided; health/metrics checks will be skipped"
+            echo "STAGING_BASE_URL=" >> $GITHUB_ENV
+          else
+            echo "Using staging base URL: $base"
+            echo "STAGING_BASE_URL=$base" >> $GITHUB_ENV
+            echo "url=$base" >> $GITHUB_OUTPUT
+          fi
       - name: Helm upgrade (staging)
         run: |
           helm upgrade --install cv ./helm \
@@ -68,6 +84,30 @@ jobs:
             --set image.repository=ghcr.io/${{ github.repository }} \
             --set image.tag=${{ steps.tag.outputs.tag }} \
             --atomic --timeout 5m
+      - name: Wait for healthz
+        if: ${{ env.STAGING_BASE_URL != '' }}
+        run: |
+          set -euo pipefail
+          echo "Waiting for $STAGING_BASE_URL/api/healthz"
+          for i in $(seq 1 30); do
+            if curl -fsS "$STAGING_BASE_URL/api/healthz" >/dev/null; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Attempt $i/30 failed; retrying in 10s"
+            sleep 10
+          done
+          echo "Health check failed after 30 attempts" >&2
+          exit 1
+      - name: Smoke test metrics endpoint
+        if: ${{ env.STAGING_BASE_URL != '' }}
+        run: |
+          set -euo pipefail
+          metrics_url="${STAGING_BASE_URL%/}/api/metrics"
+          echo "Fetching metrics from $metrics_url"
+          curl -fsS "$metrics_url" -o metrics.txt
+          docker run --rm -i prom/prometheus promtool check metrics < metrics.txt
+          rm -f metrics.txt
       - name: Output note
         run: echo "Staging deployed tag=${{ steps.tag.outputs.tag }}"
   promote:
