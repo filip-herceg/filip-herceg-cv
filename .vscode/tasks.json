@@ -57,8 +57,11 @@
 			"options": {
 				"env": {
 					"PORT": "3000",
+					"HOSTNAME": "127.0.0.1",
 					"CV_STORAGE": "memory",
-					"CV_AUTO_SEED": "false"
+					"CV_AUTO_SEED": "false",
+					"SHARE_TOKEN_SECRET": "local-dev-secret",
+					"SHARE_TOKENS_ALLOW_FALLBACK": "1"
 				}
 			},
 			"dependsOn": [
@@ -94,7 +97,9 @@
 					"HOSTNAME": "127.0.0.1",
 					"CV_STORAGE": "memory",
 					"CV_AUTO_SEED": "false",
-					"CHROMIUM_PATH": "C:/Program Files/Microsoft/Edge/Application/msedge.exe"
+					"CHROMIUM_PATH": "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+					"SHARE_TOKEN_SECRET": "local-dev-secret",
+					"SHARE_TOKENS_ALLOW_FALLBACK": "1"
 				}
 			},
 			"dependsOn": [

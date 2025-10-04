@@ -33,8 +33,38 @@ jobs:
       - name: Run Lighthouse CI
         run: npm run lhci:reports
 
+      - name: Run Accessibility (pa11y)
+        run: npm run test:a11y:report
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.3
+
+      - name: Render Helm templates
+        run: |
+          mkdir -p ./reports/helm
+          helm template cv ./helm --values ./helm/values.yaml > ./reports/helm/rendered.yaml
+
+      - name: Generate Reports index.html
+        shell: bash
+        run: |
+          node -e "const fs=require('fs'); const path='reports/lighthouse'; let items=[]; if(fs.existsSync(path)){ items=fs.readdirSync(path).filter(f=>f.endsWith('.html')); } const html=`<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>QA Reports</title><style>body{font-family:system-ui,sans-serif;padding:1rem;line-height:1.4}.grid{display:grid;gap:.5rem}</style></head><body><h1>QA Reports</h1><div class=grid><div><h2>Lighthouse</h2><ul>${items.map(f=>`<li><a href=\"lighthouse/${f}\">${f}</a></li>`).join('')||'<li>(no html files found)</li>'}</ul></div><div><h2>Accessibility</h2><p><a href=\"a11y/pa11y-report.json\">pa11y-report.json</a></p></div><div><h2>Helm</h2><p><a href=\"helm/rendered.yaml\">rendered.yaml</a></p></div></div></body></html>`; fs.writeFileSync('reports/index.html', html);"
+
       - name: Upload Lighthouse reports
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-reports
           path: reports/lighthouse
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact (reports)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

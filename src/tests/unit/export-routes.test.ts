@@ -99,6 +99,13 @@ vi.mock('@/lib/pdf-cache', () => ({
   pdfCache: {
     async get(key: string) { return pdfCacheStore.get(key) },
     async set(key: string, val: Uint8Array) { pdfCacheStore.set(key, val) }
+  },
+  // Provide minimal PdfCache static used by the route for robust key building
+  PdfCache: {
+    buildRobustKey(input: unknown) {
+      // Deterministic string based on input to keep cache keys stable across calls
+      try { return 'mock:' + JSON.stringify(input) } catch { return 'mock:err' }
+    }
   }
 }))
 
