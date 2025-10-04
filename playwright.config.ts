@@ -7,10 +7,10 @@ const webServer = process.env.SKIP_WEB_SERVER
   ? undefined
   : {
   // Run a production server to match real behavior and avoid dev-only warnings
-  command: 'npm run build && npm run serve',
+  command: 'node scripts/playwright-webserver.mjs',
     url: BASE,
   timeout: 180_000,
-  reuseExistingServer: true,
+  reuseExistingServer: false,
     env: { PORT: String(PORT), HOSTNAME: '127.0.0.1' },
   }
 
